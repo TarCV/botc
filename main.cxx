@@ -57,17 +57,29 @@ int main (int argc, char** argv) {
 		exit (1);
 	}
 	
+	// Print header
+	str header;
+	str headerline = "=-";
+	header.appendformat ("%s version %d.%d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
+	headerline.repeat ((header.len()/2)-1);
+	printf ("%s\n%s\n", header.chars(), headerline.chars());
+	
+	// Prepare reader and writer
 	str infile = argv[1];
 	str outfile = argv[2];
-	
 	ScriptReader *r = new ScriptReader (infile);
 	ObjWriter *w = new ObjWriter (outfile);
 	
-	// Alrite, we're set, begin parsing :)
+	// We're set, begin parsing :)
 	r->BeginParse (w);
 	
+	// Clear out the junk afterwards
 	delete r;
 	delete w;
+	
+	// Print statistics
+	printf ("%d states written\n", g_NumStates);
+	printf ("%d events written\n", g_NumEvents);
 }
 
 void error (const char* text, ...) {

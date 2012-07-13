@@ -48,10 +48,8 @@
 #include "bots.h"
 
 ObjWriter::ObjWriter (str path) {
-	numstates = 0;
-	
 	fp = fopen (path, "w");
-	CHECK_FILE (path, "writing");
+	CHECK_FILE (fp, path, "writing");
 }
 
 ObjWriter::~ObjWriter () {
@@ -69,16 +67,4 @@ void ObjWriter::WriteString (const char* s) {
 
 void ObjWriter::WriteString (str s) {
 	WriteString (s.chars());
-}
-
-// Writes a state label
-void ObjWriter::WriteState (str name) {
-	printf ("write state %s\n", (char*)name);
-	Write (DH_STATENAME);
-	Write (name.len());
-	WriteString (name);
-	Write (DH_STATEIDX);
-	Write (numstates);
-	
-	numstates++;
 }
