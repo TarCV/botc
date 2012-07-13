@@ -55,11 +55,15 @@ bool IsWhitespace (char c) {
 
 ScriptReader::ScriptReader (str path) {
 	fp = fopen (path, "r");
-	CHECK_FILE (path, "reading");
+	CHECK_FILE (fp, path, "reading");
 	
 	curline = 1;
 	pos = 0;
 	token = "";
+}
+
+ScriptReader::~ScriptReader () {
+	fclose (fp);
 }
 
 char ScriptReader::ReadChar () {

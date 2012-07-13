@@ -38,6 +38,8 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define __PARSER_CXX__
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "common.h"
@@ -47,17 +49,27 @@
 
 #define TOKEN_CHARS token.chars()
 #define TOKEN_IS(s) !token.compare (s)
-#define MUST_TOPLEVEL if (curmode != MODE_TOPLEVEL) \
+#define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
 	ParseError ("%ss may only be defined at top level!", token.chars());
 
+int g_NumStates = 0;
+int g_NumEvents = 0;
+int g_CurMode = MODE_TOPLEVEL;
+str g_CurState = "";
+
 void ScriptReader::BeginParse (ObjWriter* w) {
-	// Script starts at top level
-	curmode = MODE_TOPLEVEL;
-	curstate = "";
-	
 	while (Next()) {
-		printf ("got token %s\n", (char*)token);
-		if (TOKEN_IS ("state")) {
+		// printf ("got token %s\n", token.chars());
+		if (TOKEN_IS ("#include")) {
+			MustNext ();
+			// First ensure that the file can be opened
+			FILE* newfile = fopen (token.chars(), "r");
+			if (!newfile)
+				ParseError ("couldn't open included file `%s`!", token.chars());
+			fclose (newfile);
+			ScriptReader* newreader = new ScriptReader (token.chars());
+			newreader->BeginParse (w);
+		} else if (TOKEN_IS ("state")) {
 			MUST_TOPLEVEL
 			
 			MustNext ();
@@ -68,12 +80,17 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			if (statename.first (" ") != statename.len())
 				ParseError ("state name must be a single word! got `%s`", (char*)statename);
 			
-			
 			// Must end in a colon
 			MustNext (":");
 			
-			w->WriteState (statename);
-			curstate = statename;
+			w->Write (DH_STATENAME);
+			w->Write (statename.len());
+			w->WriteString (statename);
+			w->Write (DH_STATEIDX);
+			w->Write (g_NumStates);
+			
+			g_NumStates++;
+			g_CurState = statename;
 		} else if (TOKEN_IS ("event")) {
 			MUST_TOPLEVEL
 			
@@ -95,18 +112,18 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			MustNext ("{");
 			
-			curmode = MODE_EVENT;
+			g_CurMode = MODE_EVENT;
 			
 			w->Write (DH_EVENT);
 			// w->Write<long> (u);
-			numevents++;
+			g_NumEvents++;
 		} else if (TOKEN_IS ("}")) {
 			// Closing brace..
-			switch (curmode) {
+			switch (g_CurMode) {
 			case MODE_EVENT:
 				// Brace closes event.
 				w->Write (DH_ENDEVENT);
-				curmode = MODE_TOPLEVEL;
+				g_CurMode = MODE_TOPLEVEL;
 				break;
 			default:
 				ParseError ("unexpected `}`");
@@ -116,7 +133,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		}
 	}
 	
-	if (curmode != MODE_TOPLEVEL)
+	if (g_CurMode != MODE_TOPLEVEL)
 		ParseError ("script did not end at top level! did you forget a `}`?\n");
 	
 	/*

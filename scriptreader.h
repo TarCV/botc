@@ -53,18 +53,18 @@ enum parsermode {
 
 class ScriptReader {
 public:
+	// ====================================================================
+	// MEMBERS
 	FILE* fp;
 	unsigned int pos;
 	unsigned int curline;
 	str token;
 	bool tokenquoted;
 	
-	parsermode curmode;
-	str curstate;
-	
-	unsigned int numevents;
-	
+	// ====================================================================
+	// METHODS
 	ScriptReader (str path);
+	~ScriptReader ();
 	char ReadChar ();
 	bool Next ();
 	str PeekNext ();

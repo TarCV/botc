@@ -47,15 +47,17 @@
 
 class ObjWriter {
 public:
+	// ====================================================================
+	// MEMBERS
 	FILE* fp;
-	int numstates;
 	
+	// ====================================================================
+	// METHODS
 	ObjWriter (str path);
 	~ObjWriter ();
 	void WriteString (char* s);
 	void WriteString (const char* s);
 	void WriteString (str s);
-	void WriteState (str name);
 	
 	template <class T> void Write (T stuff) {
 		fwrite (&stuff, sizeof (T), 1, fp);

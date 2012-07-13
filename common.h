@@ -45,14 +45,21 @@
 #include "bots.h"
 #include "str.h"
 
-typedef unsigned long	qbyte;
+#define APPNAME "botc"
+#define VERSION_MAJOR 0
+#define VERSION_MINOR 0
+#define VERSION_REVISION 999
 
-#define CHECK_FILE(path,action) if (!fp) { \
-	fprintf (stderr, "error: couldn't open %s for %s!\n", (char*)path, action); \
-	exit (1); \
+typedef unsigned long qbyte;
+
+#define CHECK_FILE(pointer,path,action) \
+	if (!pointer) { \
+		error ("couldn't open %s for %s!\n", (char*)path, action); \
+		exit (1); \
 	}
 
-#define PERFORM_FORMAT(in, out) va_list v; \
+#define PERFORM_FORMAT(in, out) \
+	va_list v; \
 	va_start (v, in); \
 	char* out = vdynformat (in, v, 256); \
 	va_end (v);
@@ -62,5 +69,12 @@ void error (const char* text, ...);
 struct EventDef {
 	str name;
 };
+
+#ifndef __PARSER_CXX__
+extern int g_NumStates;
+extern int g_NumEvents;
+extern int g_CurMode;
+extern str g_CurState;
+#endif
 
 #endif // __COMMON_H__
