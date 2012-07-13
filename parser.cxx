@@ -51,7 +51,7 @@
 #define TOKEN_CHARS token.chars()
 #define TOKEN_IS(s) !token.compare (s)
 #define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
-	ParseError ("%ss may only be defined at top level!", token.chars());
+	ParserError ("%ss may only be defined at top level!", token.chars());
 
 int g_NumStates = 0;
 int g_NumEvents = 0;
@@ -66,7 +66,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// First ensure that the file can be opened
 			FILE* newfile = fopen (token.chars(), "r");
 			if (!newfile)
-				ParseError ("couldn't open included file `%s`!", token.chars());
+				ParserError ("couldn't open included file `%s`!", token.chars());
 			fclose (newfile);
 			ScriptReader* newreader = new ScriptReader (token.chars());
 			newreader->BeginParse (w);
@@ -79,7 +79,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			// State name must be a word.
 			if (statename.first (" ") != statename.len())
-				ParseError ("state name must be a single word! got `%s`", (char*)statename);
+				ParserError ("state name must be a single word! got `%s`", (char*)statename);
 			
 			// Must end in a colon
 			MustNext (":");
@@ -100,7 +100,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			EventDef* e = FindEventByName (token);
 			if (!e)
-				ParseError ("bad event! got `%s`\n", token.chars());
+				ParserError ("bad event! got `%s`\n", token.chars());
 			
 			MustNext ("{");
 			
@@ -118,15 +118,15 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 				g_CurMode = MODE_TOPLEVEL;
 				break;
 			default:
-				ParseError ("unexpected `}`");
+				ParserError ("unexpected `}`");
 			}
 		} else {
-			ParseError ("unknown keyword `%s`!", TOKEN_CHARS);
+			ParserError ("unknown keyword `%s`!", TOKEN_CHARS);
 		}
 	}
 	
 	if (g_CurMode != MODE_TOPLEVEL)
-		ParseError ("script did not end at top level! did you forget a `}`?\n");
+		ParserError ("script did not end at top level! did you forget a `}`?\n");
 	
 	/*
 	// State

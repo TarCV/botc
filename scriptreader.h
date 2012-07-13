@@ -56,21 +56,25 @@ public:
 	// ====================================================================
 	// MEMBERS
 	FILE* fp;
+	str filepath;
 	unsigned int pos;
 	unsigned int curline;
 	str token;
 	bool tokenquoted;
+	bool atnewline;
 	
 	// ====================================================================
 	// METHODS
-	ScriptReader (char* path);
+	ScriptReader (str path);
 	~ScriptReader ();
 	char ReadChar ();
 	bool Next ();
 	str PeekNext ();
 	void Seek (unsigned int n, int origin);
 	void MustNext (const char* c = "");
-	void ParseError (const char* message, ...);
+	void ParserError (const char* message, ...);
+	void ParserWarning (const char* message, ...);
+	void ParserMessage (const char* header, char* message);
 	
 	void BeginParse (ObjWriter* w);
 };
