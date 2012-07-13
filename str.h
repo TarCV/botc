@@ -137,6 +137,13 @@ public:
 	int compare (const char* c);
 	int compare (str c);
 	
+	// Counts the amount of substrings in the string
+	unsigned int count (char* s);
+	
+#if 0
+	str** split (char* del);
+#endif
+	
 	// ======================================================================
 	// OPERATORS
 	str operator + (str& c);

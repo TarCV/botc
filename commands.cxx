@@ -38,55 +38,98 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
+#define __COMMANDS_CXX__
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 #include "common.h"
-
-#include "str.h"
 #include "scriptreader.h"
-#include "objwriter.h"
-#include "events.h"
+#include "str.h"
 #include "commands.h"
 
-#include "bots.h"
-#include "botcommands.h"
+CommandDef* g_CommDef;
 
-int main (int argc, char** argv) {
-	if (argc != 3) {
-		fprintf (stderr, "usage: %s: <infile> <outFile>\n", argv[0]);
-		exit (1);
+void ReadCommands () {
+	ScriptReader* r = new ScriptReader ((char*)"commands.def");
+	g_CommDef = NULL;
+	CommandDef* curdef = g_CommDef;
+	unsigned int numCommDefs = 0;
+	
+	while (r->Next()) {
+		CommandDef* comm = new CommandDef;
+		
+		int n = 0;
+		str t = "";
+		for (unsigned int u = 0; u < r->token.len(); u++) {
+			// If we're at the last character of the string, we need
+			// to both add the character to t and check it. Thus,
+			// we do the addition, exceptionally, here.
+			if (u == r->token.len() - 1 && r->token[u] != ':')
+				t += r->token[u];
+			
+			if (r->token[u] == ':' || u == r->token.len() - 1) {
+				int i = atoi (t.chars());
+				switch (n) {
+				case 0:
+					// Number
+					comm->number = i;
+					break;
+				case 1:
+					// Name
+					comm->name = t;
+					break;
+				case 2:
+					// Return value
+					t.tolower();
+					if (!t.compare ("int"))
+						comm->returnvalue = RETURNVAL_INT;
+					else if (!t.compare ("str"))
+						comm->returnvalue = RETURNVAL_STRING;
+					else if (!t.compare ("void"))
+						comm->returnvalue = RETURNVAL_VOID;
+					else if (!t.compare ("bool"))
+						comm->returnvalue = RETURNVAL_BOOLEAN;
+					else
+						r->ParseError ("bad return value type `%s`", t.chars());
+					break;
+				case 3:
+					// Num args
+					comm->numargs = i;
+					break;
+				case 4:
+					// Max args
+					comm->maxargs = i;
+					break;
+				}
+				
+				n++;
+				t = "";
+			} else {
+				t += r->token[u];
+			}
+		}
+		
+		comm->next = NULL;
+		
+		if (!g_CommDef)
+			g_CommDef = comm;
+		
+		if (!curdef) {
+			curdef = comm;
+		} else {
+			curdef->next = comm;
+			curdef = comm;
+		}
+		numCommDefs++;
 	}
 	
-	// Print header
-	str header;
-	str headerline = "=-";
-	header.appendformat ("%s version %d.%d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-	headerline.repeat ((header.len()/2)-1);
-	printf ("%s\n%s\n", header.chars(), headerline.chars());
+	/*
+	CommandDef* c;
+	ITERATE_COMMANDS (c) {
+		printf ("[%u] %s: %d, %d arguments, return type %d\n",
+			c->number, c->name.chars(), c->numargs, c->maxargs, c->returnvalue);
+	}
+	*/
 	
-	// Read definitions
-	ReadEvents ();
-	ReadCommands ();
-	
-	// Prepare reader and writer
-	ScriptReader *r = new ScriptReader (argv[1]);
-	ObjWriter *w = new ObjWriter (argv[2]);
-	
-	// We're set, begin parsing :)
-	r->BeginParse (w);
-	
-	// Clear out the junk afterwards
 	delete r;
-	delete w;
-	
-	// Print statistics
-	printf ("%d states written\n", g_NumStates);
-	printf ("%d events written\n", g_NumEvents);
-}
-
-void error (const char* text, ...) {
-	PERFORM_FORMAT (text, c);
-	fprintf (stderr, "error: %s", c);
-	exit (1);
+	printf ("%d command definitions read.\n", numCommDefs);
 }

@@ -38,6 +38,7 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define __EVENTS_CXX__
 #include <stdlib.h>
 #include <stdio.h>
 #include "common.h"
