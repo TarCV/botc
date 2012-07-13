@@ -48,6 +48,7 @@
 
 CommandDef* g_CommDef;
 
+#define MAX
 void ReadCommands () {
 	ScriptReader* r = new ScriptReader ((char*)"commands.def");
 	g_CommDef = NULL;
@@ -56,6 +57,11 @@ void ReadCommands () {
 	
 	while (r->Next()) {
 		CommandDef* comm = new CommandDef;
+		
+		// Any more than 4 is a warning, any less is an error.
+		unsigned int c = r->token.count (const_cast<char*> (":"));
+		if (c < 4)
+			r->ParserError ("not enough parameters: got %d, expected 4", c);
 		
 		int n = 0;
 		str t = "";
@@ -89,7 +95,7 @@ void ReadCommands () {
 					else if (!t.compare ("bool"))
 						comm->returnvalue = RETURNVAL_BOOLEAN;
 					else
-						r->ParseError ("bad return value type `%s`", t.chars());
+						r->ParserError ("bad return value type `%s`", t.chars());
 					break;
 				case 3:
 					// Num args
@@ -98,6 +104,9 @@ void ReadCommands () {
 				case 4:
 					// Max args
 					comm->maxargs = i;
+					break;
+				default:
+					r->ParserWarning ("too many parameters");
 					break;
 				}
 				

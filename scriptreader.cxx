@@ -53,9 +53,11 @@ bool IsWhitespace (char c) {
 	return false;
 }
 
-ScriptReader::ScriptReader (char* path) {
+ScriptReader::ScriptReader (str path) {
+	atnewline = false;
+	filepath = path;
 	if (!(fp = fopen (path, "r"))) {
-		error ("couldn't open %s for reading!\n", path);
+		error ("couldn't open %s for reading!\n", path.chars ());
 		exit (1);
 	}
 	
@@ -73,9 +75,14 @@ char ScriptReader::ReadChar () {
 	if (!fread (c, sizeof (char), 1, fp))
 		return 0;
 	
-	// If we just read a new line, increase current line number counter.
-	if (c[0] == '\n')
+	// We're at a newline, thus next char read will begin the next line
+	if (atnewline) {
+		atnewline = false;
 		curline++;
+	}
+	
+	if (c[0] == '\n')
+		atnewline = true;
 	
 	return c[0];
 }
@@ -157,17 +164,28 @@ void ScriptReader::Seek (unsigned int n, int origin) {
 void ScriptReader::MustNext (const char* c) {
 	if (!Next()) {
 		if (strlen (c))
-			ParseError ("expected `%s`, reached end of file instead\n", c);
+			ParserError ("expected `%s`, reached end of file instead\n", c);
 		else
-			ParseError ("expected a token, reached end of file instead\n");
+			ParserError ("expected a token, reached end of file instead\n");
 	}
 	
 	if (strlen (c) && token.compare (c) != 0) {
-		ParseError ("expected `%s`, got `%s` instead", c, token.chars());
+		ParserError ("expected `%s`, got `%s` instead", c, token.chars());
 	}
 }
 
-void ScriptReader::ParseError (const char* message, ...) {
+void ScriptReader::ParserError (const char* message, ...) {
 	PERFORM_FORMAT (message, outmessage);
-	error ("Parse error on line %d:\n%s\n", curline, outmessage);
+	ParserMessage ("\nParse error\n", outmessage);
+	exit (1);
+}
+
+void ScriptReader::ParserWarning (const char* message, ...) {
+	PERFORM_FORMAT (message, outmessage);
+	ParserMessage ("Warning: ", outmessage);
+}
+
+void ScriptReader::ParserMessage (const char* header, char* message) {
+	fprintf (stderr, "%sIn file %s, on line %d: %s\n",
+		header, filepath.chars(), curline, message);
 }
