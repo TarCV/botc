@@ -38,136 +38,70 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include "string.h"
-#include "str.h"
+#include <stdio.h>
 #include "common.h"
 #include "scriptreader.h"
+#include "str.h"
+#include "events.h"
 
-bool IsWhitespace (char c) {
-	// These characters are invisible, thus considered whitespace
-	if (c <= 32 || c == 127 || c == 255)
-		return true;
-	
-	return false;
-}
-
-ScriptReader::ScriptReader (char* path) {
-	if (!(fp = fopen (path, "r"))) {
-		error ("couldn't open %s for reading!\n", path);
-		exit (1);
-	}
-	
-	curline = 1;
-	pos = 0;
-	token = "";
-}
-
-ScriptReader::~ScriptReader () {
-	fclose (fp);
-}
-
-char ScriptReader::ReadChar () {
-	char* c = (char*)malloc (sizeof (char));
-	if (!fread (c, sizeof (char), 1, fp))
-		return 0;
-	
-	// If we just read a new line, increase current line number counter.
-	if (c[0] == '\n')
-		curline++;
-	
-	return c[0];
-}
-
-// true if was found, false if not.
-bool ScriptReader::Next () {
-	str tmp = "";
-	bool quote = false;
-	tokenquoted = false;
-	while (!feof (fp)) {
-		char c = ReadChar ();
+EventDef* g_EventDef;
+void ReadEvents () {
+	ScriptReader* r = new ScriptReader ((char*)"events.def");
+	g_EventDef = NULL;
+	EventDef* curdef = g_EventDef;
+	unsigned int numEventDefs = 0;
+	while (r->Next()) {
+		EventDef* e = new EventDef;
+		e->name = r->token;
+		e->number = numEventDefs;
+		e->next = NULL;
 		
-		// Quotation mark.
-		if (c == '"') {
-			// End-quote ends the token.
-			if (quote)
-				break;
-			
-			tokenquoted = true;
-			quote = !quote;
-			continue;
-		}
+		// g_EventDef becomes the first eventdef
+		if (!g_EventDef)
+			g_EventDef = e;
 		
-		if (IsWhitespace (c) && !quote) {
-			// Don't break if we haven't gathered anything yet.
-			if (tmp.len())
-				break;
+		if (!curdef) {
+			curdef = e;
 		} else {
-			tmp += c;
+			curdef->next = e;
+			curdef = e;
 		}
+		numEventDefs++;
 	}
 	
-	// If we got nothing here, read failed.
-	if (!tmp.len()) {
-		token = "";
-		return false;
-	}
-	
-	pos++;
-	token = tmp;
-	return true;
+	delete r;
+	printf ("%d event definitions read.\n", numEventDefs);
 }
 
-// Returns the next token without advancing the cursor.
-str ScriptReader::PeekNext () {
-	// Store current position
-	int cpos = ftell (fp);
-	
-	// Advance on the token.
-	if (!Next ())
-		return "";
-	
-	str tmp = token;
-	
-	// Restore position
-	fseek (fp, cpos, SEEK_SET);
-	pos--;
-	
-	return tmp;
+void UnlinkEvents (EventDef* e) {
+	if (e->next)
+		UnlinkEvents (e->next);
+	delete e;
 }
 
-void ScriptReader::Seek (unsigned int n, int origin) {
-	switch (origin) {
-	case SEEK_SET:
-		fseek (fp, 0, SEEK_SET);
-		pos = 0;
-		break;
-	case SEEK_CUR:
-		break;
-	case SEEK_END:
-		printf ("ScriptReader::Seek: SEEK_END not yet supported.\n");
-		break;
+EventDef* FindEventByIdx (unsigned int idx) {
+	EventDef* e = g_EventDef;
+	while (idx > 0) {
+		if (!e->next)
+			return NULL;
+		e = e->next;
+		idx--;
 	}
-	
-	for (unsigned int i = 0; i < n+1; i++)
-		Next();
+	return e;
 }
 
-void ScriptReader::MustNext (const char* c) {
-	if (!Next()) {
-		if (strlen (c))
-			ParseError ("expected `%s`, reached end of file instead\n", c);
-		else
-			ParseError ("expected a token, reached end of file instead\n");
+EventDef* FindEventByName (str a) {
+	a.tolower();
+	
+	EventDef* e;
+	for (e = g_EventDef; e->next != NULL; e = e->next) {
+		str b = e->name;
+		b.tolower();
+		
+		if (!a.compare (b))
+			return e;
 	}
 	
-	if (strlen (c) && token.compare (c) != 0) {
-		ParseError ("expected `%s`, got `%s` instead", c, token.chars());
-	}
-}
-
-void ScriptReader::ParseError (const char* message, ...) {
-	PERFORM_FORMAT (message, outmessage);
-	error ("Parse error on line %d:\n%s\n", curline, outmessage);
+	return NULL;
 }

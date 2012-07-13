@@ -126,6 +126,12 @@ public:
 	// Is the string a word, i.e consists only of alphabetic letters?
 	bool isword ();
 	
+	// Convert string to lower case
+	str tolower ();
+	
+	// Convert string to upper case
+	str toupper ();
+	
 	bool contentcheck (int flags);
 	
 	int compare (const char* c);

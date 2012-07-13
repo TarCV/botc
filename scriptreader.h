@@ -63,7 +63,7 @@ public:
 	
 	// ====================================================================
 	// METHODS
-	ScriptReader (str path);
+	ScriptReader (char* path);
 	~ScriptReader ();
 	char ReadChar ();
 	bool Next ();

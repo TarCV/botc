@@ -66,10 +66,6 @@ typedef unsigned long qbyte;
 
 void error (const char* text, ...);
 
-struct EventDef {
-	str name;
-};
-
 #ifndef __PARSER_CXX__
 extern int g_NumStates;
 extern int g_NumEvents;

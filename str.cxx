@@ -99,6 +99,8 @@ void str::resize (unsigned int len) {
 	
 	delete text;
 	text = new char[len+1];
+	for (unsigned int u = 0; u < len+1; u++)
+		text[u] = 0;
 	strncpy (text, oldtext, len);
 	
 	alloclen = len;
@@ -107,7 +109,7 @@ void str::resize (unsigned int len) {
 // ============================================================================
 void str::dump () {
 	for (unsigned int u = 0; u <= alloclen; u++)
-		printf ("\t%u. %d (%c)\n", u, text[u], text[u]);
+		printf ("\t%u. %u (%c)\n", u, text[u], text[u]);
 }
 
 // ============================================================================
@@ -116,7 +118,6 @@ void str::append (char c) {
 	// Out of space, thus resize
 	if (curs == alloclen)
 		resize (alloclen+1);
-	
 	text[curs] = c;
 	curs++;
 }
@@ -345,6 +346,30 @@ int str::compare (const char* c) {
 
 int str::compare (str c) {
 	return compare (c.chars());
+}
+
+// ============================================================================
+str str::tolower () {
+	str n = text;
+	
+	for (uint u = 0; u < len(); u++) {
+		if (n[u] > 'A' && n[u] < 'Z')
+			n.text[u] += ('a' - 'A');
+	}
+	
+	return n;
+}
+
+// ============================================================================
+str str::toupper () {
+	str n = text;
+	
+	for (uint u = 0; u < len(); u++) {
+		if (n[u] > 'a' && n[u] < 'z')
+			n.text[u] -= ('A' - 'a');
+	}
+	
+	return n;
 }
 
 // ============================================================================
