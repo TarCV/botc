@@ -46,7 +46,6 @@
 #include "str.h"
 #include "scriptreader.h"
 #include "objwriter.h"
-#include "parser.h"
 #include "events.h"
 
 #include "bots.h"
