@@ -46,6 +46,7 @@
 #include "str.h"
 #include "objwriter.h"
 #include "scriptreader.h"
+#include "events.h"
 
 #define TOKEN_CHARS token.chars()
 #define TOKEN_IS(s) !token.compare (s)
@@ -97,25 +98,16 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// Event definition
 			MustNext ();
 			
-			// TODO: make a data file for bot events and read it
-#if 0
-			unsigned int u;
-			for (u = 0; u < NUM_BOTEVENTS; u++) {
-				if (!BotEvents[u].name.compare (token))
-					break;
-			}
-			
-			if (u == NUM_BOTEVENTS)
+			EventDef* e = FindEventByName (token);
+			if (!e)
 				ParseError ("bad event! got `%s`\n", token.chars());
-			
-#endif
 			
 			MustNext ("{");
 			
 			g_CurMode = MODE_EVENT;
 			
 			w->Write (DH_EVENT);
-			// w->Write<long> (u);
+			w->Write<long> (e->number);
 			g_NumEvents++;
 		} else if (TOKEN_IS ("}")) {
 			// Closing brace..

@@ -38,54 +38,20 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "common.h"
+#ifndef __EVENT_H__
+#define __EVENT_H__
 
 #include "str.h"
-#include "scriptreader.h"
-#include "objwriter.h"
-#include "parser.h"
-#include "events.h"
 
-#include "bots.h"
-#include "botcommands.h"
+struct EventDef {
+	str name;
+	int number;
+	EventDef* next;
+};
 
-int main (int argc, char** argv) {
-	if (argc != 3) {
-		fprintf (stderr, "usage: %s: <infile> <outFile>\n", argv[0]);
-		exit (1);
-	}
-	
-	// Print header
-	str header;
-	str headerline = "=-";
-	header.appendformat ("%s version %d.%d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-	headerline.repeat ((header.len()/2)-1);
-	printf ("%s\n%s\n", header.chars(), headerline.chars());
-	
-	// Read the event definitions
-	ReadEvents ();
-	
-	// Prepare reader and writer
-	ScriptReader *r = new ScriptReader (argv[1]);
-	ObjWriter *w = new ObjWriter (argv[2]);
-	
-	// We're set, begin parsing :)
-	r->BeginParse (w);
-	
-	// Clear out the junk afterwards
-	delete r;
-	delete w;
-	
-	// Print statistics
-	printf ("%d states written\n", g_NumStates);
-	printf ("%d events written\n", g_NumEvents);
-}
+void ReadEvents ();
+void UnlinkEvents (EventDef* e);
+EventDef* FindEventByIdx (unsigned int idx);
+EventDef* FindEventByName (str a);
 
-void error (const char* text, ...) {
-	PERFORM_FORMAT (text, c);
-	fprintf (stderr, "error: %s", c);
-	exit (1);
-}
+#endif // __EVENT_H__
