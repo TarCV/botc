@@ -11,9 +11,9 @@
  *	2. Redistributions in binary form must reproduce the above copyright notice,
  *	   this list of conditions and the following disclaimer in the documentation
  *	   and/or other materials provided with the distribution.
- *	3. Neither the name of the Skulltag Development Team nor the names of its
- *	   contributors may be used to endorse or promote products derived from this
- *	   software without specific prior written permission.
+ *	3. Neither the name of the developer nor the names of its contributors may
+ *	   be used to endorse or promote products derived from this software without
+ *	   specific prior written permission.
  *	4. Redistributions in any form must be accompanied by information on how to
  *	   obtain complete source code for the software and any accompanying
  *	   software that uses the software. The source code must either be included
