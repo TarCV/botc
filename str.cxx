@@ -373,6 +373,53 @@ str str::toupper () {
 }
 
 // ============================================================================
+unsigned int str::count (char* c) {
+	unsigned int r = 0;
+	unsigned int tmp = 0;
+	ITERATE_STRING (u) {
+		if (text[u] == c[r]) {
+			r++;
+			if (r == strlen (c)) {
+				r = 0;
+				tmp++;
+			}
+		} else {
+			if (r != 0)
+				u--;
+			r = 0;
+		}
+	}
+	
+	return tmp;
+}
+
+// ============================================================================
+#if 0
+str** str::split (char* del) {
+	unsigned int arrcount = count (del) + 1;
+	str** arr = new str* [arrcount];
+	
+	unsigned int a = 0;
+	unsigned int index = 0;
+	while (1) {
+		unsigned int b = first (del, a+1);
+		printf ("next: %u (<-> %u)\n", b, len());
+		
+		if (b == len())
+			break;
+		
+		str* x = new str;
+		x->append (substr (a, b));
+		arr[index] = x;
+		index++;
+		a = b;
+	}
+	
+	return arr;
+}
+#endif
+
+// ============================================================================
 // OPERATORS
 str str::operator + (str& c) {
 	append (c);
