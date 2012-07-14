@@ -7,7 +7,8 @@ all:
 	g++ -Wall -c -o events.o events.cxx
 	g++ -Wall -c -o commands.o commands.cxx
 	g++ -Wall -c -o stringtable.o stringtable.cxx
-	g++ -Wall -o botc scriptreader.o objwriter.o str.o main.o parser.o events.o commands.o stringtable.o
+	g++ -Wall -c -o variables.o variables.cxx
+	g++ -Wall -o botc scriptreader.o objwriter.o str.o main.o parser.o events.o commands.o stringtable.o variables.o
 
 clean:
 	rm -f *.o *~ botc

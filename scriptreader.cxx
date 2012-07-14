@@ -236,3 +236,11 @@ void ScriptReader::MustBool () {
 bool ScriptReader::BoolValue () {
 	return (!token.compare ("1") || !token.compare ("true") || !token.compare ("yes"));
 }
+
+void ScriptReader::MustValue (int type) {
+	switch (type) {
+	case RETURNVAL_INT: MustNumber (); break;
+	case RETURNVAL_STRING: MustString (); break;
+	case RETURNVAL_BOOLEAN: MustBool (); break;
+	}
+}

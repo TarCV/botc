@@ -49,6 +49,7 @@
 #include "events.h"
 #include "commands.h"
 #include "stringtable.h"
+#include "variables.h"
 
 #include "bots.h"
 #include "botcommands.h"
@@ -88,8 +89,9 @@ int main (int argc, char** argv) {
 	ReadEvents ();
 	ReadCommands ();
 	
-	// Init string table
+	// Init stuff
 	InitStringTable();
+	InitVariables ();
 	
 	// Prepare reader and writer
 	ScriptReader *r = new ScriptReader (argv[1]);
@@ -100,8 +102,10 @@ int main (int argc, char** argv) {
 	r->BeginParse (w);
 	
 	// Parse done, print statistics
-	printf ("%d states written\n", g_NumStates);
-	printf ("%d events written\n", g_NumEvents);
+	unsigned int globalcount = CountGlobalVars ();
+	printf ("%u global variable%s\n", globalcount, PLURAL (globalcount));
+	printf ("%d state%s written\n", g_NumStates, PLURAL (g_NumStates));
+	printf ("%d event%s written\n", g_NumEvents, PLURAL (g_NumEvents));
 	printf ("-- %u bytes written to %s\n", w->numWrittenBytes, argv[2]);
 	
 	// Clear out the junk
