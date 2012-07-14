@@ -121,7 +121,7 @@ void ReadCommands () {
 				r->MustNext ("=");
 				switch (type) {
 				case RETURNVAL_INT: r->MustNumber(); break;
-				case RETURNVAL_STRING: r->token = r->MustGetString(); break;
+				case RETURNVAL_STRING: r->MustString(); break;
 				case RETURNVAL_BOOLEAN: r->MustBool(); break;
 				}
 				
