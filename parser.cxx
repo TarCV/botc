@@ -62,7 +62,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	bool gotMainLoop = false;
 	while (Next()) {
 		// printf ("got token %s\n", token.chars());
-		if (!token.compare ("#include")) {
+		if (!token.icompare ("#include")) {
 			MustString ();
 			
 			// First ensure that the file can be opened
@@ -72,7 +72,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			fclose (newfile);
 			ScriptReader* newreader = new ScriptReader (token.chars());
 			newreader->BeginParse (w);
-		} else if (!token.compare ("state")) {
+		} else if (!token.icompare ("state")) {
 			MUST_TOPLEVEL
 			
 			MustString ();
@@ -92,7 +92,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			// If the previous state did not define a mainloop,
 			// define a dummy one now, since one has to be present.
-			if (g_CurState.compare ("") != 0 && !gotMainLoop) {
+			if (g_CurState.len() && !gotMainLoop) {
 				w->Write (DH_MAINLOOP);
 				w->Write (DH_ENDMAINLOOP);
 			}
@@ -106,7 +106,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			g_NumStates++;
 			g_CurState = token;
 			gotMainLoop = false;
-		} else if (!token.compare ("event")) {
+		} else if (!token.icompare ("event")) {
 			MUST_TOPLEVEL
 			
 			// Event definition
@@ -123,13 +123,13 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			w->Write (DH_EVENT);
 			w->Write<long> (e->number);
 			g_NumEvents++;
-		} else if (!token.compare ("mainloop")) {
+		} else if (!token.icompare ("mainloop")) {
 			MUST_TOPLEVEL
 			MustNext ("{");
 			g_CurMode = MODE_MAINLOOP;
 			w->Write (DH_MAINLOOP);
 			gotMainLoop = true;
-		} else if (!token.compare ("onenter") || !token.compare ("onexit")) {
+		} else if (!token.icompare ("onenter") || !token.icompare ("onexit")) {
 			MUST_TOPLEVEL
 			bool onenter = !token.compare ("onenter");
 			
@@ -155,12 +155,12 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			if (comm)
 				ParseCommand (comm, w);
 			else
-				ParserError ("unknown keyword `%s`!", token.chars());
+				ParserError ("unknown keyword `%s`", token.chars());
 		}
 	}
 	
 	if (g_CurMode != MODE_TOPLEVEL)
-		ParserError ("script did not end at top level! did you forget a `}`?");
+		ParserError ("script did not end at top level; did you forget a `}`?");
 	
 	// stateSpawn must be defined!
 	if (!g_stateSpawnDefined)
