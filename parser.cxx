@@ -61,20 +61,19 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	while (Next()) {
 		// printf ("got token %s\n", token.chars());
 		if (!token.compare ("#include")) {
-			MustNext ();
+			str filepath = MustGetString ();
+			
 			// First ensure that the file can be opened
-			FILE* newfile = fopen (token.chars(), "r");
+			FILE* newfile = fopen (filepath.chars(), "r");
 			if (!newfile)
-				ParserError ("couldn't open included file `%s`!", token.chars());
+				ParserError ("couldn't open included file `%s`!", filepath.chars());
 			fclose (newfile);
-			ScriptReader* newreader = new ScriptReader (token.chars());
+			ScriptReader* newreader = new ScriptReader (filepath.chars());
 			newreader->BeginParse (w);
 		} else if (!token.compare ("state")) {
 			MUST_TOPLEVEL
 			
-			MustNext ();
-			
-			str statename = token;
+			str statename = MustGetString ();
 			
 			// State name must be a word.
 			if (statename.first (" ") != statename.len())
@@ -95,11 +94,11 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MUST_TOPLEVEL
 			
 			// Event definition
-			MustNext ();
+			str evname = MustGetString ();
 			
-			EventDef* e = FindEventByName (token);
+			EventDef* e = FindEventByName (evname);
 			if (!e)
-				ParserError ("bad event! got `%s`\n", token.chars());
+				ParserError ("bad event! got `%s`\n", evname.chars());
 			
 			MustNext ("{");
 			

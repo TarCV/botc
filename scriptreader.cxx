@@ -96,29 +96,18 @@ bool ScriptReader::Next () {
 	while (!feof (fp)) {
 		char c = ReadChar ();
 		
-		// Quotation mark.
-		if (c == '"') {
-			// End-quote ends the token.
-			if (quote)
-				break;
-			
-			tokenquoted = true;
-			quote = !quote;
-			continue;
-		}
-		
 		// Extended delimeters: parenthesis, quote marks, braces and brackets. 
 		// These delimeters break the word too. If there was prior data,
 		// the delimeter pushes the cursor back so that the next character
 		// will be the same delimeter. If there isn't, the delimeter itself
 		// is included (and thus becomes a token itself.)
-		// TODO: quotation marks should be here too..
 		bool shouldBreak = false;
 		if (extdelimeters) {
 			switch (c) {
 			case '(': case ')':
 			case '{': case '}':
 			case '[': case ']':
+			case '"':
 				// Push the cursor back
 				if (tmp.len())
 					fseek (fp, ftell (fp)-1, SEEK_SET);
@@ -213,4 +202,27 @@ void ScriptReader::ParserWarning (const char* message, ...) {
 void ScriptReader::ParserMessage (const char* header, char* message) {
 	fprintf (stderr, "%sIn file %s, on line %d: %s\n",
 		header, filepath.chars(), curline, message);
+}
+
+str ScriptReader::MustGetString () {
+	if (!extdelimeters)
+		ParserError ("MustGetString doesn't work with parsers not using extended delimeters!");
+	
+	MustNext ("\"");
+	
+	str string;
+	// Keep reading characters until we find a terminating quote.
+	while (1) {
+		// can't end here!
+		if (feof (fp))
+			ParserError ("unterminated string");
+		
+		char c = ReadChar ();
+		if (c == '"')
+			break;
+		
+		string += c;
+	}
+	
+	return string;
 }

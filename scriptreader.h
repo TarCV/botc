@@ -66,6 +66,7 @@ public:
 	
 	// ====================================================================
 	// METHODS
+	// scriptreader.cxx:
 	ScriptReader (str path);
 	~ScriptReader ();
 	char ReadChar ();
@@ -76,7 +77,9 @@ public:
 	void ParserError (const char* message, ...);
 	void ParserWarning (const char* message, ...);
 	void ParserMessage (const char* header, char* message);
+	str MustGetString ();
 	
+	// parser.cxx:
 	void BeginParse (ObjWriter* w);
 };
 
