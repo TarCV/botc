@@ -124,11 +124,14 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			if (comm) {
 				w->Write<long> (DH_COMMAND);
 				w->Write<long> (comm->number);
-				w->Write<long> (comm->numargs);
+				w->Write<long> (comm->maxargs);
 				MustNext ("(");
 				int curarg = 0;
 				while (1) {
-					if (curarg >= comm->numargs) {
+					if (curarg >= comm->maxargs) {
+						if (!PeekNext().compare (","))
+							ParserError ("got `,` while expecting command-terminating `)`, are you passing too many parameters? (max %d)",
+								comm->maxargs);
 						MustNext (")");
 						break;
 					}
@@ -148,8 +151,16 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 					int i = atoi (token.chars ());
 					w->Write<long> (i);
 					
-					if (curarg != comm->numargs - 1)
+					if (curarg < comm->numargs - 1) {
 						MustNext (",");
+					} else if (curarg < comm->maxargs - 1) {
+						// Can continue, but can terminate as well.
+						if (!PeekNext ().compare (")")) {
+							MustNext (")");
+							break;
+						} else
+							MustNext (",");
+					}
 					
 					curarg++;
 				}
