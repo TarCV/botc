@@ -149,6 +149,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// Closing brace..
 			w->Write (dataheader);
 			g_CurMode = MODE_TOPLEVEL;
+			
+			MustNext (";");
 		} else {
 			// Check if it's a command.
 			CommandDef* comm = GetCommandByName (token);
