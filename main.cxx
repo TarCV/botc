@@ -54,6 +54,22 @@
 #include "botcommands.h"
 
 int main (int argc, char** argv) {
+	// Intepret command-line parameters:
+	// -l: list commands
+	if (argc == 2 && !strcmp (argv[1], "-l")) {
+		ReadCommands ();
+		printf ("Begin list of commands:\n");
+		printf ("------------------------------------------------------\n");
+		
+		CommandDef* comm;
+		ITERATE_COMMANDS (comm)
+			printf ("%s\n", GetCommandPrototype (comm).chars());
+		
+		printf ("------------------------------------------------------\n");
+		printf ("End of command list\n");
+		exit (0);
+	}
+	
 	// Print header
 	str header;
 	str headerline = "-=";
@@ -73,7 +89,7 @@ int main (int argc, char** argv) {
 	ReadCommands ();
 	
 	// Init string table
-	g_StringTable = new StringTable();
+	InitStringTable();
 	
 	// Prepare reader and writer
 	ScriptReader *r = new ScriptReader (argv[1]);

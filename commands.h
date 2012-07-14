@@ -66,5 +66,11 @@ void ReadCommands ();
 CommandDef* GetCommandByName (str a);
 int GetReturnTypeByString (str token);
 str GetReturnTypeName (int r);
+str GetCommandPrototype (CommandDef* comm);
+
+#ifndef __COMMANDS_CXX__
+extern
+#endif
+CommandDef* g_CommDef;
 
 #endif // __COMMANDS_H__

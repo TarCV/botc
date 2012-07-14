@@ -175,17 +175,14 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	}
 	
 	// If we added strings here, we need to write a list of them.
-	unsigned int stringcount = g_StringTable->Count();
-	printf ("Write %u strings\n", stringcount);
+	unsigned int stringcount = CountStringTable ();
 	if (stringcount) {
 		w->Write<long> (DH_STRINGLIST);
 		w->Write<long> (stringcount);
-		
-		for (unsigned int a = 0; a < stringcount; a++) {
-			printf ("Write string: `%s`\n", g_StringTable->table[a]);
-			w->WriteString (g_StringTable->table[a]);
-		}
+		for (unsigned int a = 0; a < stringcount; a++)
+			w->WriteString (g_StringTable[a]);
 	}
+	printf ("%u string%s written\n", stringcount, (stringcount != 1) ? "s" : "");
 }
 
 void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
@@ -228,7 +225,7 @@ void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
 		case RETURNVAL_STRING:
 			MustString();
 			w->Write<long> (DH_PUSHSTRINGINDEX);
-			w->Write<long> (g_StringTable->Push (token.chars()));
+			w->Write<long> (PushToStringTable (token.chars()));
 			break;
 		}
 		
