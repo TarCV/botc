@@ -59,6 +59,7 @@ ObjWriter::~ObjWriter () {
 }
 
 void ObjWriter::WriteString (char* s) {
+	Write<long> (strlen (s));
 	for (unsigned int u = 0; u < strlen (s); u++)
 		Write<char> (s[u]);
 }

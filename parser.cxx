@@ -48,6 +48,7 @@
 #include "scriptreader.h"
 #include "events.h"
 #include "commands.h"
+#include "stringtable.h"
 
 #define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
 	ParserError ("%ss may only be defined at top level!", token.chars());
@@ -98,7 +99,6 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			}
 			
 			w->Write (DH_STATENAME);
-			w->Write (statename.len());
 			w->WriteString (statename);
 			w->Write (DH_STATEIDX);
 			w->Write (g_NumStates);
@@ -174,23 +174,18 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		w->Write (DH_ENDMAINLOOP);
 	}
 	
-	/*
-	// State
-	w->WriteState ("stateSpawn");
-	
-	w->Write (DH_ONENTER);
-	w->Write (DH_ENDONENTER);
-	
-	w->Write (DH_MAINLOOP);
-	w->Write (DH_ENDMAINLOOP);
-	
-	w->Write (DH_EVENT);
-	w->Write (BOTEVENT_PLAYER_FIREDSSG);
-	w->Write (DH_COMMAND);
-	w->Write (BOTCMD_BEGINJUMPING);
-	w->Write (0);
-	w->Write (DH_ENDEVENT);
-	*/
+	// If we added strings here, we need to write a list of them.
+	unsigned int stringcount = g_StringTable->Count();
+	printf ("Write %u strings\n", stringcount);
+	if (stringcount) {
+		w->Write<long> (DH_STRINGLIST);
+		w->Write<long> (stringcount);
+		
+		for (unsigned int a = 0; a < stringcount; a++) {
+			printf ("Write string: `%s`\n", g_StringTable->table[a]);
+			w->WriteString (g_StringTable->table[a]);
+		}
+	}
 }
 
 void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
@@ -210,21 +205,32 @@ void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
 			break;
 		}
 		
+		/*
 		if (!Next ())
 			ParserError ("unexpected end-of-file, unterminated command");
 		
 		// If we get a ")" now, the user probably gave too few parameters
 		if (!token.compare (")"))
 			ParserError ("unexpected `)`, did you pass too few parameters? (need %d)", comm->numargs);
+		*/
 		
-		// For now, it takes in just numbers.
-		// Needs to cater for string arguments too...
-		if (!token.isnumber())
-			ParserError ("argument %d (`%s`) is not a number", curarg, token.chars());
-		
-		int i = atoi (token.chars ());
-		w->Write<long> (DH_PUSHNUMBER);
-		w->Write<long> (i);
+		switch (comm->argtypes[curarg]) {
+		case RETURNVAL_INT:
+			MustNumber();
+			w->Write<long> (DH_PUSHNUMBER);
+			w->Write<long> (atoi (token.chars ()));
+			break;
+		case RETURNVAL_BOOLEAN:
+			MustBool();
+			w->Write<long> (DH_PUSHNUMBER);
+			w->Write<long> (BoolValue ());
+			break;
+		case RETURNVAL_STRING:
+			MustString();
+			w->Write<long> (DH_PUSHSTRINGINDEX);
+			w->Write<long> (g_StringTable->Push (token.chars()));
+			break;
+		}
 		
 		if (curarg < comm->numargs - 1) {
 			MustNext (",");

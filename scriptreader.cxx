@@ -232,3 +232,7 @@ void ScriptReader::MustBool () {
 	
 	ParserError ("expected a boolean value, got `%s`", token.chars());
 }
+
+bool ScriptReader::BoolValue () {
+	return (!token.compare ("1") || !token.compare ("true") || !token.compare ("yes"));
+}

@@ -49,7 +49,7 @@
 48:IsFavoriteWeapon:bool:1:1:str(weapon)
 49:Say:void:1:1:str(message)
 50:SayFromFile:void:2:2:str(filename):str(section)
-51:SayFromChatFile:void:2:2:str(filename):str(section)
+51:SayFromChatFile:void:1:1:str(section)
 52:BeginChatting:void:0:0
 53:StopChatting:void:0:0
 54:ChatSectionExists:bool:1:1:str(section)
