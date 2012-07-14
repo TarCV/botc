@@ -54,7 +54,6 @@ bool IsDelimeter (char c) {
 }
 
 ScriptReader::ScriptReader (str path) {
-	extdelimeters = false;
 	atnewline = false;
 	filepath = path;
 	if (!(fp = fopen (path, "r"))) {
@@ -94,32 +93,23 @@ char ScriptReader::ReadChar () {
 // true if was found, false if not.
 bool ScriptReader::Next () {
 	str tmp = "";
-	bool dontreadnext = false;
 	while (!feof (fp)) {
 		c = ReadChar ();
 		
-		// Extended delimeters: basically any non-alnum characters.
-		// These delimeters break the word too. If there was prior data,
-		// the delimeter pushes the cursor back so that the next character
-		// will be the same delimeter. If there isn't, the delimeter itself
-		// is included (and thus becomes a token itself.)
-		bool shouldBreak = false;
-		if (extdelimeters) {
-			if ((c >= 33 && c <= 47) ||
-			    (c >= 58 && c <= 64) ||
-			    // underscore isn't a delimeter
-			    (c >= 91 && c <= 96 && c != 95) ||
-			    (c >= 123 && c <= 126)) {
-				if (tmp.len())
-					fseek (fp, ftell (fp) - 1, SEEK_SET);
-				else
-					tmp += c;
-				shouldBreak = true;
-				break;
-			}
-		}
-		if (shouldBreak)
+		// Non-alphanumber characters (sans underscore) break the word too.
+		// If there was prior data, the delimeter pushes the cursor back so
+		// that the next character will be the same delimeter. If there isn't,
+		// the delimeter itself is included (and thus becomes a token itself.)
+		if ((c >= 33 && c <= 47) ||
+			(c >= 58 && c <= 64) ||
+			(c >= 91 && c <= 96 && c != '_') ||
+			(c >= 123 && c <= 126)) {
+			if (tmp.len())
+				fseek (fp, ftell (fp) - 1, SEEK_SET);
+			else
+				tmp += c;
 			break;
+		}
 		
 		if (IsDelimeter (c)) {
 			// Don't break if we haven't gathered anything yet.
@@ -207,9 +197,6 @@ void ScriptReader::ParserMessage (const char* header, char* message) {
 
 // I guess this should be a void function putting the return value into token?
 str ScriptReader::MustGetString () {
-	if (!extdelimeters)
-		ParserError ("MustGetString doesn't work with parsers not using extended delimeters!");
-	
 	MustNext ("\"");
 	
 	str string;

@@ -51,7 +51,6 @@ CommandDef* g_CommDef;
 
 void ReadCommands () {
 	ScriptReader* r = new ScriptReader ((char*)"commands.def");
-	r->extdelimeters = true;
 	g_CommDef = NULL;
 	CommandDef* curdef = g_CommDef;
 	unsigned int numCommDefs = 0; 
