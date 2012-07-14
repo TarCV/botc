@@ -59,8 +59,8 @@ public:
 	str filepath;
 	unsigned int pos;
 	unsigned int curline;
+	unsigned int curchar;
 	str token;
-	bool tokenquoted;
 	bool atnewline;
 	bool extdelimeters;
 	
@@ -74,13 +74,20 @@ public:
 	str PeekNext ();
 	void Seek (unsigned int n, int origin);
 	void MustNext (const char* c = "");
+	str MustGetString ();
+	void MustNumber ();
+	void MustBool ();
+	
 	void ParserError (const char* message, ...);
 	void ParserWarning (const char* message, ...);
-	void ParserMessage (const char* header, char* message);
-	str MustGetString ();
 	
 	// parser.cxx:
 	void BeginParse (ObjWriter* w);
+	
+private:
+	bool nextreintepret;
+	char c;
+	void ParserMessage (const char* header, char* message);
 };
 
 #endif // __SCRIPTREADER_H__
