@@ -38,6 +38,7 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define __OBJWRITER_CXX__
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,6 +49,7 @@
 #include "bots.h"
 
 ObjWriter::ObjWriter (str path) {
+	numWrittenBytes = 0;
 	fp = fopen (path, "w");
 	CHECK_FILE (fp, path, "writing");
 }

@@ -340,6 +340,18 @@ int str::compare (str c) {
 	return compare (c.chars());
 }
 
+int str::icompare (const char* c) {
+	return icompare (str ((char*)c));
+}
+
+int str::icompare (str c) {
+	str a = text;
+	a.tolower();
+	str b = c;
+	b.tolower();
+	return strcmp (a.chars(), b.chars());
+}
+
 // ============================================================================
 str str::tolower () {
 	str n = text;

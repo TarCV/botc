@@ -132,8 +132,11 @@ public:
 	// Convert string to upper case
 	str toupper ();
 	
+	// Compare this string with another
 	int compare (const char* c);
 	int compare (str c);
+	int icompare (str c);
+	int icompare (const char* c);
 	
 	// Counts the amount of substrings in the string
 	unsigned int count (char* s);

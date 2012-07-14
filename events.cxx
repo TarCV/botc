@@ -48,7 +48,7 @@
 
 EventDef* g_EventDef;
 void ReadEvents () {
-	ScriptReader* r = new ScriptReader ((char*)"events.def");
+	ScriptReader* r = new ScriptReader ("events.def");
 	g_EventDef = NULL;
 	EventDef* curdef = g_EventDef;
 	unsigned int numEventDefs = 0;
