@@ -64,6 +64,8 @@ typedef unsigned long qbyte;
 	char* out = vdynformat (in, v, 256); \
 	va_end (v);
 
+#define PLURAL(n) (n != 1) ? "s" : ""
+
 void error (const char* text, ...);
 
 #ifndef __PARSER_CXX__

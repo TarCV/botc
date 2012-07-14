@@ -49,6 +49,7 @@
 #include "events.h"
 #include "commands.h"
 #include "stringtable.h"
+#include "variables.h"
 
 #define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
 	ParserError ("%ss may only be defined at top level!", token.chars());
@@ -136,6 +137,31 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext ("{");
 			g_CurMode = onenter ? MODE_ONENTER : MODE_ONEXIT;
 			w->Write (onenter ? DH_ONENTER : DH_ONEXIT);
+		} else if (!token.compare ("int") || !token.compare ("bool")) {
+			// For now, only globals are supported
+			if (g_CurMode != MODE_TOPLEVEL || g_CurState.len())
+				ParserError ("variables must only be global for now");
+			
+			// Variable definition
+			int type = !token.compare ("int") ? RETURNVAL_INT: RETURNVAL_BOOLEAN;
+			
+			MustNext ();
+			str varname = token;
+			ScriptVar* var = DeclareGlobalVariable (this, varname, type);
+			
+			if (!var)
+				ParserError ("declaring %s variable %s failed",
+					g_CurState.len() ? "state" : "global", varname.chars());
+			
+			// Assign it, if desired
+			if (!PeekNext().compare ("=")) {
+				MustNext ("=");
+				MustValue (type);
+				
+				var->value = token;
+			}
+			
+			MustNext (";");
 		} else if (!token.compare ("}")) {
 			// Closing brace
 			int dataheader =	(g_CurMode == MODE_EVENT) ? DH_ENDEVENT :
@@ -182,7 +208,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		for (unsigned int a = 0; a < stringcount; a++)
 			w->WriteString (g_StringTable[a]);
 	}
-	printf ("%u string%s written\n", stringcount, (stringcount != 1) ? "s" : "");
+	
+	printf ("%u string%s written\n", stringcount, PLURAL (stringcount));
 }
 
 void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
