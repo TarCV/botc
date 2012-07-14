@@ -93,14 +93,9 @@ EventDef* FindEventByIdx (unsigned int idx) {
 }
 
 EventDef* FindEventByName (str a) {
-	a.tolower();
-	
 	EventDef* e;
 	for (e = g_EventDef; e->next != NULL; e = e->next) {
-		str b = e->name;
-		b.tolower();
-		
-		if (!a.compare (b))
+		if (!a.icompare (e->name))
 			return e;
 	}
 	

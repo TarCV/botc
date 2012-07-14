@@ -163,7 +163,7 @@ int GetReturnTypeByString (str t) {
 	// (are they real floats or fixed? how are they
 	// stored?) and add proper floating point support.
 	// NOTE: Also, shouldn't use RETURNVAL for data types..
-	t.tolower();
+	t = t.tolower();
 	return	!t.compare ("int") ? RETURNVAL_INT :
 		!t.compare ("float") ? RETURNVAL_INT :
 		!t.compare ("str") ? RETURNVAL_STRING :
@@ -183,14 +183,11 @@ str GetReturnTypeName (int r) {
 	return "";
 }
 
-CommandDef* GetCommandByName (str a) {
-	a.tolower ();
-	CommandDef* c;
-	ITERATE_COMMANDS (c) {
-		str b = c->name;
-		b.tolower ();
-		if (!a.compare (b))
-			return c;
+CommandDef* GetCommandByName (str fname) {
+	CommandDef* comm;
+	ITERATE_COMMANDS (comm) {
+		if (!fname.icompare (comm->name))
+			return comm;
 	}
 	
 	return NULL;
