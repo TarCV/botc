@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include "str.h"
 #include "objwriter.h"
+#include "commands.h"
 
 // Where is the parser at?
 enum parsermode {
@@ -81,6 +82,7 @@ public:
 	
 	// parser.cxx:
 	void BeginParse (ObjWriter* w);
+	void ParseCommand (CommandDef* comm, ObjWriter* w);
 	
 private:
 	bool atnewline;

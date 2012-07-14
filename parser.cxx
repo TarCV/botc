@@ -121,59 +121,9 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		} else {
 			// Check if it's a command.
 			CommandDef* comm = GetCommandByName (token);
-			if (comm) {
-				w->Write<long> (DH_COMMAND);
-				w->Write<long> (comm->number);
-				w->Write<long> (comm->maxargs);
-				MustNext ("(");
-				int curarg = 0;
-				while (1) {
-					if (curarg >= comm->maxargs) {
-						if (!PeekNext().compare (","))
-							ParserError ("got `,` while expecting command-terminating `)`, are you passing too many parameters? (max %d)",
-								comm->maxargs);
-						MustNext (")");
-						curarg++;
-						break;
-					}
-					
-					if (!Next ())
-						ParserError ("unexpected end-of-file, unterminated command");
-					
-					// If we get a ")" now, the user probably gave too few parameters
-					if (!token.compare (")"))
-						ParserError ("unexpected `)`, did you pass too few parameters? (need %d)", comm->numargs);
-					
-					// For now, it takes in just numbers.
-					// Needs to cater for string arguments too...
-					if (!token.isnumber())
-						ParserError ("argument %d (`%s`) is not a number", curarg, token.chars());
-					
-					int i = atoi (token.chars ());
-					w->Write<long> (i);
-					
-					if (curarg < comm->numargs - 1) {
-						MustNext (",");
-					} else if (curarg < comm->maxargs - 1) {
-						// Can continue, but can terminate as well.
-						if (!PeekNext ().compare (")")) {
-							MustNext (")");
-							curarg++;
-							break;
-						} else
-							MustNext (",");
-					}
-					
-					curarg++;
-				}
-				MustNext (";");
-				
-				// If the script skipped a few arguments, fill in defaults.
-				while (curarg < comm->maxargs) {
-					w->Write<long> (comm->defvals[curarg]);
-					curarg++;
-				}
-			} else
+			if (comm)
+				ParseCommand (comm, w);
+			else
 				ParserError ("unknown keyword `%s`!", token.chars());
 		}
 	}
@@ -198,4 +148,58 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	w->Write (0);
 	w->Write (DH_ENDEVENT);
 	*/
+}
+
+void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
+	w->Write<long> (DH_COMMAND);
+	w->Write<long> (comm->number);
+	w->Write<long> (comm->maxargs);
+	MustNext ("(");
+	int curarg = 0;
+	while (1) {
+		if (curarg >= comm->maxargs) {
+			if (!PeekNext().compare (","))
+				ParserError ("got `,` while expecting command-terminating `)`, are you passing too many parameters? (max %d)",
+					comm->maxargs);
+			MustNext (")");
+			curarg++;
+			break;
+		}
+		
+		if (!Next ())
+			ParserError ("unexpected end-of-file, unterminated command");
+		
+		// If we get a ")" now, the user probably gave too few parameters
+		if (!token.compare (")"))
+			ParserError ("unexpected `)`, did you pass too few parameters? (need %d)", comm->numargs);
+		
+		// For now, it takes in just numbers.
+		// Needs to cater for string arguments too...
+		if (!token.isnumber())
+			ParserError ("argument %d (`%s`) is not a number", curarg, token.chars());
+		
+		int i = atoi (token.chars ());
+		w->Write<long> (i);
+		
+		if (curarg < comm->numargs - 1) {
+			MustNext (",");
+		} else if (curarg < comm->maxargs - 1) {
+			// Can continue, but can terminate as well.
+			if (!PeekNext ().compare (")")) {
+				MustNext (")");
+				curarg++;
+				break;
+			} else
+				MustNext (",");
+		}
+		
+		curarg++;
+	}
+	MustNext (";");
+	
+	// If the script skipped any optional arguments, fill in defaults.
+	while (curarg < comm->maxargs) {
+		w->Write<long> (comm->defvals[curarg]);
+		curarg++;
+	}
 }
