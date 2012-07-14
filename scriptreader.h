@@ -72,7 +72,7 @@ public:
 	str PeekNext ();
 	void Seek (unsigned int n, int origin);
 	void MustNext (const char* c = "");
-	str MustGetString ();
+	void MustString ();
 	void MustNumber ();
 	void MustBool ();
 	

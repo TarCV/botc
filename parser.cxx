@@ -61,44 +61,44 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	while (Next()) {
 		// printf ("got token %s\n", token.chars());
 		if (!token.compare ("#include")) {
-			str filepath = MustGetString ();
+			MustString ();
 			
 			// First ensure that the file can be opened
-			FILE* newfile = fopen (filepath.chars(), "r");
+			FILE* newfile = fopen (token.chars(), "r");
 			if (!newfile)
-				ParserError ("couldn't open included file `%s`!", filepath.chars());
+				ParserError ("couldn't open included file `%s`!", token.chars());
 			fclose (newfile);
-			ScriptReader* newreader = new ScriptReader (filepath.chars());
+			ScriptReader* newreader = new ScriptReader (token.chars());
 			newreader->BeginParse (w);
 		} else if (!token.compare ("state")) {
 			MUST_TOPLEVEL
 			
-			str statename = MustGetString ();
+			MustString ();
 			
 			// State name must be a word.
-			if (statename.first (" ") != statename.len())
-				ParserError ("state name must be a single word! got `%s`", (char*)statename);
+			if (token.first (" ") != token.len())
+				ParserError ("state name must be a single word! got `%s`", token.chars());
 			
 			// Must end in a colon
 			MustNext (":");
 			
 			w->Write (DH_STATENAME);
-			w->Write (statename.len());
-			w->WriteString (statename);
+			w->Write (token.len());
+			w->WriteString (token);
 			w->Write (DH_STATEIDX);
 			w->Write (g_NumStates);
 			
 			g_NumStates++;
-			g_CurState = statename;
+			g_CurState = token;
 		} else if (!token.compare ("event")) {
 			MUST_TOPLEVEL
 			
 			// Event definition
-			str evname = MustGetString ();
+			MustString ();
 			
-			EventDef* e = FindEventByName (evname);
+			EventDef* e = FindEventByName (token);
 			if (!e)
-				ParserError ("bad event! got `%s`\n", evname.chars());
+				ParserError ("bad event! got `%s`\n", token.chars());
 			
 			MustNext ("{");
 			

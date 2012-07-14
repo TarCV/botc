@@ -195,8 +195,7 @@ void ScriptReader::ParserMessage (const char* header, char* message) {
 		header, filepath.chars(), curline, curchar, message);
 }
 
-// I guess this should be a void function putting the return value into token?
-str ScriptReader::MustGetString () {
+void ScriptReader::MustString () {
 	MustNext ("\"");
 	
 	str string;
@@ -213,7 +212,7 @@ str ScriptReader::MustGetString () {
 		string += c;
 	}
 	
-	return string;
+	token = string;
 }
 
 void ScriptReader::MustNumber () {
