@@ -38,63 +38,21 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "common.h"
-
-#include "str.h"
-#include "scriptreader.h"
-#include "objwriter.h"
-#include "events.h"
-#include "commands.h"
-#include "stringtable.h"
-
 #include "bots.h"
-#include "botcommands.h"
+#include "str.h"
 
-int main (int argc, char** argv) {
-	// Print header
-	str header;
-	str headerline = "-=";
-	header.appendformat ("%s version %d.%d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-	headerline.repeat ((header.len()/2)-1);
-	headerline += '-';
-	printf ("%s\n%s\n", header.chars(), headerline.chars());
+class StringTable {
+public:
+	char table[MAX_LIST_STRINGS][MAX_STRING_LENGTH];
+	StringTable();
 	
-	if (argc != 3) {
-		fprintf (stderr, "usage: %s: <infile> <outFile>\n", argv[0]);
-		exit (1);
-	}
+	unsigned int Push (char* s);
+	unsigned int Count ();
 	
-	// Read definitions
-	printf ("Reading definitions...\n");
-	ReadEvents ();
-	ReadCommands ();
-	
-	// Init string table
-	g_StringTable = new StringTable();
-	
-	// Prepare reader and writer
-	ScriptReader *r = new ScriptReader (argv[1]);
-	ObjWriter *w = new ObjWriter (argv[2]);
-	
-	// We're set, begin parsing :)
-	printf ("Parsing script..\n");
-	r->BeginParse (w);
-	
-	// Parse done, print statistics
-	printf ("%d states written\n", g_NumStates);
-	printf ("%d events written\n", g_NumEvents);
-	printf ("-- %u bytes written to %s\n", w->numWrittenBytes, argv[2]);
-	
-	// Clear out the junk
-	delete r;
-	delete w;
-}
+	char* operator [] (unsigned int a);
+};
 
-void error (const char* text, ...) {
-	PERFORM_FORMAT (text, c);
-	fprintf (stderr, "error: %s", c);
-	exit (1);
-}
+#ifndef __STRINGTABLE_CXX__
+extern
+#endif
+StringTable* g_StringTable;

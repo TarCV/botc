@@ -79,6 +79,7 @@ public:
 	void MustString ();
 	void MustNumber ();
 	void MustBool ();
+	bool BoolValue ();
 	
 	void ParserError (const char* message, ...);
 	void ParserWarning (const char* message, ...);

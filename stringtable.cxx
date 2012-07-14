@@ -38,63 +38,68 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define __STRINGTABLE_CXX__
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
-
-#include "str.h"
-#include "scriptreader.h"
-#include "objwriter.h"
-#include "events.h"
-#include "commands.h"
+#include "bots.h"
 #include "stringtable.h"
 
-#include "bots.h"
-#include "botcommands.h"
-
-int main (int argc, char** argv) {
-	// Print header
-	str header;
-	str headerline = "-=";
-	header.appendformat ("%s version %d.%d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-	headerline.repeat ((header.len()/2)-1);
-	headerline += '-';
-	printf ("%s\n%s\n", header.chars(), headerline.chars());
-	
-	if (argc != 3) {
-		fprintf (stderr, "usage: %s: <infile> <outFile>\n", argv[0]);
-		exit (1);
-	}
-	
-	// Read definitions
-	printf ("Reading definitions...\n");
-	ReadEvents ();
-	ReadCommands ();
-	
-	// Init string table
-	g_StringTable = new StringTable();
-	
-	// Prepare reader and writer
-	ScriptReader *r = new ScriptReader (argv[1]);
-	ObjWriter *w = new ObjWriter (argv[2]);
-	
-	// We're set, begin parsing :)
-	printf ("Parsing script..\n");
-	r->BeginParse (w);
-	
-	// Parse done, print statistics
-	printf ("%d states written\n", g_NumStates);
-	printf ("%d events written\n", g_NumEvents);
-	printf ("-- %u bytes written to %s\n", w->numWrittenBytes, argv[2]);
-	
-	// Clear out the junk
-	delete r;
-	delete w;
+StringTable::StringTable() {
+	// Zero out everything first.
+	for (unsigned int a = 0; a < MAX_LIST_STRINGS; a++)
+		for (unsigned int b = 0; b < MAX_STRING_LENGTH; b++)
+			table[a][b] = 0;
 }
 
-void error (const char* text, ...) {
-	PERFORM_FORMAT (text, c);
-	fprintf (stderr, "error: %s", c);
-	exit (1);
+unsigned int StringTable::Push (char* s) {
+	// Determine the length
+	size_t l1 = strlen (s);
+	size_t l2 = MAX_LIST_STRINGS - 1;
+	size_t len = (l1 < l2) ? l1 : l2;
+	
+	// First, copy the string to a temporary buffer, since otherwise
+	// it gets lost and becomes empty.
+	char tmp[len+1];
+	strncpy (tmp, s, len);
+	tmp[len] = 0;
+	
+	// Find a free slot in the table. 
+	unsigned int a;
+	for (a = 0; a < MAX_LIST_STRINGS; a++) {
+		if (!strcmp (tmp, table[a]))
+			return a;
+		
+		// String is empty, thus it's free.
+		if (!strlen (table[a]))
+			break;
+	}
+	
+	// no free slots!
+	if (a == MAX_LIST_STRINGS)
+		error ("too many strings defined!");
+	
+	// Now, dump the string into the slot
+	strncpy (table[a], tmp, len);
+	table[a][len] = 0;
+	
+	return a;
+}
+
+unsigned int StringTable::Count () {
+	unsigned int count = 0;
+	for (unsigned int a = 0; a < MAX_LIST_STRINGS; a++) {
+		if (!strlen (table[a]))
+			break;
+		else
+			count++;
+	}
+	return count;
+}
+
+char* StringTable::operator [] (unsigned int a) {
+	if (a > MAX_LIST_STRINGS)
+		return const_cast<char*> ("");
+	return table[a];
 }
