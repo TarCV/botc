@@ -133,6 +133,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 							ParserError ("got `,` while expecting command-terminating `)`, are you passing too many parameters? (max %d)",
 								comm->maxargs);
 						MustNext (")");
+						curarg++;
 						break;
 					}
 					
@@ -157,6 +158,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 						// Can continue, but can terminate as well.
 						if (!PeekNext ().compare (")")) {
 							MustNext (")");
+							curarg++;
 							break;
 						} else
 							MustNext (",");
@@ -165,6 +167,12 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 					curarg++;
 				}
 				MustNext (";");
+				
+				// If the script skipped a few arguments, fill in defaults.
+				while (curarg < comm->maxargs) {
+					w->Write<long> (comm->defvals[curarg]);
+					curarg++;
+				}
 			} else
 				ParserError ("unknown keyword `%s`!", token.chars());
 		}
