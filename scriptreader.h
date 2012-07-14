@@ -61,8 +61,6 @@ public:
 	unsigned int curline;
 	unsigned int curchar;
 	str token;
-	bool atnewline;
-	bool extdelimeters;
 	
 	// ====================================================================
 	// METHODS
@@ -85,7 +83,7 @@ public:
 	void BeginParse (ObjWriter* w);
 	
 private:
-	bool nextreintepret;
+	bool atnewline;
 	char c;
 	void ParserMessage (const char* header, char* message);
 };
