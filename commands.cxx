@@ -41,6 +41,7 @@
 #define __COMMANDS_CXX__
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "common.h"
 #include "scriptreader.h"
 #include "str.h"
@@ -50,73 +51,87 @@ CommandDef* g_CommDef;
 
 void ReadCommands () {
 	ScriptReader* r = new ScriptReader ((char*)"commands.def");
+	r->extdelimeters = true;
 	g_CommDef = NULL;
 	CommandDef* curdef = g_CommDef;
-	unsigned int numCommDefs = 0;
+	unsigned int numCommDefs = 0; 
 	
-	while (r->Next()) {
+	while (r->PeekNext().compare ("") != 0) {
 		CommandDef* comm = new CommandDef;
+		comm->next = NULL;
 		
-		// Any more than 4 is a warning, any less is an error.
-		unsigned int c = r->token.count (const_cast<char*> (":"));
-		if (c < 4)
-			r->ParserError ("not enough parameters: got %d, expected 4", c);
+		// Number
+		r->MustNumber ();
+		comm->number = r->token;
 		
-		int n = 0;
-		str t = "";
-		for (unsigned int u = 0; u < r->token.len(); u++) {
-			// If we're at the last character of the string, we need
-			// to both add the character to t and check it. Thus,
-			// we do the addition, exceptionally, here.
-			if (u == r->token.len() - 1 && r->token[u] != ':')
-				t += r->token[u];
+		r->MustNext (":");
+		
+		// Name
+		r->MustNext ();
+		comm->name = r->token;
+		
+		r->MustNext (":");
+		
+		// Return value
+		r->MustNext ();
+		comm->returnvalue = GetReturnTypeByString (r->token);
+		if (comm->returnvalue == -1)
+			r->ParserError ("bad return value type `%s`", r->token.chars());
+		
+		r->MustNext (":");
+		
+		// Num args
+		r->MustNumber ();
+		comm->numargs = r->token;
+		
+		r->MustNext (":");
+		
+		// Max args
+		r->MustNumber ();
+		comm->maxargs = r->token;
+		
+		if (comm->maxargs > MAX_MAXARGS)
+			r->ParserError ("maxargs (%d) greater than %d!", comm->maxargs, MAX_MAXARGS);
+		
+		// Argument types
+		int curarg = 0;
+		while (curarg < comm->maxargs) {
+			r->MustNext (":");
+			r->MustNext ();
 			
-			if (r->token[u] == ':' || u == r->token.len() - 1) {
-				int i = atoi (t.chars());
-				switch (n) {
-				case 0:
-					// Number
-					comm->number = i;
-					break;
-				case 1:
-					// Name
-					comm->name = t;
-					break;
-				case 2:
-					// Return value
-					t.tolower();
-					if (!t.compare ("int"))
-						comm->returnvalue = RETURNVAL_INT;
-					else if (!t.compare ("str"))
-						comm->returnvalue = RETURNVAL_STRING;
-					else if (!t.compare ("void"))
-						comm->returnvalue = RETURNVAL_VOID;
-					else if (!t.compare ("bool"))
-						comm->returnvalue = RETURNVAL_BOOLEAN;
-					else
-						r->ParserError ("bad return value type `%s`", t.chars());
-					break;
-				case 3:
-					// Num args
-					comm->numargs = i;
-					break;
-				case 4:
-					// Max args
-					comm->maxargs = i;
-					break;
-				default:
-					r->ParserWarning ("too many parameters");
-					break;
+			int type = GetReturnTypeByString (r->token);
+			if (type == -1)
+				r->ParserError ("bad argument %d type `%s`", curarg, r->token.chars());
+			if (type == RETURNVAL_VOID)
+				r->ParserError ("void is not a valid argument type!");
+			comm->argtypes[curarg] = type;
+			
+			r->MustNext ("(");
+			r->MustNext ();
+			
+			// - 1 because of terminating null character
+			if (r->token.len() > MAX_ARGNAMELEN - 1)
+				r->ParserWarning ("argument name is too long (%d, max is %d)",
+					r->token.len(), MAX_ARGNAMELEN-1);
+			
+			strncpy (comm->argnames[curarg], r->token.chars(), MAX_ARGNAMELEN);
+			comm->argnames[curarg][MAX_ARGNAMELEN-1] = 0;
+			
+			// If this is an optional parameter, we need the default value.
+			if (curarg >= comm->numargs) {
+				r->MustNext ("=");
+				switch (type) {
+				case RETURNVAL_INT: r->MustNumber(); break;
+				case RETURNVAL_STRING: r->token = r->MustGetString(); break;
+				case RETURNVAL_BOOLEAN: r->MustBool(); break;
 				}
 				
-				n++;
-				t = "";
-			} else {
-				t += r->token[u];
+				comm->defvals[curarg] = r->token;
 			}
+			
+			r->MustNext (")");
+			curarg++;
 		}
-		
-		comm->next = NULL;
 		
 		if (!g_CommDef)
 			g_CommDef = comm;
@@ -140,6 +155,33 @@ void ReadCommands () {
 	
 	delete r;
 	printf ("%d command definitions read.\n", numCommDefs);
+}
+
+// urgh long name
+int GetReturnTypeByString (str t) {
+	// "float" is for now just int.
+	// TODO: find out how BotScript floats work
+	// (are they real floats or fixed? how are they
+	// stored?) and add proper floating point support.
+	// NOTE: Also, shouldn't use RETURNVAL for data types..
+	t.tolower();
+	return	!t.compare ("int") ? RETURNVAL_INT :
+		!t.compare ("float") ? RETURNVAL_INT :
+		!t.compare ("str") ? RETURNVAL_STRING :
+		!t.compare ("void") ? RETURNVAL_VOID :
+		!t.compare ("bool") ? RETURNVAL_BOOLEAN : -1;
+}
+
+// Inverse operation
+str GetReturnTypeName (int r) {
+	switch (r) {
+	case RETURNVAL_INT: return "int"; break;
+	case RETURNVAL_STRING: return "str"; break;
+	case RETURNVAL_VOID: return "void"; break;
+	case RETURNVAL_BOOLEAN: return "bool"; break;
+	}
+	
+	return "";
 }
 
 CommandDef* GetCommandByName (str a) {

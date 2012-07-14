@@ -63,6 +63,7 @@ ScriptReader::ScriptReader (str path) {
 	}
 	
 	curline = 1;
+	curchar = 1;
 	pos = 0;
 	token = "";
 }
@@ -80,37 +81,37 @@ char ScriptReader::ReadChar () {
 	if (atnewline) {
 		atnewline = false;
 		curline++;
+		curchar = 0; // gets incremented to 1
 	}
 	
 	if (c[0] == '\n')
 		atnewline = true;
 	
+	curchar++;
 	return c[0];
 }
 
 // true if was found, false if not.
 bool ScriptReader::Next () {
 	str tmp = "";
-	bool quote = false;
-	tokenquoted = false;
+	bool dontreadnext = false;
 	while (!feof (fp)) {
-		char c = ReadChar ();
+		c = ReadChar ();
 		
-		// Extended delimeters: parenthesis, quote marks, braces and brackets. 
+		// Extended delimeters: basically any non-alnum characters.
 		// These delimeters break the word too. If there was prior data,
 		// the delimeter pushes the cursor back so that the next character
 		// will be the same delimeter. If there isn't, the delimeter itself
 		// is included (and thus becomes a token itself.)
 		bool shouldBreak = false;
 		if (extdelimeters) {
-			switch (c) {
-			case '(': case ')':
-			case '{': case '}':
-			case '[': case ']':
-			case '"':
-				// Push the cursor back
+			if ((c >= 33 && c <= 47) ||
+			    (c >= 58 && c <= 64) ||
+			    // underscore isn't a delimeter
+			    (c >= 91 && c <= 96 && c != 95) ||
+			    (c >= 123 && c <= 126)) {
 				if (tmp.len())
-					fseek (fp, ftell (fp)-1, SEEK_SET);
+					fseek (fp, ftell (fp) - 1, SEEK_SET);
 				else
 					tmp += c;
 				shouldBreak = true;
@@ -120,7 +121,7 @@ bool ScriptReader::Next () {
 		if (shouldBreak)
 			break;
 		
-		if (IsDelimeter (c) && !quote) {
+		if (IsDelimeter (c)) {
 			// Don't break if we haven't gathered anything yet.
 			if (tmp.len())
 				break;
@@ -200,10 +201,11 @@ void ScriptReader::ParserWarning (const char* message, ...) {
 }
 
 void ScriptReader::ParserMessage (const char* header, char* message) {
-	fprintf (stderr, "%sIn file %s, on line %d: %s\n",
-		header, filepath.chars(), curline, message);
+	fprintf (stderr, "%sIn file %s, at line %u, col %u: %s\n",
+		header, filepath.chars(), curline, curchar, message);
 }
 
+// I guess this should be a void function putting the return value into token?
 str ScriptReader::MustGetString () {
 	if (!extdelimeters)
 		ParserError ("MustGetString doesn't work with parsers not using extended delimeters!");
@@ -225,4 +227,21 @@ str ScriptReader::MustGetString () {
 	}
 	
 	return string;
+}
+
+void ScriptReader::MustNumber () {
+	MustNext ();
+	if (!token.isnumber())
+		ParserError ("expected a number, got `%s`", token.chars());
+}
+
+void ScriptReader::MustBool () {
+	MustNext();
+	if (!token.compare ("0") || !token.compare ("1") ||
+	    !token.compare ("true") || !token.compare ("false") ||
+	    !token.compare ("yes") || !token.compare ("no")) {
+			return;
+	}
+	
+	ParserError ("expected a boolean value, got `%s`", token.chars());
 }

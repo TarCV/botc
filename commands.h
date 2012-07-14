@@ -41,6 +41,9 @@
 #ifndef __COMMANDS_H__
 #define __COMMANDS_H__
 
+#define MAX_MAXARGS 8
+#define MAX_ARGNAMELEN 16
+
 #include "str.h"
 #include "botcommands.h"
 
@@ -52,11 +55,16 @@ struct CommandDef {
 	int number;
 	int numargs;
 	int maxargs;
-	RETURNVAL_e returnvalue;
+	int returnvalue;
+	int argtypes[MAX_MAXARGS];
+	char argnames[MAX_MAXARGS][MAX_ARGNAMELEN];
+	int defvals[MAX_MAXARGS];
 	CommandDef* next;
 };
 
 void ReadCommands ();
 CommandDef* GetCommandByName (str a);
+int GetReturnTypeByString (str token);
+str GetReturnTypeName (int r);
 
 #endif // __COMMANDS_H__
