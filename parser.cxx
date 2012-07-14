@@ -47,9 +47,8 @@
 #include "objwriter.h"
 #include "scriptreader.h"
 #include "events.h"
+#include "commands.h"
 
-#define TOKEN_CHARS token.chars()
-#define TOKEN_IS(s) !token.compare (s)
 #define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
 	ParserError ("%ss may only be defined at top level!", token.chars());
 
@@ -61,7 +60,7 @@ str g_CurState = "";
 void ScriptReader::BeginParse (ObjWriter* w) {
 	while (Next()) {
 		// printf ("got token %s\n", token.chars());
-		if (TOKEN_IS ("#include")) {
+		if (!token.compare ("#include")) {
 			MustNext ();
 			// First ensure that the file can be opened
 			FILE* newfile = fopen (token.chars(), "r");
@@ -70,7 +69,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			fclose (newfile);
 			ScriptReader* newreader = new ScriptReader (token.chars());
 			newreader->BeginParse (w);
-		} else if (TOKEN_IS ("state")) {
+		} else if (!token.compare ("state")) {
 			MUST_TOPLEVEL
 			
 			MustNext ();
@@ -92,7 +91,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			g_NumStates++;
 			g_CurState = statename;
-		} else if (TOKEN_IS ("event")) {
+		} else if (!token.compare ("event")) {
 			MUST_TOPLEVEL
 			
 			// Event definition
@@ -109,7 +108,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			w->Write (DH_EVENT);
 			w->Write<long> (e->number);
 			g_NumEvents++;
-		} else if (TOKEN_IS ("}")) {
+		} else if (!token.compare ("}")) {
 			// Closing brace..
 			switch (g_CurMode) {
 			case MODE_EVENT:
@@ -121,7 +120,43 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 				ParserError ("unexpected `}`");
 			}
 		} else {
-			ParserError ("unknown keyword `%s`!", TOKEN_CHARS);
+			// Check if it's a command.
+			CommandDef* comm = GetCommandByName (token);
+			if (comm) {
+				w->Write<long> (DH_COMMAND);
+				w->Write<long> (comm->number);
+				w->Write<long> (comm->numargs);
+				MustNext ("(");
+				int curarg = 0;
+				while (1) {
+					if (curarg >= comm->numargs) {
+						MustNext (")");
+						break;
+					}
+					
+					if (!Next ())
+						ParserError ("unexpected end-of-file, unterminated command");
+					
+					// If we get a ")" now, the user probably gave too few parameters
+					if (!token.compare (")"))
+						ParserError ("unexpected `)`, did you pass too few parameters? (need %d)", comm->numargs);
+					
+					// For now, it takes in just numbers.
+					// Needs to cater for string arguments too...
+					if (!token.isnumber())
+						ParserError ("argument %d (`%s`) is not a number", curarg, token.chars());
+					
+					int i = atoi (token.chars ());
+					w->Write<long> (i);
+					
+					if (curarg != comm->numargs - 1)
+						MustNext (",");
+					
+					curarg++;
+				}
+				MustNext (";");
+			} else
+				ParserError ("unknown keyword `%s`!", token.chars());
 		}
 	}
 	

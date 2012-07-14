@@ -45,7 +45,7 @@
 #include "common.h"
 #include "scriptreader.h"
 
-bool IsWhitespace (char c) {
+bool IsDelimeter (char c) {
 	// These characters are invisible, thus considered whitespace
 	if (c <= 32 || c == 127 || c == 255)
 		return true;
@@ -54,6 +54,7 @@ bool IsWhitespace (char c) {
 }
 
 ScriptReader::ScriptReader (str path) {
+	extdelimeters = false;
 	atnewline = false;
 	filepath = path;
 	if (!(fp = fopen (path, "r"))) {
@@ -106,7 +107,31 @@ bool ScriptReader::Next () {
 			continue;
 		}
 		
-		if (IsWhitespace (c) && !quote) {
+		// Extended delimeters: parenthesis, quote marks, braces and brackets. 
+		// These delimeters break the word too. If there was prior data,
+		// the delimeter pushes the cursor back so that the next character
+		// will be the same delimeter. If there isn't, the delimeter itself
+		// is included (and thus becomes a token itself.)
+		// TODO: quotation marks should be here too..
+		bool shouldBreak = false;
+		if (extdelimeters) {
+			switch (c) {
+			case '(': case ')':
+			case '{': case '}':
+			case '[': case ']':
+				// Push the cursor back
+				if (tmp.len())
+					fseek (fp, ftell (fp)-1, SEEK_SET);
+				else
+					tmp += c;
+				shouldBreak = true;
+				break;
+			}
+		}
+		if (shouldBreak)
+			break;
+		
+		if (IsDelimeter (c) && !quote) {
 			// Don't break if we haven't gathered anything yet.
 			if (tmp.len())
 				break;

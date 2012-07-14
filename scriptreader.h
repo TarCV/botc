@@ -62,6 +62,7 @@ public:
 	str token;
 	bool tokenquoted;
 	bool atnewline;
+	bool extdelimeters;
 	
 	// ====================================================================
 	// METHODS

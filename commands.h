@@ -57,5 +57,6 @@ struct CommandDef {
 };
 
 void ReadCommands ();
+CommandDef* GetCommandByName (str a);
 
 #endif // __COMMANDS_H__

@@ -309,30 +309,22 @@ void str::repeat (unsigned int n) {
 
 // ============================================================================
 bool str::isnumber () {
-	return contentcheck (SCCF_NUMBER);
+	ITERATE_STRING (u)
+		if (text[u] < '0' || text[u] > '9')
+			return false;
+	return true;
 }
 
 // ============================================================================
 bool str::isword () {
-	return contentcheck (SCCF_WORD);
-}
-
-bool str::contentcheck (int flags) {
 	ITERATE_STRING (u) {
-		if (flags & SCCF_WORD) {
-			// lowercase letters
-			if (text[u] >= 'a' || text[u] <= 'z')
-				continue;
-			
-			// uppercase letters
-			if (text[u] >= 'A' || text[u] <= 'Z')
-				continue;
-		}
+		// lowercase letters
+		if (text[u] >= 'a' || text[u] <= 'z')
+			continue;
 		
-		if (flags & SCCF_NUMBER) {
-			if (text[u] < '0' || text[u] > '9')
-				return false;
-		}
+		// uppercase letters
+		if (text[u] >= 'A' || text[u] <= 'Z')
+			continue;
 		
 		return false;
 	}
