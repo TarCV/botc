@@ -49,7 +49,10 @@
 // Where is the parser at?
 enum parsermode {
 	MODE_TOPLEVEL,	// at top level
-	MODE_EVENT	// inside event definition
+	MODE_EVENT,	// inside event definition
+	MODE_MAINLOOP,	// inside mainloop
+	MODE_ONENTER,	// inside onenter
+	MODE_ONEXIT,	// inside onexit
 };
 
 class ScriptReader {

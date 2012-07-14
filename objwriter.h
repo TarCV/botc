@@ -50,6 +50,7 @@ public:
 	// ====================================================================
 	// MEMBERS
 	FILE* fp;
+	unsigned int numWrittenBytes;
 	
 	// ====================================================================
 	// METHODS
@@ -61,6 +62,7 @@ public:
 	
 	template <class T> void Write (T stuff) {
 		fwrite (&stuff, sizeof (T), 1, fp);
+		numWrittenBytes += sizeof (T);
 	}
 	
 	// Cannot use default arguments in function templates..

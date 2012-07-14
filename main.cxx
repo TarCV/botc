@@ -53,19 +53,21 @@
 #include "botcommands.h"
 
 int main (int argc, char** argv) {
+	// Print header
+	str header;
+	str headerline = "-=";
+	header.appendformat ("%s version %d.%d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
+	headerline.repeat ((header.len()/2)-1);
+	headerline += '-';
+	printf ("%s\n%s\n", header.chars(), headerline.chars());
+	
 	if (argc != 3) {
 		fprintf (stderr, "usage: %s: <infile> <outFile>\n", argv[0]);
 		exit (1);
 	}
 	
-	// Print header
-	str header;
-	str headerline = "=-";
-	header.appendformat ("%s version %d.%d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-	headerline.repeat ((header.len()/2)-1);
-	printf ("%s\n%s\n", header.chars(), headerline.chars());
-	
 	// Read definitions
+	printf ("Reading definitions...\n");
 	ReadEvents ();
 	ReadCommands ();
 	
@@ -74,15 +76,17 @@ int main (int argc, char** argv) {
 	ObjWriter *w = new ObjWriter (argv[2]);
 	
 	// We're set, begin parsing :)
+	printf ("Parsing script..\n");
 	r->BeginParse (w);
 	
-	// Clear out the junk afterwards
-	delete r;
-	delete w;
-	
-	// Print statistics
+	// Parse done, print statistics
 	printf ("%d states written\n", g_NumStates);
 	printf ("%d events written\n", g_NumEvents);
+	printf ("-- %u bytes written to %s\n", w->numWrittenBytes, argv[2]);
+	
+	// Clear out the junk
+	delete r;
+	delete w;
 }
 
 void error (const char* text, ...) {

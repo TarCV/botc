@@ -56,8 +56,10 @@ int g_NumStates = 0;
 int g_NumEvents = 0;
 int g_CurMode = MODE_TOPLEVEL;
 str g_CurState = "";
+bool g_stateSpawnDefined = false;
 
 void ScriptReader::BeginParse (ObjWriter* w) {
+	bool gotMainLoop = false;
 	while (Next()) {
 		// printf ("got token %s\n", token.chars());
 		if (!token.compare ("#include")) {
@@ -78,18 +80,32 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// State name must be a word.
 			if (token.first (" ") != token.len())
 				ParserError ("state name must be a single word! got `%s`", token.chars());
+			str statename = token;
+			
+			// stateSpawn is special - it *must* be defined. If we
+			// encountered it, then mark down that we have it.
+			if (!token.icompare ("stateSpawn"))
+				g_stateSpawnDefined = true;
 			
 			// Must end in a colon
 			MustNext (":");
 			
+			// If the previous state did not define a mainloop,
+			// define a dummy one now, since one has to be present.
+			if (g_CurState.compare ("") != 0 && !gotMainLoop) {
+				w->Write (DH_MAINLOOP);
+				w->Write (DH_ENDMAINLOOP);
+			}
+			
 			w->Write (DH_STATENAME);
-			w->Write (token.len());
-			w->WriteString (token);
+			w->Write (statename.len());
+			w->WriteString (statename);
 			w->Write (DH_STATEIDX);
 			w->Write (g_NumStates);
 			
 			g_NumStates++;
 			g_CurState = token;
+			gotMainLoop = false;
 		} else if (!token.compare ("event")) {
 			MUST_TOPLEVEL
 			
@@ -107,17 +123,32 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			w->Write (DH_EVENT);
 			w->Write<long> (e->number);
 			g_NumEvents++;
+		} else if (!token.compare ("mainloop")) {
+			MUST_TOPLEVEL
+			MustNext ("{");
+			g_CurMode = MODE_MAINLOOP;
+			w->Write (DH_MAINLOOP);
+			gotMainLoop = true;
+		} else if (!token.compare ("onenter") || !token.compare ("onexit")) {
+			MUST_TOPLEVEL
+			bool onenter = !token.compare ("onenter");
+			
+			MustNext ("{");
+			g_CurMode = onenter ? MODE_ONENTER : MODE_ONEXIT;
+			w->Write (onenter ? DH_ONENTER : DH_ONEXIT);
 		} else if (!token.compare ("}")) {
-			// Closing brace..
-			switch (g_CurMode) {
-			case MODE_EVENT:
-				// Brace closes event.
-				w->Write (DH_ENDEVENT);
-				g_CurMode = MODE_TOPLEVEL;
-				break;
-			default:
+			// Closing brace
+			int dataheader =	(g_CurMode == MODE_EVENT) ? DH_ENDEVENT :
+						(g_CurMode == MODE_MAINLOOP) ? DH_ENDMAINLOOP :
+						(g_CurMode == MODE_ONENTER) ? DH_ENDONENTER :
+						(g_CurMode == MODE_ONEXIT) ? DH_ENDONEXIT : -1;
+			
+			if (dataheader == -1)
 				ParserError ("unexpected `}`");
-			}
+			
+			// Closing brace..
+			w->Write (dataheader);
+			g_CurMode = MODE_TOPLEVEL;
 		} else {
 			// Check if it's a command.
 			CommandDef* comm = GetCommandByName (token);
@@ -129,7 +160,11 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	}
 	
 	if (g_CurMode != MODE_TOPLEVEL)
-		ParserError ("script did not end at top level! did you forget a `}`?\n");
+		ParserError ("script did not end at top level! did you forget a `}`?");
+	
+	// stateSpawn must be defined!
+	if (!g_stateSpawnDefined)
+		ParserError ("script must have a state named `stateSpawn`!");
 	
 	/*
 	// State
@@ -151,6 +186,10 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 }
 
 void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
+	// If this was defined at top-level, we stop right at square one!
+	if (g_CurMode == MODE_TOPLEVEL)
+		ParserError ("no commands allowed at top level!");
+	
 	w->Write<long> (DH_COMMAND);
 	w->Write<long> (comm->number);
 	w->Write<long> (comm->maxargs);
