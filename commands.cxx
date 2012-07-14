@@ -48,7 +48,6 @@
 
 CommandDef* g_CommDef;
 
-#define MAX
 void ReadCommands () {
 	ScriptReader* r = new ScriptReader ((char*)"commands.def");
 	g_CommDef = NULL;
@@ -141,4 +140,17 @@ void ReadCommands () {
 	
 	delete r;
 	printf ("%d command definitions read.\n", numCommDefs);
+}
+
+CommandDef* GetCommandByName (str a) {
+	a.tolower ();
+	CommandDef* c;
+	ITERATE_COMMANDS (c) {
+		str b = c->name;
+		b.tolower ();
+		if (!a.compare (b))
+			return c;
+	}
+	
+	return NULL;
 }

@@ -74,6 +74,7 @@ int main (int argc, char** argv) {
 	ObjWriter *w = new ObjWriter (argv[2]);
 	
 	// We're set, begin parsing :)
+	r->extdelimeters = true;
 	r->BeginParse (w);
 	
 	// Clear out the junk afterwards

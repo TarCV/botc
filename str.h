@@ -132,8 +132,6 @@ public:
 	// Convert string to upper case
 	str toupper ();
 	
-	bool contentcheck (int flags);
-	
 	int compare (const char* c);
 	int compare (str c);
 	
