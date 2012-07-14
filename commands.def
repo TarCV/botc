@@ -1,7 +1,7 @@
 0:changestate:void:1:1:str(statename)
 1:delay:void:1:1:int(tics)
 2:rand:int:2:2:int(a):int(b)
-3:StringsAreEqual:bool:0:0
+3:StringsAreEqual:bool:2:2:str(string1):str(string2)
 4:LookForPowerups:int:2:2:int(start):bool(visibilitycheck)
 5:LookForWeapons:int:2:2:int(start):bool(visibilitycheck)
 6:LookForAmmo:int:2:2:int(start):bool(visibilitycheck)

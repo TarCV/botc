@@ -47,8 +47,6 @@
 #include "str.h"
 #include "commands.h"
 
-CommandDef* g_CommDef;
-
 void ReadCommands () {
 	ScriptReader* r = new ScriptReader ("commands.def");
 	g_CommDef = NULL;
@@ -191,4 +189,45 @@ CommandDef* GetCommandByName (str fname) {
 	}
 	
 	return NULL;
+}
+
+str GetCommandPrototype (CommandDef* comm) {
+	str text;
+	text += GetReturnTypeName (comm->returnvalue);
+	text += ' ';
+	text += comm->name;
+	text += '(';
+	
+	bool hasOptionalArguments = false;
+	for (int i = 0; i < comm->maxargs; i++) {
+		if (i == comm->numargs) {
+			hasOptionalArguments = true;
+			text += '[';
+		}
+		
+		if (i)
+			text += ", ";
+		
+		text += GetReturnTypeName (comm->argtypes[i]);
+		text += ' ';
+		text += comm->argnames[i];
+		
+		if (i >= comm->numargs) {
+			text += '=';
+			
+			bool isString = comm->argtypes[i] == RETURNVAL_STRING;
+			if (isString) text += '"';
+			
+			char defvalstring[8];
+			sprintf (defvalstring, "%d", comm->defvals[i]);
+			text += defvalstring;
+			
+			if (isString) text += '"';
+		}
+	}
+	
+	if (hasOptionalArguments)
+		text += ']';
+	text += ')';
+	return text;
 }

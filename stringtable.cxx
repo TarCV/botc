@@ -46,33 +46,22 @@
 #include "bots.h"
 #include "stringtable.h"
 
-StringTable::StringTable() {
+void InitStringTable() {
 	// Zero out everything first.
 	for (unsigned int a = 0; a < MAX_LIST_STRINGS; a++)
 		for (unsigned int b = 0; b < MAX_STRING_LENGTH; b++)
-			table[a][b] = 0;
+			g_StringTable[a][b] = 0;
 }
 
-unsigned int StringTable::Push (char* s) {
-	// Determine the length
-	size_t l1 = strlen (s);
-	size_t l2 = MAX_LIST_STRINGS - 1;
-	size_t len = (l1 < l2) ? l1 : l2;
-	
-	// First, copy the string to a temporary buffer, since otherwise
-	// it gets lost and becomes empty.
-	char tmp[len+1];
-	strncpy (tmp, s, len);
-	tmp[len] = 0;
-	
+unsigned int PushToStringTable (char* s) {
 	// Find a free slot in the table. 
 	unsigned int a;
 	for (a = 0; a < MAX_LIST_STRINGS; a++) {
-		if (!strcmp (tmp, table[a]))
+		if (!strcmp (s, g_StringTable[a]))
 			return a;
 		
 		// String is empty, thus it's free.
-		if (!strlen (table[a]))
+		if (!strlen (g_StringTable[a]))
 			break;
 	}
 	
@@ -80,26 +69,25 @@ unsigned int StringTable::Push (char* s) {
 	if (a == MAX_LIST_STRINGS)
 		error ("too many strings defined!");
 	
+	// Determine the length
+	size_t l1 = strlen (s);
+	size_t l2 = MAX_LIST_STRINGS - 1;
+	size_t len = (l1 < l2) ? l1 : l2;
+	
 	// Now, dump the string into the slot
-	strncpy (table[a], tmp, len);
-	table[a][len] = 0;
+	strncpy (g_StringTable[a], s, len);
+	g_StringTable[a][len] = 0;
 	
 	return a;
 }
 
-unsigned int StringTable::Count () {
+unsigned int CountStringTable () {
 	unsigned int count = 0;
 	for (unsigned int a = 0; a < MAX_LIST_STRINGS; a++) {
-		if (!strlen (table[a]))
+		if (!strlen (g_StringTable[a]))
 			break;
 		else
 			count++;
 	}
 	return count;
-}
-
-char* StringTable::operator [] (unsigned int a) {
-	if (a > MAX_LIST_STRINGS)
-		return const_cast<char*> ("");
-	return table[a];
 }

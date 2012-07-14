@@ -41,18 +41,11 @@
 #include "bots.h"
 #include "str.h"
 
-class StringTable {
-public:
-	char table[MAX_LIST_STRINGS][MAX_STRING_LENGTH];
-	StringTable();
-	
-	unsigned int Push (char* s);
-	unsigned int Count ();
-	
-	char* operator [] (unsigned int a);
-};
+void InitStringTable();
+unsigned int PushToStringTable (char* s);
+unsigned int CountStringTable ();
 
 #ifndef __STRINGTABLE_CXX__
 extern
 #endif
-StringTable* g_StringTable;
+char g_StringTable[MAX_LIST_STRINGS][MAX_STRING_LENGTH];
