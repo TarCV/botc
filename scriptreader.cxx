@@ -45,7 +45,7 @@
 #include "common.h"
 #include "scriptreader.h"
 
-bool IsDelimeter (char c) {
+static bool IsWhitespace (char c) {
 	// These characters are invisible, thus considered whitespace
 	if (c <= 32 || c == 127 || c == 255)
 		return true;
@@ -111,7 +111,7 @@ bool ScriptReader::Next () {
 			break;
 		}
 		
-		if (IsDelimeter (c)) {
+		if (IsWhitespace (c)) {
 			// Don't break if we haven't gathered anything yet.
 			if (tmp.len())
 				break;
@@ -120,7 +120,8 @@ bool ScriptReader::Next () {
 		}
 	}
 	
-	// If we got nothing here, read failed.
+	// If we got nothing here, read failed. This should
+	// only hapen in the case of EOF.
 	if (!tmp.len()) {
 		token = "";
 		return false;

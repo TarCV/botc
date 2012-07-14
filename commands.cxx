@@ -55,7 +55,7 @@ void ReadCommands () {
 	CommandDef* curdef = g_CommDef;
 	unsigned int numCommDefs = 0; 
 	
-	while (r->PeekNext().compare ("") != 0) {
+	while (r->PeekNext().len()) {
 		CommandDef* comm = new CommandDef;
 		comm->next = NULL;
 		

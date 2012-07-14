@@ -168,6 +168,12 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	if (!g_stateSpawnDefined)
 		ParserError ("script must have a state named `stateSpawn`!");
 	
+	// If the last state did not have a main loop, define a dummy one now.
+	if (!gotMainLoop) {
+		w->Write (DH_MAINLOOP);
+		w->Write (DH_ENDMAINLOOP);
+	}
+	
 	/*
 	// State
 	w->WriteState ("stateSpawn");
@@ -192,9 +198,6 @@ void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
 	if (g_CurMode == MODE_TOPLEVEL)
 		ParserError ("no commands allowed at top level!");
 	
-	w->Write<long> (DH_COMMAND);
-	w->Write<long> (comm->number);
-	w->Write<long> (comm->maxargs);
 	MustNext ("(");
 	int curarg = 0;
 	while (1) {
@@ -220,6 +223,7 @@ void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
 			ParserError ("argument %d (`%s`) is not a number", curarg, token.chars());
 		
 		int i = atoi (token.chars ());
+		w->Write<long> (DH_PUSHNUMBER);
 		w->Write<long> (i);
 		
 		if (curarg < comm->numargs - 1) {
@@ -240,7 +244,12 @@ void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
 	
 	// If the script skipped any optional arguments, fill in defaults.
 	while (curarg < comm->maxargs) {
+		w->Write<long> (DH_PUSHNUMBER);
 		w->Write<long> (comm->defvals[curarg]);
 		curarg++;
 	}
+	
+	w->Write<long> (DH_COMMAND);
+	w->Write<long> (comm->number);
+	w->Write<long> (comm->maxargs);
 }
