@@ -59,9 +59,9 @@ int g_NumEvents = 0;
 int g_CurMode = MODE_TOPLEVEL;
 str g_CurState = "";
 bool g_stateSpawnDefined = false;
+bool g_GotMainLoop = false;
 
 void ScriptReader::BeginParse (ObjWriter* w) {
-	bool gotMainLoop = false;
 	while (Next()) {
 		// printf ("got token %s\n", token.chars());
 		if (!token.icompare ("#include")) {
@@ -95,12 +95,10 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// Must end in a colon
 			MustNext (":");
 			
-			// If the previous state did not define a mainloop,
-			// define a dummy one now, since one has to be present.
-			if (g_CurState.len() && !gotMainLoop) {
-				w->Write (DH_MAINLOOP);
-				w->Write (DH_ENDMAINLOOP);
-			}
+			// Write the previous state's onenter and
+			// mainloop buffers to file now
+			if (g_CurState.len())
+				w->WriteBuffers();
 			
 			w->Write (DH_STATENAME);
 			w->WriteString (statename);
@@ -109,7 +107,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			g_NumStates++;
 			g_CurState = token;
-			gotMainLoop = false;
+			g_GotMainLoop = false;
 			continue;
 		}
 		
@@ -136,17 +134,20 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		if (!token.icompare ("mainloop")) {
 			MUST_TOPLEVEL
 			MustNext ("{");
+			
+			// Mode must be set before dataheader is written here!
 			g_CurMode = MODE_MAINLOOP;
 			w->Write (DH_MAINLOOP);
-			gotMainLoop = true;
 			continue;
 		}
 		
 		if (!token.icompare ("onenter") || !token.icompare ("onexit")) {
 			MUST_TOPLEVEL
 			bool onenter = !token.compare ("onenter");
-			
 			MustNext ("{");
+			
+			// Mode must be set before dataheader is written here,
+			// because onenter goes to a separate buffer.
 			g_CurMode = onenter ? MODE_ONENTER : MODE_ONEXIT;
 			w->Write (onenter ? DH_ONENTER : DH_ONEXIT);
 			continue;
@@ -184,7 +185,9 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			if (dataheader == -1)
 				ParserError ("unexpected `}`");
 			
-			// Closing brace..
+			// Data header must be written before mode is changed because
+			// onenter and mainloop go into buffers, and we want the closing
+			// data headers into said buffers too.
 			w->Write (dataheader);
 			g_CurMode = MODE_TOPLEVEL;
 			
@@ -198,11 +201,9 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			if (g_CurMode == MODE_TOPLEVEL)
 				ParserError ("can't alter variables at top level");
 			
-			// Only addition for now..
-			MustNext ();
-			
 			// Build operator string. Only '=' is one
 			// character, others are two.
+			MustNext ();
 			str oper = token;
 			if (token.compare ("=") != 0) {
 				MustNext ();
@@ -261,11 +262,10 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	if (!g_stateSpawnDefined)
 		ParserError ("script must have a state named `stateSpawn`!");
 	
-	// If the last state did not have a main loop, define a dummy one now.
-	if (!gotMainLoop) {
-		w->Write (DH_MAINLOOP);
-		w->Write (DH_ENDMAINLOOP);
-	}
+	
+	
+	// Dump the last state's onenter and mainloop
+	w->WriteBuffers();
 	
 	// If we added strings here, we need to write a list of them.
 	unsigned int stringcount = CountStringTable ();

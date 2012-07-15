@@ -41,7 +41,9 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include <stdio.h>
 #include <stdarg.h>
+#include <typeinfo>
 #include "bots.h"
 #include "str.h"
 
@@ -50,7 +52,16 @@
 #define VERSION_MINOR 0
 #define VERSION_REVISION 999
 
-typedef unsigned long qbyte;
+// Where is the parser at?
+enum parsermode {
+	MODE_TOPLEVEL,	// at top level
+	MODE_EVENT,	// inside event definition
+	MODE_MAINLOOP,	// inside mainloop
+	MODE_ONENTER,	// inside onenter
+	MODE_ONEXIT,	// inside onexit
+};
+
+typedef long qbyte;
 
 #define CHECK_FILE(pointer,path,action) \
 	if (!pointer) { \
@@ -74,5 +85,37 @@ extern int g_NumEvents;
 extern int g_CurMode;
 extern str g_CurState;
 #endif
+
+// Power function
+template<class T> T pow (T a, T b) {
+	if (!b)
+		return 1;
+	
+	T r = a;
+	while (b > 1) {
+		b--;
+		
+		// r *= a fails here with large numbers
+		r += a * a;
+	}
+	
+	return r;
+}
+
+template <class T> unsigned char CharByte (T a, unsigned int b) {
+	if (b >= sizeof (T))
+		error ("CharByte: tried to get byte %u out of a %u-byte %s\n",
+			b, sizeof (T), typeid(T).name());
+	
+	unsigned long p1 = pow<unsigned long> (256, b);
+	unsigned long p2 = pow<unsigned long> (256, b+1);
+	unsigned long r = (a % p2) / p1;
+	
+	if (r > 256)
+		error ("result %lu too big!", r);
+	
+	unsigned char ur = static_cast<unsigned char> (r);
+	return ur;
+}
 
 #endif // __COMMON_H__

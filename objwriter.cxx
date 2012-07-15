@@ -48,7 +48,12 @@
 
 #include "bots.h"
 
+extern bool g_GotMainLoop;
+
 ObjWriter::ObjWriter (str path) {
+	MainLoopBuffer = new DataBuffer;
+	OnEnterBuffer = new DataBuffer;
+	
 	numWrittenBytes = 0;
 	fp = fopen (path, "w");
 	CHECK_FILE (fp, path, "writing");
@@ -56,6 +61,8 @@ ObjWriter::ObjWriter (str path) {
 
 ObjWriter::~ObjWriter () {
 	fclose (fp);
+	delete MainLoopBuffer;
+	delete OnEnterBuffer;
 }
 
 void ObjWriter::WriteString (char* s) {
@@ -70,4 +77,28 @@ void ObjWriter::WriteString (const char* s) {
 
 void ObjWriter::WriteString (str s) {
 	WriteString (s.chars());
+}
+
+void ObjWriter::WriteBuffers () {
+	// If there was no mainloop defined, write a dummy one now.
+	if (!g_GotMainLoop) {
+		MainLoopBuffer->Write<long> (DH_MAINLOOP);
+		MainLoopBuffer->Write<long> (DH_ENDMAINLOOP);
+	}
+	
+	// Write the onenter and mainloop buffers, IN THAT ORDER
+	for (int i = 0; i < 2; i++) {
+		DataBuffer* buf = (!i) ? OnEnterBuffer : MainLoopBuffer;
+		for (unsigned int x = 0; x < buf->writepos; x++) {
+			unsigned char c = *(buf->buffer+x);
+			Write<unsigned char> (c);
+		}
+		
+		// Clear the buffer afterwards for potential next state
+		delete buf;
+		buf = new DataBuffer;
+	}
+	
+	// Next state definitely has no mainloop yet
+	g_GotMainLoop = false;
 }
