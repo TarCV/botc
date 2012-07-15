@@ -42,14 +42,88 @@
 #define __OBJWRITER_H__
 
 #include <stdio.h>
+#include <typeinfo>
+#include <string.h>
 #include "common.h"
 #include "str.h"
+
+extern int g_CurMode;
+
+// ============================================================================
+// DataBuffer: A dynamic data buffer.
+class DataBuffer {
+public:
+	// The actual buffer
+	unsigned char* buffer;
+	
+	// How big is the buffer?
+	unsigned int bufsize;
+	
+	// Position in the buffer
+	unsigned int writepos;
+	unsigned int readpos;
+	
+	// METHODS
+	DataBuffer (unsigned int size=128) {
+		writepos = 0;
+		readpos = 0;
+		
+		buffer = new unsigned char[size];
+		bufsize = size;
+	}
+	
+	~DataBuffer () {
+		delete buffer;
+	}
+	
+	template<class T> void Write(T stuff) {
+		if (sizeof (char) != 1) {
+			error ("DataBuffer: sizeof(char) must be 1!\n");
+		}
+		
+		// Out of space, must resize
+		if (writepos + sizeof(T) >= bufsize) {
+			// First, store the old buffer temporarily
+			char* copy = new char[bufsize];
+			printf ("Resizing buffer: copy buffer to safety. %u bytes to copy\n", bufsize);
+			memcpy (copy, buffer, bufsize);
+			
+			// Remake the buffer with the new size.
+			// Have a bit of leeway so we don't have to
+			// resize immediately again.
+			size_t newsize = bufsize + sizeof (T) + 128;
+			delete buffer;
+			buffer = new unsigned char[newsize];
+			bufsize = newsize;
+			
+			// Now, copy the new stuff over.
+			memcpy (buffer, copy, bufsize);
+			
+			// Nuke the copy now as it's no longer needed
+			delete copy;
+		}
+		
+		// Write the new stuff one byte at a time
+		for (unsigned int x = 0; x < sizeof (T); x++) {
+			buffer[writepos] = CharByte<T> (stuff, x);
+			writepos++;
+		}
+	}
+
+	template<class T> T Read() {
+		T result = buffer[readpos];
+		readpos += sizeof (T);
+		return result;
+	}
+};
 
 class ObjWriter {
 public:
 	// ====================================================================
 	// MEMBERS
 	FILE* fp;
+	DataBuffer* OnEnterBuffer;
+	DataBuffer* MainLoopBuffer;
 	unsigned int numWrittenBytes;
 	
 	// ====================================================================
@@ -59,12 +133,19 @@ public:
 	void WriteString (char* s);
 	void WriteString (const char* s);
 	void WriteString (str s);
+	void WriteBuffers ();
 	
 	template <class T> void Write (T stuff) {
+		// Mainloop and onenter are written into a separate buffer.
+		if (g_CurMode == MODE_MAINLOOP || g_CurMode == MODE_ONENTER) {
+			DataBuffer* buffer = (g_CurMode == MODE_MAINLOOP) ? MainLoopBuffer : OnEnterBuffer;
+			buffer->Write<T> (stuff);
+			return;
+		}
+		
 		fwrite (&stuff, sizeof (T), 1, fp);
 		numWrittenBytes += sizeof (T);
 	}
-	
 	// Cannot use default arguments in function templates..
 	void Write (qbyte stuff) {Write<qbyte> (stuff);}
 };
