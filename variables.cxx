@@ -61,11 +61,7 @@ void InitVariables () {
 
 // Tries to declare a new global-scope variable. Returns pointer
 // to new global variable, NULL if declaration failed.
-ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name, int type) {
-	// Apparently the Zandronum engine does not support string variables..
-	if (type == RETURNVAL_VOID || type == RETURNVAL_STRING)
-		return NULL;
-	
+ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name) {
 	// Find a NULL pointer to a global variable
 	ScriptVar* g;
 	unsigned int u = 0;
@@ -85,10 +81,8 @@ ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name, int type) {
 	g->index = u;
 	g->name = name;
 	g->statename = "";
-	g->type = type;
 	g->next = NULL;
-	g->value =	(type == RETURNVAL_BOOLEAN) ? "false" :
-			(type == RETURNVAL_INT) ? "0" : "";
+	g->value = 0;
 	
 	g_GlobalVariables[u] = g;
 	return g;
@@ -101,17 +95,21 @@ ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name, int type) {
 }*/
 
 // Find a global variable by name
-/* ScriptVar* FindScriptVariable (str name) {
-	ScriptVar* g;
-	ITERATE_SCRIPT_VARS (g)
+ScriptVar* FindGlobalVariable (str name) {
+	unsigned int u = 0;
+	ITERATE_GLOBAL_VARS (u) {
+		ScriptVar* g = g_GlobalVariables[u];
+		if (!g)
+			return NULL;
+		
 		if (!g->name.compare (name))
 			return g;
+	}
 	
 	return NULL;
-}*/
+}
 
 unsigned int CountGlobalVars () {
-	ScriptVar* var;
 	unsigned int count = 0;
 	unsigned int u = 0;
 	ITERATE_GLOBAL_VARS (u) {

@@ -74,7 +74,10 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			fclose (newfile);
 			ScriptReader* newreader = new ScriptReader (token.chars());
 			newreader->BeginParse (w);
-		} else if (!token.icompare ("state")) {
+			continue;
+		}
+		
+		if (!token.icompare ("state")) {
 			MUST_TOPLEVEL
 			
 			MustString ();
@@ -107,7 +110,10 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			g_NumStates++;
 			g_CurState = token;
 			gotMainLoop = false;
-		} else if (!token.icompare ("event")) {
+			continue;
+		}
+		
+		if (!token.icompare ("event")) {
 			MUST_TOPLEVEL
 			
 			// Event definition
@@ -124,45 +130,51 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			w->Write (DH_EVENT);
 			w->Write<long> (e->number);
 			g_NumEvents++;
-		} else if (!token.icompare ("mainloop")) {
+			continue;
+		}
+		
+		if (!token.icompare ("mainloop")) {
 			MUST_TOPLEVEL
 			MustNext ("{");
 			g_CurMode = MODE_MAINLOOP;
 			w->Write (DH_MAINLOOP);
 			gotMainLoop = true;
-		} else if (!token.icompare ("onenter") || !token.icompare ("onexit")) {
+			continue;
+		}
+		
+		if (!token.icompare ("onenter") || !token.icompare ("onexit")) {
 			MUST_TOPLEVEL
 			bool onenter = !token.compare ("onenter");
 			
 			MustNext ("{");
 			g_CurMode = onenter ? MODE_ONENTER : MODE_ONEXIT;
 			w->Write (onenter ? DH_ONENTER : DH_ONEXIT);
-		} else if (!token.compare ("int") || !token.compare ("bool")) {
+			continue;
+		}
+		
+		if (!token.compare ("var")) {
 			// For now, only globals are supported
 			if (g_CurMode != MODE_TOPLEVEL || g_CurState.len())
 				ParserError ("variables must only be global for now");
 			
-			// Variable definition
-			int type = !token.compare ("int") ? RETURNVAL_INT: RETURNVAL_BOOLEAN;
-			
 			MustNext ();
+			
+			// Var name must not be a number
+			if (token.isnumber())
+				ParserError ("variable name must not be a number");
+			
 			str varname = token;
-			ScriptVar* var = DeclareGlobalVariable (this, varname, type);
+			ScriptVar* var = DeclareGlobalVariable (this, varname);
 			
 			if (!var)
 				ParserError ("declaring %s variable %s failed",
 					g_CurState.len() ? "state" : "global", varname.chars());
 			
-			// Assign it, if desired
-			if (!PeekNext().compare ("=")) {
-				MustNext ("=");
-				MustValue (type);
-				
-				var->value = token;
-			}
-			
 			MustNext (";");
-		} else if (!token.compare ("}")) {
+			continue;
+		}
+		
+		if (!token.compare ("}")) {
 			// Closing brace
 			int dataheader =	(g_CurMode == MODE_EVENT) ? DH_ENDEVENT :
 						(g_CurMode == MODE_MAINLOOP) ? DH_ENDMAINLOOP :
@@ -177,14 +189,68 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			g_CurMode = MODE_TOPLEVEL;
 			
 			MustNext (";");
-		} else {
-			// Check if it's a command.
-			CommandDef* comm = GetCommandByName (token);
-			if (comm)
-				ParseCommand (comm, w);
-			else
-				ParserError ("unknown keyword `%s`", token.chars());
+			continue;
 		}
+		// Check global variables
+		ScriptVar* g = FindGlobalVariable (token);
+		if (g) {
+			// Not in top level, unfortunately..
+			if (g_CurMode == MODE_TOPLEVEL)
+				ParserError ("can't alter variables at top level");
+			
+			// Only addition for now..
+			MustNext ();
+			
+			// Build operator string. Only '=' is one
+			// character, others are two.
+			str oper = token;
+			if (token.compare ("=") != 0) {
+				MustNext ();
+				oper += token;
+			}
+			
+			// Unary operators
+			if (!oper.compare ("++")) {
+				w->Write<long> (DH_INCGLOBALVAR);
+				w->Write<long> (g->index);
+			} else if (!oper.compare ("--")) {
+				w->Write<long> (DH_DECGLOBALVAR);
+				w->Write<long> (g->index);
+			}
+			
+			// And only with numbers for now too.
+			// TODO: make a proper expression parser!
+			MustNumber();
+			
+			int val = atoi (token.chars());
+			w->Write<long> (DH_PUSHNUMBER);
+			w->Write<long> (val);
+			
+			int dataheader =	!oper.compare("=") ? DH_ASSIGNGLOBALVAR :
+						!oper.compare("+=") ? DH_ADDGLOBALVAR :
+						!oper.compare("-=") ? DH_SUBGLOBALVAR :
+						!oper.compare("*=") ? DH_MULGLOBALVAR :
+						!oper.compare("/=") ? DH_DIVGLOBALVAR :
+						!oper.compare("%=") ? DH_MODGLOBALVAR : -1;
+			
+			if (dataheader == -1)
+				ParserError ("bad operator `%s`!", oper.chars());
+			
+			w->Write<long> (dataheader);
+			w->Write<long> (g->index);
+			
+			MustNext (";");
+			continue;
+		}
+		
+		// Check if it's a command.
+		CommandDef* comm = GetCommandByName (token);
+		if (comm) { 
+			ParseCommand (comm, w);
+			continue;
+		}
+		
+		ParserError ("unknown keyword `%s`", token.chars());
 	}
 	
 	if (g_CurMode != MODE_TOPLEVEL)
@@ -229,31 +295,40 @@ void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
 			break;
 		}
 		
-		/*
-		if (!Next ())
+		if (!PeekNext().len())
 			ParserError ("unexpected end-of-file, unterminated command");
 		
 		// If we get a ")" now, the user probably gave too few parameters
-		if (!token.compare (")"))
+		if (!PeekNext().compare (")"))
 			ParserError ("unexpected `)`, did you pass too few parameters? (need %d)", comm->numargs);
-		*/
 		
-		switch (comm->argtypes[curarg]) {
-		case RETURNVAL_INT:
-			MustNumber();
-			w->Write<long> (DH_PUSHNUMBER);
-			w->Write<long> (atoi (token.chars ()));
-			break;
-		case RETURNVAL_BOOLEAN:
-			MustBool();
-			w->Write<long> (DH_PUSHNUMBER);
-			w->Write<long> (BoolValue ());
-			break;
-		case RETURNVAL_STRING:
-			MustString();
-			w->Write<long> (DH_PUSHSTRINGINDEX);
-			w->Write<long> (PushToStringTable (token.chars()));
-			break;
+		// Argument may be using a variable
+		ScriptVar* g = FindGlobalVariable (PeekNext ());
+		if (g && comm->argtypes[curarg] != RETURNVAL_STRING) {
+			// Advance cursor past the var name
+			Next();
+			
+			w->Write<long> (DH_PUSHGLOBALVAR);
+			w->Write<long> (g->index);
+		} else {
+			// Check for raw value
+			switch (comm->argtypes[curarg]) {
+			case RETURNVAL_INT:
+				MustNumber();
+				w->Write<long> (DH_PUSHNUMBER);
+				w->Write<long> (atoi (token.chars ()));
+				break;
+			case RETURNVAL_BOOLEAN:
+				MustBool();
+				w->Write<long> (DH_PUSHNUMBER);
+				w->Write<long> (BoolValue ());
+				break;
+			case RETURNVAL_STRING:
+				MustString();
+				w->Write<long> (DH_PUSHSTRINGINDEX);
+				w->Write<long> (PushToStringTable (token.chars()));
+				break;
+			}
 		}
 		
 		if (curarg < comm->numargs - 1) {
