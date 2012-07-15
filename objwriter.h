@@ -147,7 +147,7 @@ public:
 		numWrittenBytes += sizeof (T);
 	}
 	// Cannot use default arguments in function templates..
-	void Write (qbyte stuff) {Write<qbyte> (stuff);}
+	void Write (long stuff) {Write<long> (stuff);}
 };
 
 #endif // __OBJWRITER_H__

@@ -61,8 +61,6 @@ enum parsermode {
 	MODE_ONEXIT,	// inside onexit
 };
 
-typedef long qbyte;
-
 #define CHECK_FILE(pointer,path,action) \
 	if (!pointer) { \
 		error ("couldn't open %s for %s!\n", (char*)path, action); \
