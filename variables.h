@@ -44,10 +44,9 @@
 #include "scriptreader.h"
 
 struct ScriptVar {
-	int type;
 	str name;
 	str statename;
-	str value;
+	int value;
 	unsigned int index;
 	ScriptVar* next;
 };
@@ -62,8 +61,9 @@ extern ScriptVar* g_LocalVariable;
 #define ITERATE_SCRIPT_VARS(g) \
 	for (g = g_ScriptVariable; g != NULL; g = g->next)
 
-ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name, int type);
+ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name);
 unsigned int CountGlobalVars ();
 void InitVariables ();
+ScriptVar* FindGlobalVariable (str name);
 
 #endif // __VARIABLES_H__

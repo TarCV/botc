@@ -106,7 +106,7 @@ int main (int argc, char** argv) {
 	printf ("%u global variable%s\n", globalcount, PLURAL (globalcount));
 	printf ("%d state%s written\n", g_NumStates, PLURAL (g_NumStates));
 	printf ("%d event%s written\n", g_NumEvents, PLURAL (g_NumEvents));
-	printf ("-- %u bytes written to %s\n", w->numWrittenBytes, argv[2]);
+	printf ("-- %u byte%s written to %s\n", w->numWrittenBytes, PLURAL (w->numWrittenBytes), argv[2]);
 	
 	// Clear out the junk
 	delete r;
