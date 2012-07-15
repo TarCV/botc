@@ -216,29 +216,30 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			} else if (!oper.compare ("--")) {
 				w->Write<long> (DH_DECGLOBALVAR);
 				w->Write<long> (g->index);
+			} else {
+				// Binary operators
+				// And only with numbers for now too.
+				// TODO: make a proper expression parser!
+				MustNumber();
+				
+				int val = atoi (token.chars());
+				w->Write<long> (DH_PUSHNUMBER);
+				w->Write<long> (val);
+				
+				int h =	!oper.compare("=") ? DH_ASSIGNGLOBALVAR :
+					!oper.compare("+=") ? DH_ADDGLOBALVAR :
+					!oper.compare("-=") ? DH_SUBGLOBALVAR :
+					!oper.compare("*=") ? DH_MULGLOBALVAR :
+					!oper.compare("/=") ? DH_DIVGLOBALVAR :
+					!oper.compare("%=") ? DH_MODGLOBALVAR : -1;
+				
+				if (h == -1)
+					ParserError ("bad operator `%s`!", oper.chars());
+				
+				w->Write<long> (h);
+				w->Write<long> (g->index);
 			}
-			
-			// And only with numbers for now too.
-			// TODO: make a proper expression parser!
-			MustNumber();
-			
-			int val = atoi (token.chars());
-			w->Write<long> (DH_PUSHNUMBER);
-			w->Write<long> (val);
-			
-			int dataheader =	!oper.compare("=") ? DH_ASSIGNGLOBALVAR :
-						!oper.compare("+=") ? DH_ADDGLOBALVAR :
-						!oper.compare("-=") ? DH_SUBGLOBALVAR :
-						!oper.compare("*=") ? DH_MULGLOBALVAR :
-						!oper.compare("/=") ? DH_DIVGLOBALVAR :
-						!oper.compare("%=") ? DH_MODGLOBALVAR : -1;
-			
-			if (dataheader == -1)
-				ParserError ("bad operator `%s`!", oper.chars());
-			
-			w->Write<long> (dataheader);
-			w->Write<long> (g->index);
-			
+				
 			MustNext (";");
 			continue;
 		}
