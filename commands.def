@@ -1,5 +1,5 @@
-/* This file defines the commands botc will treat as valid. Do not edit unless
- * you know what you are doing!
+/* This file defines the commands botc will treat as valid.
+ * Do not edit unless you know what you are doing!
  *
  * Syntax: number:name:returntype:numargs:maxargs[:argumentlist]
  */
