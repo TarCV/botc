@@ -51,16 +51,15 @@
 extern bool g_GotMainLoop;
 
 ObjWriter::ObjWriter (str path) {
+	MainBuffer = new DataBuffer;
 	MainLoopBuffer = new DataBuffer;
 	OnEnterBuffer = new DataBuffer;
-	
 	numWrittenBytes = 0;
-	fp = fopen (path, "w");
-	CHECK_FILE (fp, path, "writing");
+	filepath = path;
 }
 
 ObjWriter::~ObjWriter () {
-	fclose (fp);
+	delete MainBuffer;
 	delete MainLoopBuffer;
 	delete OnEnterBuffer;
 }
@@ -89,7 +88,7 @@ void ObjWriter::WriteBuffers () {
 	// Write the onenter and mainloop buffers, IN THAT ORDER
 	for (int i = 0; i < 2; i++) {
 		DataBuffer* buf = (!i) ? OnEnterBuffer : MainLoopBuffer;
-		for (unsigned int x = 0; x < buf->writepos; x++) {
+		for (unsigned int x = 0; x < buf->writesize; x++) {
 			unsigned char c = *(buf->buffer+x);
 			Write<unsigned char> (c);
 		}
@@ -101,4 +100,22 @@ void ObjWriter::WriteBuffers () {
 	
 	// Next state definitely has no mainloop yet
 	g_GotMainLoop = false;
+}
+
+// Write main buffer to file
+void ObjWriter::WriteToFile () {
+	fp = fopen (filepath, "w");
+	CHECK_FILE (fp, filepath, "writing");
+	
+	if (sizeof (unsigned char) != 1)
+		error ("size of unsigned char isn't 1, but %d!\n", sizeof (unsigned char));
+	
+	for (unsigned int x = 0; x < MainBuffer->writesize; x++) {
+		unsigned char c = *(MainBuffer->buffer+x);
+		fwrite (&c, 1, 1, fp);
+		numWrittenBytes ++;
+	}
+	
+	printf ("-- %u byte%s written to %s\n", numWrittenBytes, PLURAL (numWrittenBytes), filepath.chars());
+	fclose (fp);
 }

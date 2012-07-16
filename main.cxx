@@ -54,6 +54,14 @@
 #include "bots.h"
 #include "botcommands.h"
 
+bool fexists (char* path) {
+	if (FILE* test = fopen (path, "r")) {
+		fclose (test);
+		return true;
+	}
+	return false;
+}
+
 int main (int argc, char** argv) {
 	// Intepret command-line parameters:
 	// -l: list commands
@@ -79,9 +87,40 @@ int main (int argc, char** argv) {
 	headerline += '-';
 	printf ("%s\n%s\n", header.chars(), headerline.chars());
 	
-	if (argc != 3) {
-		fprintf (stderr, "usage: %s: <infile> <outFile>\n", argv[0]);
+	if (argc < 2) {
+		fprintf (stderr, "usage: %s: <infile> [outfile]\n", argv[0]);
 		exit (1);
+	}
+	
+	str outfile;
+	if (argc < 3)
+		outfile = ObjectFileName (argv[1]);
+	else
+		outfile = argv[2];
+	
+	// If we'd end up writing into an existing file,
+	// ask the user if we want to overwrite it
+	if (fexists (outfile)) {
+		// Additional warning if the paths are the same
+		str warning;
+#ifdef FILE_CASEINSENSITIVE
+		if (!outfile.icompare (argv[1]))
+#else
+		if (!outfile.compare (argv[1]))
+#endif
+		{
+			warning = "\nWARNING: Output file is the same as the input file. ";
+			warning += "Answering yes here will destroy the source!\n";
+			warning += "Continue nevertheless?";
+		}
+		printf ("output file `%s` already exists! overwrite?%s (y/n) ", outfile.chars(), warning.chars());
+		
+		char ans;
+		fgets (&ans, 2, stdin);
+		if (ans != 'y') {
+			printf ("abort\n");
+			exit (1);
+		}
 	}
 	
 	// Read definitions
@@ -95,18 +134,18 @@ int main (int argc, char** argv) {
 	
 	// Prepare reader and writer
 	ScriptReader *r = new ScriptReader (argv[1]);
-	ObjWriter *w = new ObjWriter (argv[2]);
+	ObjWriter *w = new ObjWriter (outfile);
 	
 	// We're set, begin parsing :)
 	printf ("Parsing script..\n");
 	r->BeginParse (w);
 	
-	// Parse done, print statistics
+	// Parse done, print statistics and write to file
 	unsigned int globalcount = CountGlobalVars ();
 	printf ("%u global variable%s\n", globalcount, PLURAL (globalcount));
 	printf ("%d state%s written\n", g_NumStates, PLURAL (g_NumStates));
 	printf ("%d event%s written\n", g_NumEvents, PLURAL (g_NumEvents));
-	printf ("-- %u byte%s written to %s\n", w->numWrittenBytes, PLURAL (w->numWrittenBytes), argv[2]);
+	w->WriteToFile ();
 	
 	// Clear out the junk
 	delete r;
@@ -117,4 +156,16 @@ void error (const char* text, ...) {
 	PERFORM_FORMAT (text, c);
 	fprintf (stderr, "error: %s", c);
 	exit (1);
+}
+
+char* ObjectFileName (str s) {
+	// Locate the extension and chop it out
+	unsigned int extdot = s.last (".");
+	if (extdot != s.len() && extdot >= s.len()-4)
+		s.trim (s.len() - extdot);
+	
+	// Add new ".o" extension
+	s += ".o";
+	
+	return s.chars();
 }

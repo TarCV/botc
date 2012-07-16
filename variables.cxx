@@ -88,11 +88,13 @@ ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name) {
 	return g;
 }
 
-/*void AssignScriptVariable (ScriptReader* r, str name, str value) {
+/*
+void AssignScriptVariable (ScriptReader* r, str name, str value) {
 	ScriptVar* g = FindScriptVariable (name);
 	if (!g)
 		r->ParserError ("global variable %s not declared", name.chars());
-}*/
+}
+*/
 
 // Find a global variable by name
 ScriptVar* FindGlobalVariable (str name) {

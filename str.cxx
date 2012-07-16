@@ -250,16 +250,16 @@ void str::trim (int dellen) {
 	if (!dellen)
 		return;
 	
-	str s;
-	// If dellen is positive, trim from the end,
-	// if negative, trim from beginning.
-	if (dellen > 0)
-		s = substr (0, len()-dellen);
-	else
-		s = substr (-dellen, len());
-	
-	clear();
-	append (s);
+	unsigned int delpos;
+	if (dellen > 0) {
+		delpos = len()-dellen;
+		text[delpos] = 0;
+		curs -= dellen;
+	} else {
+		str s = substr (-dellen, len());
+		clear();
+		append (s);
+	}
 }
 
 // ============================================================================
@@ -311,10 +311,8 @@ void str::repeat (unsigned int n) {
 bool str::isnumber () {
 	ITERATE_STRING (u) {
 		// Minus sign as the first character is allowed for negatives
-		if (!u && text[u] == '-') {
-			printf ("%u was minus sign\n", u);
+		if (!u && text[u] == '-')
 			continue;
-		}
 		
 		if (text[u] < '0' || text[u] > '9')
 			return false;
