@@ -191,7 +191,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			w->Write (dataheader);
 			g_CurMode = MODE_TOPLEVEL;
 			
-			MustNext (";");
+			if (!PeekNext().compare (";"))
+				MustNext (";");
 			continue;
 		}
 		// Check global variables
