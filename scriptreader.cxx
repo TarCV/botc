@@ -273,9 +273,19 @@ void ScriptReader::MustString () {
 }
 
 void ScriptReader::MustNumber () {
+	str num;
 	MustNext ();
-	if (!token.isnumber())
-		ParserError ("expected a number, got `%s`", token.chars());
+	num += token;
+	
+	// Cater for a possible minus sign, since it
+	// breaks the token, read a new one with the number.
+	if (!token.compare ("-")) {
+		MustNext ();
+		num += token;
+	}
+	
+	if (!num.isnumber())
+		ParserError ("expected a number, got `%s`", num.chars());
 }
 
 void ScriptReader::MustBool () {
