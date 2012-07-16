@@ -52,6 +52,11 @@
 #define VERSION_MINOR 0
 #define VERSION_REVISION 999
 
+// On Windows, files are case-insensitive
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
+	#define FILE_CASEINSENSITIVE 0
+#endif
+
 // Where is the parser at?
 enum parsermode {
 	MODE_TOPLEVEL,	// at top level
@@ -76,6 +81,8 @@ enum parsermode {
 #define PLURAL(n) (n != 1) ? "s" : ""
 
 void error (const char* text, ...);
+char* ObjectFileName (str s);
+bool fexists (char* path);
 
 #ifndef __PARSER_CXX__
 extern int g_NumStates;

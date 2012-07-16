@@ -38,49 +38,88 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __OBJWRITER_H__
-#define __OBJWRITER_H__
-
+#ifndef  __DATABUFFER_H__
+#define __DATABUFFER_H__
 #include <stdio.h>
-#include <typeinfo>
 #include <string.h>
 #include "common.h"
-#include "databuffer.h"
-#include "str.h"
 
-extern int g_CurMode;
-
-class ObjWriter {
+// ============================================================================
+// DataBuffer: A dynamic data buffer.
+class DataBuffer {
 public:
-	// ====================================================================
-	// MEMBERS
-	FILE* fp;
-	str filepath;
-	DataBuffer* MainBuffer;
-	DataBuffer* OnEnterBuffer;
-	DataBuffer* MainLoopBuffer;
-	unsigned int numWrittenBytes;
+	// The actual buffer
+	unsigned char* buffer;
 	
-	// ====================================================================
+	// Allocated size of the buffer
+	unsigned int allocsize;
+	
+	// Written size of the buffer
+	unsigned int writesize;
+	
 	// METHODS
-	ObjWriter (str path);
-	~ObjWriter ();
-	void WriteString (char* s);
-	void WriteString (const char* s);
-	void WriteString (str s);
-	void WriteBuffers ();
-	void WriteToFile ();
-	
-	template <class T> void Write (T stuff) {
-		DataBuffer* buffer =	(g_CurMode == MODE_MAINLOOP) ? MainLoopBuffer :
-					(g_CurMode == MODE_ONENTER) ? OnEnterBuffer :
-					MainBuffer;
-		buffer->Write<T> (stuff);
-		return;
+	DataBuffer (unsigned int size=128) {
+		writesize = 0;
+		
+		buffer = new unsigned char[size];
+		allocsize = size;
 	}
 	
-	// Cannot use default arguments in function templates..
-	void Write (long stuff) {Write<long> (stuff);}
+	~DataBuffer () {
+		delete buffer;
+	}
+	
+	template<class T> void Write(T stuff) {
+		if (sizeof (char) != 1) {
+			error ("DataBuffer: sizeof(char) must be 1!\n");
+		}
+		
+		// Out of space, must resize
+		if (writesize + sizeof(T) >= allocsize) {
+			// First, store the old buffer temporarily
+			char* copy = new char[allocsize];
+			memcpy (copy, buffer, allocsize);
+			
+			// Remake the buffer with the new size.
+			// Have a bit of leeway so we don't have to
+			// resize immediately again.
+			size_t newsize = allocsize + sizeof (T) + 128;
+			delete buffer;
+			buffer = new unsigned char[newsize];
+			allocsize = newsize;
+			
+			// Now, copy the new stuff over.
+			memcpy (buffer, copy, allocsize);
+			
+			// Nuke the copy now as it's no longer needed
+			delete copy;
+		}
+		
+		// Write the new stuff one byte at a time
+		for (unsigned int x = 0; x < sizeof (T); x++) {
+			if (writesize >= allocsize)
+				error ("DataBuffer: written size exceeds allocated size!\n");
+			buffer[writesize] = CharByte<T> (stuff, x);
+			writesize++;
+		}
+	}
+	
+private:
+	template <class T> unsigned char CharByte (T a, unsigned int b) {
+		if (b >= sizeof (T))
+			error ("CharByte: tried to get byte %u out of a %u-byte %s\n",
+				b, sizeof (T), typeid(T).name());
+		
+		unsigned long p1 = pow<unsigned long> (256, b);
+		unsigned long p2 = pow<unsigned long> (256, b+1);
+		unsigned long r = (a % p2) / p1;
+		
+		if (r > 256)
+			error ("result %lu too big!", r);
+		
+		unsigned char ur = static_cast<unsigned char> (r);
+		return ur;
+	}
 };
 
-#endif // __OBJWRITER_H__
+#endif // __DATABUFFER_H__
