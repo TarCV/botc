@@ -56,6 +56,7 @@ public:
 	unsigned int curline;
 	unsigned int curchar;
 	str token;
+	int commentmode;
 	
 	// ====================================================================
 	// METHODS
@@ -63,6 +64,7 @@ public:
 	ScriptReader (str path);
 	~ScriptReader ();
 	char ReadChar ();
+	char PeekChar (int offset = 0);
 	bool Next ();
 	str PeekNext ();
 	void Seek (unsigned int n, int origin);
@@ -75,6 +77,8 @@ public:
 	
 	void ParserError (const char* message, ...);
 	void ParserWarning (const char* message, ...);
+	
+	void FinalChecks ();
 	
 	// parser.cxx:
 	void BeginParse (ObjWriter* w);

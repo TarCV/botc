@@ -262,8 +262,6 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 	if (!g_stateSpawnDefined)
 		ParserError ("script must have a state named `stateSpawn`!");
 	
-	
-	
 	// Dump the last state's onenter and mainloop
 	w->WriteBuffers();
 	

@@ -142,15 +142,10 @@ void ReadCommands () {
 		numCommDefs++;
 	}
 	
-	/*
-	CommandDef* c;
-	ITERATE_COMMANDS (c) {
-		printf ("[%u] %s: %d, %d arguments, return type %d\n",
-			c->number, c->name.chars(), c->numargs, c->maxargs, c->returnvalue);
-	}
-	*/
-	
 	delete r;
+	
+	if (!numCommDefs)
+		error ("error: no commands defined!\n");
 	printf ("%d command definitions read.\n", numCommDefs);
 }
 
