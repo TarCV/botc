@@ -309,9 +309,16 @@ void str::repeat (unsigned int n) {
 
 // ============================================================================
 bool str::isnumber () {
-	ITERATE_STRING (u)
+	ITERATE_STRING (u) {
+		// Minus sign as the first character is allowed for negatives
+		if (!u && text[u] == '-') {
+			printf ("%u was minus sign\n", u);
+			continue;
+		}
+		
 		if (text[u] < '0' || text[u] > '9')
 			return false;
+	}
 	return true;
 }
 
