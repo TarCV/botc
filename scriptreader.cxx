@@ -54,20 +54,22 @@ static bool IsWhitespace (char c) {
 }
 
 ScriptReader::ScriptReader (str path) {
-	atnewline = false;
-	filepath = path;
 	if (!(fp = fopen (path, "r"))) {
 		error ("couldn't open %s for reading!\n", path.chars ());
 		exit (1);
 	}
 	
+	filepath = path;
 	curline = 1;
 	curchar = 1;
 	pos = 0;
 	token = "";
+	atnewline = false;
+	commentmode = 0;
 }
 
 ScriptReader::~ScriptReader () {
+	FinalChecks ();
 	fclose (fp);
 }
 
@@ -90,11 +92,65 @@ char ScriptReader::ReadChar () {
 	return c[0];
 }
 
+char ScriptReader::PeekChar (int offset) {
+	// Store current position
+	long curpos = ftell (fp);
+	
+	// Forward by offset
+	fseek (fp, offset, SEEK_CUR);
+	
+	// Read the character
+	char* c = (char*)malloc (sizeof (char));
+	if (!fread (c, sizeof (char), 1, fp))
+		return 0;
+	
+	// Rewind back
+	fseek (fp, curpos, SEEK_SET);
+	
+	return c[0];
+}
+
 // true if was found, false if not.
 bool ScriptReader::Next () {
 	str tmp = "";
+	
 	while (!feof (fp)) {
+		// Check if the next token possibly starts a comment.
+		if (PeekChar () == '/' && !tmp.len()) {
+			char c2 = PeekChar (1);
+			// C++-style comment
+			if (c2 == '/')
+				commentmode = 1;
+			else if (c2 == '*')
+				commentmode = 2;
+			
+			// We don't need to actually read in the
+			// comment characters, since they will get
+			// ignored due to comment mode anyway.
+		}
+		
 		c = ReadChar ();
+		
+		// If this is a comment we're reading, check if this character
+		// gets the comment terminated, otherwise ignore it.
+		if (commentmode > 0) {
+			if (commentmode == 1 && c == '\n') {
+				// C++-style comments are terminated by a newline
+				commentmode = 0;
+				continue;
+			} else if (commentmode == 2 && c == '*') {
+				// C-style comments are terminated by a `*/`
+				if (PeekChar() == '/') {
+					commentmode = 0;
+					// Now the char has to be read in since we
+					// no longer are reading a comment
+					ReadChar ();
+				}
+			}
+			
+			// Otherwise, ignore it.
+			continue;
+		}
 		
 		// Non-alphanumber characters (sans underscore) break the word too.
 		// If there was prior data, the delimeter pushes the cursor back so
@@ -243,4 +299,13 @@ void ScriptReader::MustValue (int type) {
 	case RETURNVAL_STRING: MustString (); break;
 	case RETURNVAL_BOOLEAN: MustBool (); break;
 	}
+}
+
+// Checks to be performed at the end of file
+void ScriptReader::FinalChecks () {
+	// If comment mode is 2 by the time the file ended, the
+	// comment was left unterminated. 1 is no problem, since
+	// it's terminated by newlines anyway.
+	if (commentmode == 2)
+		ParserError ("unterminated `/*`-style comment");
 }
