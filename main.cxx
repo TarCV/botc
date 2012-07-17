@@ -161,7 +161,7 @@ void error (const char* text, ...) {
 char* ObjectFileName (str s) {
 	// Locate the extension and chop it out
 	unsigned int extdot = s.last (".");
-	if (extdot != s.len() && extdot >= s.len()-4)
+	if (extdot >= s.len()-4)
 		s.trim (s.len() - extdot);
 	
 	// Add new ".o" extension

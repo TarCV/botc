@@ -54,7 +54,7 @@
 
 // On Windows, files are case-insensitive
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
-	#define FILE_CASEINSENSITIVE 0
+	#define FILE_CASEINSENSITIVE
 #endif
 
 // Where is the parser at?
@@ -105,6 +105,11 @@ template<class T> T pow (T a, T b) {
 	}
 	
 	return r;
+}
+
+// Whitespace check
+inline bool IsCharWhitespace (char c) {
+	return (c <= 32 || c == 127 || c == 255);
 }
 
 #endif // __COMMON_H__

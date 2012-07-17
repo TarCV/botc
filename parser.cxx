@@ -63,20 +63,6 @@ bool g_GotMainLoop = false;
 
 void ScriptReader::BeginParse (ObjWriter* w) {
 	while (Next()) {
-		// printf ("got token %s\n", token.chars());
-		if (!token.icompare ("#include")) {
-			MustString ();
-			
-			// First ensure that the file can be opened
-			FILE* newfile = fopen (token.chars(), "r");
-			if (!newfile)
-				ParserError ("couldn't open included file `%s`!", token.chars());
-			fclose (newfile);
-			ScriptReader* newreader = new ScriptReader (token.chars());
-			newreader->BeginParse (w);
-			continue;
-		}
-		
 		if (!token.icompare ("state")) {
 			MUST_TOPLEVEL
 			
@@ -89,7 +75,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			// stateSpawn is special - it *must* be defined. If we
 			// encountered it, then mark down that we have it.
-			if (!token.icompare ("stateSpawn"))
+			if (!token.icompare ("statespawn"))
 				g_stateSpawnDefined = true;
 			
 			// Must end in a colon
