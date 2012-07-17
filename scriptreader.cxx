@@ -45,76 +45,136 @@
 #include "common.h"
 #include "scriptreader.h"
 
-static bool IsWhitespace (char c) {
-	// These characters are invisible, thus considered whitespace
-	if (c <= 32 || c == 127 || c == 255)
-		return true;
-	
-	return false;
-}
-
 ScriptReader::ScriptReader (str path) {
-	if (!(fp = fopen (path, "r"))) {
-		error ("couldn't open %s for reading!\n", path.chars ());
-		exit (1);
-	}
-	
-	filepath = path;
-	curline = 1;
-	curchar = 1;
-	pos = 0;
 	token = "";
-	atnewline = false;
+	fc = -1;
+	
+	for (unsigned int u = 0; u < MAX_FILESTACK; u++)
+		fp[u] = NULL;
+	
+	OpenFile (path);
 	commentmode = 0;
 }
 
 ScriptReader::~ScriptReader () {
 	FinalChecks ();
-	fclose (fp);
+	
+	for (unsigned int u = 0; u < MAX_FILESTACK; u++) {
+		if (fp[u]) {
+			ParserWarning ("file idx %u remained open after parsing", u);
+			CloseFile (u);
+		}
+	}
+}
+
+// Opens a file and pushes its pointer to stack
+void ScriptReader::OpenFile (str path) {
+	if (fc+1 >= MAX_FILESTACK) 
+		ParserError ("supposed to open file `%s` but file stack is full! \
+			do you have recursive `#include` directives?",
+			path.chars());
+	
+	// Save the position first.
+	if (fc != -1) {
+		savedpos[fc] = ftell (fp[fc]);
+	}
+	
+	fc++;
+	
+	fp[fc] = fopen (path, "r");
+	if (!fp[fc]) {
+		ParserError ("couldn't open %s for reading!\n", path.chars ());
+		exit (1);
+	}
+	
+	fseek (fp[fc], 0, SEEK_SET);
+	filepath[fc] = path.chars();
+	curline[fc] = 1;
+	curchar[fc] = 1;
+	pos[fc] = 0;
+	atnewline = 0;
+}
+
+void ScriptReader::CloseFile (unsigned int u) {
+	if (u >= MAX_FILESTACK)
+ 		u = fc;
+	
+	if (!fp[u])
+		return;
+	
+	fclose (fp[u]);
+	fp[u] = NULL;
+	fc--;
+	
+	if (fc != -1)
+		fseek (fp[fc], savedpos[fc], SEEK_SET);
 }
 
 char ScriptReader::ReadChar () {
+	if (feof (fp[fc]))
+		return 0;
+	
 	char* c = (char*)malloc (sizeof (char));
-	if (!fread (c, sizeof (char), 1, fp))
+	if (!fread (c, sizeof (char), 1, fp[fc]))
 		return 0;
 	
 	// We're at a newline, thus next char read will begin the next line
 	if (atnewline) {
 		atnewline = false;
-		curline++;
-		curchar = 0; // gets incremented to 1
+		curline[fc]++;
+		curchar[fc] = 0; // gets incremented to 1
 	}
 	
-	if (c[0] == '\n')
+	if (c[0] == '\n') {
 		atnewline = true;
+		
+		// Check for pre-processor directives
+		PreprocessDirectives ();
+	}
 	
-	curchar++;
+	curchar[fc]++;
 	return c[0];
 }
 
 char ScriptReader::PeekChar (int offset) {
 	// Store current position
-	long curpos = ftell (fp);
+	long curpos = ftell (fp[fc]);
 	
 	// Forward by offset
-	fseek (fp, offset, SEEK_CUR);
+	fseek (fp[fc], offset, SEEK_CUR);
 	
 	// Read the character
 	char* c = (char*)malloc (sizeof (char));
-	if (!fread (c, sizeof (char), 1, fp))
+	
+	if (!fread (c, sizeof (char), 1, fp[fc])) {
+		fseek (fp[fc], curpos, SEEK_SET);
 		return 0;
+	}
 	
 	// Rewind back
-	fseek (fp, curpos, SEEK_SET);
+	fseek (fp[fc], curpos, SEEK_SET);
 	
 	return c[0];
 }
 
 // true if was found, false if not.
-bool ScriptReader::Next () {
+bool ScriptReader::Next (bool peek) {
 	str tmp = "";
+	// printf ("begin token\n");
 	
-	while (!feof (fp)) {
+	while (1) {
+		// Check end-of-file
+		if (feof (fp[fc])) {
+			// If we're just peeking, we shouldn't
+			// actually close anything.. 
+			if (peek)
+				break;
+			
+			CloseFile ();
+			if (fc == -1)
+				break;
+		}
+		
 		// Check if the next token possibly starts a comment.
 		if (PeekChar () == '/' && !tmp.len()) {
 			char c2 = PeekChar (1);
@@ -130,6 +190,7 @@ bool ScriptReader::Next () {
 		}
 		
 		c = ReadChar ();
+		// printf ("add char [%d] `%c`\n", c, c);
 		
 		// If this is a comment we're reading, check if this character
 		// gets the comment terminated, otherwise ignore it.
@@ -142,8 +203,6 @@ bool ScriptReader::Next () {
 				// C-style comments are terminated by a `*/`
 				if (PeekChar() == '/') {
 					commentmode = 0;
-					// Now the char has to be read in since we
-					// no longer are reading a comment
 					ReadChar ();
 				}
 			}
@@ -161,13 +220,13 @@ bool ScriptReader::Next () {
 			(c >= 91 && c <= 96 && c != '_') ||
 			(c >= 123 && c <= 126)) {
 			if (tmp.len())
-				fseek (fp, ftell (fp) - 1, SEEK_SET);
+				fseek (fp[fc], ftell (fp[fc]) - 1, SEEK_SET);
 			else
 				tmp += c;
 			break;
 		}
 		
-		if (IsWhitespace (c)) {
+		if (IsCharWhitespace (c)) {
 			// Don't break if we haven't gathered anything yet.
 			if (tmp.len())
 				break;
@@ -183,7 +242,7 @@ bool ScriptReader::Next () {
 		return false;
 	}
 	
-	pos++;
+	pos[fc]++;
 	token = tmp;
 	return true;
 }
@@ -191,17 +250,17 @@ bool ScriptReader::Next () {
 // Returns the next token without advancing the cursor.
 str ScriptReader::PeekNext () {
 	// Store current position
-	int cpos = ftell (fp);
+	int cpos = ftell (fp[fc]);
 	
 	// Advance on the token.
-	if (!Next ())
+	if (!Next (true))
 		return "";
 	
 	str tmp = token;
 	
 	// Restore position
-	fseek (fp, cpos, SEEK_SET);
-	pos--;
+	fseek (fp[fc], cpos, SEEK_SET);
+	pos[fc]--;
 	
 	return tmp;
 }
@@ -209,8 +268,8 @@ str ScriptReader::PeekNext () {
 void ScriptReader::Seek (unsigned int n, int origin) {
 	switch (origin) {
 	case SEEK_SET:
-		fseek (fp, 0, SEEK_SET);
-		pos = 0;
+		fseek (fp[fc], 0, SEEK_SET);
+		pos[fc] = 0;
 		break;
 	case SEEK_CUR:
 		break;
@@ -238,7 +297,7 @@ void ScriptReader::MustNext (const char* c) {
 
 void ScriptReader::ParserError (const char* message, ...) {
 	PERFORM_FORMAT (message, outmessage);
-	ParserMessage ("\nParse error\n", outmessage);
+	ParserMessage ("\nError: ", outmessage);
 	exit (1);
 }
 
@@ -248,8 +307,11 @@ void ScriptReader::ParserWarning (const char* message, ...) {
 }
 
 void ScriptReader::ParserMessage (const char* header, char* message) {
-	fprintf (stderr, "%sIn file %s, at line %u, col %u: %s\n",
-		header, filepath.chars(), curline, curchar, message);
+	if (fc >= 0 && fc < MAX_FILESTACK)
+		fprintf (stderr, "%sIn file %s, at line %u, col %u: %s\n",
+			header, filepath[fc], curline[fc], curchar[fc], message);
+	else
+		fprintf (stderr, "%s%s\n", header, message);
 }
 
 void ScriptReader::MustString () {
@@ -259,7 +321,7 @@ void ScriptReader::MustString () {
 	// Keep reading characters until we find a terminating quote.
 	while (1) {
 		// can't end here!
-		if (feof (fp))
+		if (feof (fp[fc]))
 			ParserError ("unterminated string");
 		
 		char c = ReadChar ();

@@ -142,6 +142,7 @@ void ReadCommands () {
 		numCommDefs++;
 	}
 	
+	r->CloseFile ();
 	delete r;
 	
 	if (!numCommDefs)

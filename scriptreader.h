@@ -46,15 +46,20 @@
 #include "objwriter.h"
 #include "commands.h"
 
+#define MAX_FILESTACK 8
+
 class ScriptReader {
 public:
 	// ====================================================================
 	// MEMBERS
-	FILE* fp;
-	str filepath;
-	unsigned int pos;
-	unsigned int curline;
-	unsigned int curchar;
+	FILE* fp[MAX_FILESTACK];
+	char* filepath[MAX_FILESTACK];
+	int fc;
+	
+	unsigned int pos[MAX_FILESTACK];
+	unsigned int curline[MAX_FILESTACK];
+	unsigned int curchar[MAX_FILESTACK];
+	long savedpos[MAX_FILESTACK]; // filepointer cursor position
 	str token;
 	int commentmode;
 	
@@ -63,9 +68,11 @@ public:
 	// scriptreader.cxx:
 	ScriptReader (str path);
 	~ScriptReader ();
+	void OpenFile (str path);
+	void CloseFile (unsigned int u = MAX_FILESTACK);
 	char ReadChar ();
 	char PeekChar (int offset = 0);
-	bool Next ();
+	bool Next (bool peek = false);
 	str PeekNext ();
 	void Seek (unsigned int n, int origin);
 	void MustNext (const char* c = "");
@@ -84,10 +91,19 @@ public:
 	void BeginParse (ObjWriter* w);
 	void ParseCommand (CommandDef* comm, ObjWriter* w);
 	
+	// preprocessor.cxx:
+	void PreprocessDirectives ();
+	void PreprocessMacros ();
+	
 private:
 	bool atnewline;
 	char c;
 	void ParserMessage (const char* header, char* message);
+	
+	bool DoDirectivePreprocessing ();
+	char PPReadChar ();
+	void PPMustChar (char c);
+	str PPReadWord (char &term);
 };
 
 #endif // __SCRIPTREADER_H__

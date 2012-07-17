@@ -38,84 +38,80 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define __OBJWRITER_CXX__
+#define __PARSER_CXX__
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "common.h"
 #include "str.h"
-#include "objwriter.h"
+#include "scriptreader.h"
 
-#include "bots.h"
-
-extern bool g_GotMainLoop;
-
-ObjWriter::ObjWriter (str path) {
-	MainBuffer = new DataBuffer;
-	MainLoopBuffer = new DataBuffer;
-	OnEnterBuffer = new DataBuffer;
-	numWrittenBytes = 0;
-	filepath = path;
+/* Since the preprocessor is *called* from ReadChar and I don't want
+ * to worry about recursive preprocessing, the preprocessor uses its
+ * own bare-bones variant of the function for file reading.
+ */
+char ScriptReader::PPReadChar () {
+	char* c = (char*)malloc (sizeof (char));
+	if (!fread (c, sizeof (char), 1, fp[fc]))
+		return 0;
+	curchar[fc]++;
+	return c[0];
 }
 
-ObjWriter::~ObjWriter () {
-	delete MainBuffer;
-	delete MainLoopBuffer;
-	delete OnEnterBuffer;
-}
-
-void ObjWriter::WriteString (char* s) {
-	Write<long> (strlen (s));
-	for (unsigned int u = 0; u < strlen (s); u++)
-		Write<char> (s[u]);
-}
-
-void ObjWriter::WriteString (const char* s) {
-	WriteString (const_cast<char*> (s));
-}
-
-void ObjWriter::WriteString (str s) {
-	WriteString (s.chars());
-}
-
-void ObjWriter::WriteBuffers () {
-	// If there was no mainloop defined, write a dummy one now.
-	if (!g_GotMainLoop) {
-		MainLoopBuffer->Write<long> (DH_MAINLOOP);
-		MainLoopBuffer->Write<long> (DH_ENDMAINLOOP);
+void ScriptReader::PPMustChar (char c) {
+	char d = PPReadChar ();
+	if (c != d) {
+		ParserError ("expected `%c`, got `%d`", c, d);
 	}
-	
-	// Write the onenter and mainloop buffers, IN THAT ORDER
-	for (int i = 0; i < 2; i++) {
-		DataBuffer* buf = (!i) ? OnEnterBuffer : MainLoopBuffer;
-		for (unsigned int x = 0; x < buf->writesize; x++) {
-			unsigned char c = *(buf->buffer+x);
-			Write<unsigned char> (c);
+}
+
+// Reads a word until whitespace
+str ScriptReader::PPReadWord (char &term) {
+	str word;
+	while (1) {
+		char c = PPReadChar();
+		if (feof (fp[fc]) || (IsCharWhitespace (c) && word.len ())) {
+			term = c;
+			break;
 		}
-		
-		// Clear the buffer afterwards for potential next state
-		delete buf;
-		buf = new DataBuffer;
+		word += c;
 	}
-	
-	// Next state definitely has no mainloop yet
-	g_GotMainLoop = false;
+	return word;
 }
 
-// Write main buffer to file
-void ObjWriter::WriteToFile () {
-	fp = fopen (filepath, "w");
-	CHECK_FILE (fp, filepath, "writing");
+void ScriptReader::PreprocessDirectives () {
+	size_t spos = ftell (fp[fc]);
+	if (!DoDirectivePreprocessing ())
+		fseek (fp[fc], spos, SEEK_SET);
+}
+
+/* Returns true if the pre-processing was successful, false if not.
+ * If pre-processing was successful, the file pointer remains where
+ * it was, if not, it's pushed back to where it was before preprocessing
+ * took place and is parsed normally.
+ */
+bool ScriptReader::DoDirectivePreprocessing () {
+	char trash;
+	// Directives start with a pound sign
+	if (PPReadChar() != '#')
+		return false;
 	
-	if (sizeof (unsigned char) != 1)
-		error ("size of unsigned char isn't 1, but %d!\n", sizeof (unsigned char));
+	// Read characters until next whitespace to
+	// build the name of the directive
+	str directive = PPReadWord (trash);
 	
-	for (unsigned int x = 0; x < MainBuffer->writesize; x++) {
-		unsigned char c = *(MainBuffer->buffer+x);
-		fwrite (&c, 1, 1, fp);
-		numWrittenBytes++;
+	// Now check the directive name against known names
+	if (!directive.icompare ("include")) {
+		// #include-directive
+		char terminator;
+		str file = PPReadWord (terminator);
+		
+		if (!file.len())
+			ParserError ("expected file name for #include, got nothing instead");
+		OpenFile (file);
+		return true;
 	}
 	
-	printf ("-- %u byte%s written to %s\n", numWrittenBytes, PLURAL (numWrittenBytes), filepath.chars());
-	fclose (fp);
+	ParserError ("unknown directive `#%s`!", directive.chars());
+	return false;
 }
