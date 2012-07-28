@@ -45,7 +45,8 @@
 #include "str.h"
 #include "common.h"
 
-#define ITERATE_STRING(u) for (unsigned int u = 0; u < strlen (text); u++)
+#define ITERATE_STRING(u) \
+	for (unsigned int u = 0; u < strlen (text); u++)
 
 // ============================================================================
 // vdynformat: Try to write to a formatted string with size bytes first, if

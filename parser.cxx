@@ -61,6 +61,8 @@ str g_CurState = "";
 bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
 
+// ============================================================================
+// Main parser
 void ScriptReader::BeginParse (ObjWriter* w) {
 	while (Next()) {
 		if (!token.icompare ("state")) {
@@ -112,7 +114,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			g_CurMode = MODE_EVENT;
 			
 			w->Write (DH_EVENT);
-			w->Write<long> (e->number);
+			w->Write<byte> (e->number);
 			g_NumEvents++;
 			continue;
 		}
@@ -181,65 +183,13 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 				MustNext (";");
 			continue;
 		}
-		// Check global variables
-		ScriptVar* g = FindGlobalVariable (token);
-		if (g) {
-			// Not in top level, unfortunately..
-			if (g_CurMode == MODE_TOPLEVEL)
-				ParserError ("can't alter variables at top level");
-			
-			// Build operator string. Only '=' is one
-			// character, others are two.
-			MustNext ();
-			str oper = token;
-			if (token.compare ("=") != 0) {
-				MustNext ();
-				oper += token;
-			}
-			
-			// Unary operators
-			if (!oper.compare ("++")) {
-				w->Write<long> (DH_INCGLOBALVAR);
-				w->Write<long> (g->index);
-			} else if (!oper.compare ("--")) {
-				w->Write<long> (DH_DECGLOBALVAR);
-				w->Write<long> (g->index);
-			} else {
-				// Binary operators
-				// And only with numbers for now too.
-				// TODO: make a proper expression parser!
-				MustNumber();
-				
-				int val = atoi (token.chars());
-				w->Write<long> (DH_PUSHNUMBER);
-				w->Write<long> (val);
-				
-				int h =	!oper.compare("=") ? DH_ASSIGNGLOBALVAR :
-					!oper.compare("+=") ? DH_ADDGLOBALVAR :
-					!oper.compare("-=") ? DH_SUBGLOBALVAR :
-					!oper.compare("*=") ? DH_MULGLOBALVAR :
-					!oper.compare("/=") ? DH_DIVGLOBALVAR :
-					!oper.compare("%=") ? DH_MODGLOBALVAR : -1;
-				
-				if (h == -1)
-					ParserError ("bad operator `%s`!", oper.chars());
-				
-				w->Write<long> (h);
-				w->Write<long> (g->index);
-			}
-				
-			MustNext (";");
-			continue;
-		}
 		
-		// Check if it's a command.
-		CommandDef* comm = GetCommandByName (token);
-		if (comm) { 
-			ParseCommand (comm, w);
-			continue;
-		}
-		
-		ParserError ("unknown keyword `%s`", token.chars());
+		// If it's not a keyword, parse it as an expression.
+		DataBuffer* b = ParseExpression (TYPE_VOID);
+		w->WriteBuffer (b);
+		delete b;
+		printf ("expression done!\n");
+		MustThis (";");
 	}
 	
 	if (g_CurMode != MODE_TOPLEVEL)
@@ -250,97 +200,266 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		ParserError ("script must have a state named `stateSpawn`!");
 	
 	// Dump the last state's onenter and mainloop
-	w->WriteBuffers();
+	w->WriteBuffers ();
 	
-	// If we added strings here, we need to write a list of them.
-	unsigned int stringcount = CountStringTable ();
-	if (stringcount) {
-		w->Write<long> (DH_STRINGLIST);
-		w->Write<long> (stringcount);
-		for (unsigned int a = 0; a < stringcount; a++)
-			w->WriteString (g_StringTable[a]);
-	}
-	
-	printf ("%u string%s written\n", stringcount, PLURAL (stringcount));
+	// String table
+	w->WriteStringTable ();
 }
 
-void ScriptReader::ParseCommand (CommandDef* comm, ObjWriter* w) {
+// ============================================================================
+// Parses a given command
+DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
+	DataBuffer* r = new DataBuffer(64);
 	// If this was defined at top-level, we stop right at square one!
 	if (g_CurMode == MODE_TOPLEVEL)
 		ParserError ("no commands allowed at top level!");
 	
+	printf ("token: %s\n", token.chars());
 	MustNext ("(");
+	
 	int curarg = 0;
 	while (1) {
-		if (curarg >= comm->maxargs) {
-			if (!PeekNext().compare (","))
-				ParserError ("got `,` while expecting command-terminating `)`, are you passing too many parameters? (max %d)",
-					comm->maxargs);
-			MustNext (")");
-			curarg++;
+		if (!token.compare (")")) {
+			printf ("closing command with token `%s`\n", token.chars());
+			if (curarg < comm->numargs - 1)
+				ParserError ("too few arguments passed to %s\n", comm->name.chars());
 			break;
+			curarg++;
 		}
+		printf ("prev token: %s\n", token.chars());
+		MustNext ();
+		printf ("next token: %s\n", token.chars());
 		
-		if (!PeekNext().len())
-			ParserError ("unexpected end-of-file, unterminated command");
+		// jump back to start
+		if (!token.compare (")"))
+			continue;
 		
-		// If we get a ")" now, the user probably gave too few parameters
-		if (!PeekNext().compare (")"))
-			ParserError ("unexpected `)`, did you pass too few parameters? (need %d)", comm->numargs);
+		if (curarg >= comm->maxargs)
+			ParserError ("too many arguments passed to %s\n", comm->name.chars());
 		
-		// Argument may be using a variable
-		ScriptVar* g = FindGlobalVariable (PeekNext ());
-		if (g && comm->argtypes[curarg] != RETURNVAL_STRING) {
-			// Advance cursor past the var name
-			Next();
-			
-			w->Write<long> (DH_PUSHGLOBALVAR);
-			w->Write<long> (g->index);
-		} else {
-			// Check for raw value
-			switch (comm->argtypes[curarg]) {
-			case RETURNVAL_INT:
-				MustNumber();
-				w->Write<long> (DH_PUSHNUMBER);
-				w->Write<long> (atoi (token.chars ()));
-				break;
-			case RETURNVAL_BOOLEAN:
-				MustBool();
-				w->Write<long> (DH_PUSHNUMBER);
-				w->Write<long> (BoolValue ());
-				break;
-			case RETURNVAL_STRING:
-				MustString();
-				w->Write<long> (DH_PUSHSTRINGINDEX);
-				w->Write<long> (PushToStringTable (token.chars()));
-				break;
-			}
-		}
+		r->Merge (ParseExpression (comm->argtypes[curarg]));
 		
 		if (curarg < comm->numargs - 1) {
-			MustNext (",");
+			MustThis (",");
 		} else if (curarg < comm->maxargs - 1) {
 			// Can continue, but can terminate as well.
-			if (!PeekNext ().compare (")")) {
-				MustNext (")");
+			if (!token.compare (")")) {
 				curarg++;
 				break;
 			} else
-				MustNext (",");
+				MustThis (",");
 		}
 		
 		curarg++;
 	}
-	MustNext (";");
 	
 	// If the script skipped any optional arguments, fill in defaults.
 	while (curarg < comm->maxargs) {
-		w->Write<long> (DH_PUSHNUMBER);
-		w->Write<long> (comm->defvals[curarg]);
+		r->Write<byte> (DH_PUSHNUMBER);
+		r->Write<byte> (comm->defvals[curarg]);
 		curarg++;
 	}
 	
-	w->Write<long> (DH_COMMAND);
-	w->Write<long> (comm->number);
-	w->Write<long> (comm->maxargs);
+	r->Write<byte> (DH_COMMAND);
+	r->Write<byte> (comm->number);
+	r->Write<byte> (comm->maxargs);
+	
+	printf ("command complete\n");
+	return r;
+}
+
+static bool IsAssignmentOperator (int oper) {
+	switch (oper) {
+	case OPER_ASSIGNADD:
+	case OPER_ASSIGNSUB:
+	case OPER_ASSIGNMUL:
+	case OPER_ASSIGNDIV:
+	case OPER_ASSIGNMOD:
+	case OPER_ASSIGN:
+		return true;
+	}
+	return false;
+}
+
+// ============================================================================
+static long DataHeaderByOperator (ScriptVar* var, int oper) {
+	if (IsAssignmentOperator (oper)) {
+		if (!var)
+			error ("operator %d requires left operand to be a variable\n", oper);
+		
+		// TODO: At the moment, vars only are global
+		switch (oper) {
+		case OPER_ASSIGNADD: return DH_ADDGLOBALVAR;
+		case OPER_ASSIGNSUB: return DH_SUBGLOBALVAR;
+		case OPER_ASSIGNMUL: return DH_MULGLOBALVAR;
+		case OPER_ASSIGNDIV: return DH_DIVGLOBALVAR;
+		case OPER_ASSIGNMOD: return DH_MODGLOBALVAR;
+		case OPER_ASSIGN: return DH_ASSIGNGLOBALVAR;
+		default: error ("bad assignment operator!!\n");
+		}
+	}
+	
+	switch (oper) {
+	case OPER_ADD: return DH_ADD;
+	case OPER_SUBTRACT: return DH_SUBTRACT;
+	case OPER_MULTIPLY: return DH_MULTIPLY;
+	case OPER_DIVIDE: return DH_DIVIDE;
+	case OPER_MODULUS: return DH_MODULUS;
+	}
+	
+	error ("DataHeaderByOperator: couldn't find dataheader for operator %d!\n", oper);
+	return 0;
+}
+
+// ============================================================================
+// Parses an expression
+DataBuffer* ScriptReader::ParseExpression (int reqtype) {
+	printf ("begin parsing expression. this token is `%s`, next token is `%s`\n",
+		token.chars(), PeekNext().chars());
+	DataBuffer* retbuf = new DataBuffer (64);
+	
+	DataBuffer* lb = NULL;
+	
+	ScriptVar* var = FindGlobalVariable (token);
+	if (var) {
+		MustNext ();
+		if (g_CurMode == MODE_TOPLEVEL) // TODO: lift this restriction
+			ParserError ("can't alter variables at top level");
+		reqtype = TYPE_INT;
+	} else
+		lb = ParseExprValue (reqtype);
+	printf ("done\n");
+	
+	// Get an operator
+	printf ("parse operator at token %s\n", token.chars());
+	int oper = ParseOperator ();
+	printf ("got %d\n", oper);
+	// No operator found - stop here.
+	if (oper == -1) {
+		retbuf->Merge (lb);
+		printf ("expression complete without operator, stopping at `%s`\n", token.chars());
+		return retbuf;
+	}
+	
+	// Parse the right operand,
+	printf ("parse right operand\n");
+	MustNext ();
+	DataBuffer* rb = ParseExprValue (reqtype);
+	printf ("done\n");
+	
+	retbuf->Merge (lb);
+	retbuf->Merge (rb);
+	
+	long dh = DataHeaderByOperator (var, oper);
+	retbuf->Write<byte> (dh);
+	
+	if (IsAssignmentOperator (oper))
+		retbuf->Write<byte> (var->index);
+	
+	printf ("expression complete\n");
+	return retbuf;
+}
+
+// ============================================================================
+// Parsess an operator from tokens and returns an identifier.
+int ScriptReader::ParseOperator () {
+	str oper;
+	oper += PeekNext ();
+	
+	// Check one-char operators
+	int o =	!oper.compare ("=") ? OPER_ASSIGN :
+		!oper.compare ("+") ? OPER_ADD :
+		!oper.compare ("-") ? OPER_SUBTRACT :
+		!oper.compare ("*") ? OPER_MULTIPLY :
+		!oper.compare ("/") ? OPER_DIVIDE :
+		!oper.compare ("%") ? OPER_MODULUS :
+		-1;
+	
+	if (o != -1) {
+		MustNext ();
+		return o;
+	}
+	
+	// Two-char operators
+	MustNext ();
+	oper += PeekNext (1);
+	
+	o =	!oper.compare ("+=") ? OPER_ASSIGNADD :
+		!oper.compare ("-=") ? OPER_ASSIGNSUB :
+		!oper.compare ("*=") ? OPER_ASSIGNMUL :
+		!oper.compare ("/=") ? OPER_ASSIGNDIV :
+		!oper.compare ("%=") ? OPER_ASSIGNMOD :
+		-1;
+	
+	if (o != -1) {
+		MustNext ();
+		MustNext ();
+	}
+	
+	return o;
+}
+
+// ============================================================================
+// Parses a value in the expression and returns the data needed to push
+// it, contained in a data buffer. A value can be either a variable, a command,
+// a literal or an expression.
+DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
+	printf ("parse expr value `%s` with requirement type %d\n", token.chars(), reqtype);
+	DataBuffer* b = new DataBuffer(16);
+	
+	ScriptVar* g;
+	
+	if (!token.compare ("(")) {
+		printf ("value is an expression\n");
+		// Expression
+		MustNext ();
+		DataBuffer* c = ParseExpression (reqtype);
+		b->Merge (c);
+		MustNext (")");
+	} else if (CommandDef* comm = FindCommand (token)) {
+		printf ("value is a command\n");
+		delete b;
+		
+		// Command
+		if (reqtype && comm->returnvalue != reqtype)
+			ParserError ("%s returns an incompatible data type", comm->name.chars());
+		return ParseCommand (comm);
+	} else if ((g = FindGlobalVariable (token)) && reqtype != TYPE_STRING) {
+		printf ("value is a global var\n");
+		// Global variable
+		b->Write<byte> (DH_PUSHGLOBALVAR);
+		b->Write<byte> (g->index);
+	} else {
+		printf ("value is a literal\n");
+		// If nothing else, check for literal
+		switch (reqtype) {
+		case TYPE_VOID:
+			ParserError ("bad syntax");
+			break;
+		case TYPE_INT: {
+			if (!token.isnumber ())
+				ParserError ("expected an integer, got `%s`", token.chars());
+			
+			// All values are written unsigned - thus we need to write the value's
+			// absolute value, followed by an unary minus if it was negative.
+			b->Write<byte> (DH_PUSHNUMBER);
+			long v = atoi (token.chars ());
+			b->Write<byte> (static_cast<byte> (abs (v)));
+			if (v < 0)
+				b->Write<byte> (DH_UNARYMINUS);
+			break;
+		}
+		case TYPE_STRING:
+			// PushToStringTable either returns the string index of the
+			// string if it finds it in the table, or writes it to the
+			// table and returns it index if it doesn't find it there.
+			printf ("value is a string literal\n");
+			MustString (true);
+			b->Write<byte> (DH_PUSHSTRINGINDEX);
+			b->Write<byte> (PushToStringTable (token.chars()));
+			break;
+		}
+	}
+	
+	return b;
 }

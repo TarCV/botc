@@ -45,6 +45,7 @@
 #include "common.h"
 #include "str.h"
 #include "objwriter.h"
+#include "stringtable.h"
 
 #include "bots.h"
 
@@ -60,8 +61,12 @@ ObjWriter::ObjWriter (str path) {
 
 ObjWriter::~ObjWriter () {
 	delete MainBuffer;
-	delete MainLoopBuffer;
 	delete OnEnterBuffer;
+	
+	// This crashes for some reason o_O
+	// Should make no difference anyway, since ObjWriter
+	// is only deleted at the end of the program anyway
+	// delete MainLoopBuffer;
 }
 
 void ObjWriter::WriteString (char* s) {
@@ -78,6 +83,13 @@ void ObjWriter::WriteString (str s) {
 	WriteString (s.chars());
 }
 
+void ObjWriter::WriteBuffer (DataBuffer* buf) {
+	for (unsigned int x = 0; x < buf->writesize; x++) {
+		unsigned char c = *(buf->buffer+x);
+		Write<unsigned char> (c);
+	}
+}
+
 void ObjWriter::WriteBuffers () {
 	// If there was no mainloop defined, write a dummy one now.
 	if (!g_GotMainLoop) {
@@ -88,10 +100,7 @@ void ObjWriter::WriteBuffers () {
 	// Write the onenter and mainloop buffers, IN THAT ORDER
 	for (int i = 0; i < 2; i++) {
 		DataBuffer* buf = (!i) ? OnEnterBuffer : MainLoopBuffer;
-		for (unsigned int x = 0; x < buf->writesize; x++) {
-			unsigned char c = *(buf->buffer+x);
-			Write<unsigned char> (c);
-		}
+		WriteBuffer (buf);
 		
 		// Clear the buffer afterwards for potential next state
 		delete buf;
@@ -100,6 +109,21 @@ void ObjWriter::WriteBuffers () {
 	
 	// Next state definitely has no mainloop yet
 	g_GotMainLoop = false;
+}
+
+// Write string table
+void ObjWriter::WriteStringTable () {
+	// If we added strings here, we need to write a list of them.
+	unsigned int stringcount = CountStringTable ();
+	if (stringcount) {
+		Write<long> (DH_STRINGLIST);
+		Write<long> (stringcount);
+		
+		for (unsigned int a = 0; a < stringcount; a++)
+			WriteString (g_StringTable[a]);
+	}
+	
+	printf ("%u string%s written\n", stringcount, PLURAL (stringcount));
 }
 
 // Write main buffer to file
