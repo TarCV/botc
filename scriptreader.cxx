@@ -47,6 +47,8 @@
 
 ScriptReader::ScriptReader (str path) {
 	token = "";
+	prevtoken = "";
+	prevpos = 0;
 	fc = -1;
 	
 	for (unsigned int u = 0; u < MAX_FILESTACK; u++)
@@ -70,8 +72,7 @@ ScriptReader::~ScriptReader () {
 // Opens a file and pushes its pointer to stack
 void ScriptReader::OpenFile (str path) {
 	if (fc+1 >= MAX_FILESTACK) 
-		ParserError ("supposed to open file `%s` but file stack is full! \
-			do you have recursive `#include` directives?",
+		ParserError ("supposed to open file `%s` but file stack is full! do you have recursive `#include` directives?",
 			path.chars());
 	
 	// Save the position first.
@@ -157,10 +158,10 @@ char ScriptReader::PeekChar (int offset) {
 	return c[0];
 }
 
-// true if was found, false if not.
+// Read a token from the file buffer. Returns true if token was found, false if not.
 bool ScriptReader::Next (bool peek) {
+	prevpos = ftell (fp[fc]);
 	str tmp = "";
-	// printf ("begin token\n");
 	
 	while (1) {
 		// Check end-of-file
@@ -190,7 +191,6 @@ bool ScriptReader::Next (bool peek) {
 		}
 		
 		c = ReadChar ();
-		// printf ("add char [%d] `%c`\n", c, c);
 		
 		// If this is a comment we're reading, check if this character
 		// gets the comment terminated, otherwise ignore it.
@@ -236,32 +236,46 @@ bool ScriptReader::Next (bool peek) {
 	}
 	
 	// If we got nothing here, read failed. This should
-	// only hapen in the case of EOF.
+	// only happen in the case of EOF.
 	if (!tmp.len()) {
 		token = "";
 		return false;
 	}
 	
 	pos[fc]++;
+	prevtoken = token;
 	token = tmp;
 	return true;
 }
 
+void ScriptReader::Prev () {
+	if (!prevpos)
+		error ("ScriptReader::Prev: cannot go back twice!\n");
+	
+	fseek (fp[fc], prevpos, SEEK_SET);
+	prevpos = 0;
+	token = prevtoken;
+}
+
 // Returns the next token without advancing the cursor.
-str ScriptReader::PeekNext () {
-	// Store current position
+str ScriptReader::PeekNext (int offset) {
+	// Store current information
+	str storedtoken = token;
 	int cpos = ftell (fp[fc]);
 	
 	// Advance on the token.
-	if (!Next (true))
-		return "";
+	while (offset >= 0) {
+		if (!Next (true))
+			return "";
+		offset--;
+	}
 	
 	str tmp = token;
 	
 	// Restore position
 	fseek (fp[fc], cpos, SEEK_SET);
 	pos[fc]--;
-	
+	token = storedtoken;
 	return tmp;
 }
 
@@ -290,9 +304,13 @@ void ScriptReader::MustNext (const char* c) {
 			ParserError ("expected a token, reached end of file instead\n");
 	}
 	
-	if (strlen (c) && token.compare (c) != 0) {
+	if (strlen (c))
+		MustThis (c);
+}
+
+void ScriptReader::MustThis (const char* c) {
+	if (token.compare (c) != 0)
 		ParserError ("expected `%s`, got `%s` instead", c, token.chars());
-	}
 }
 
 void ScriptReader::ParserError (const char* message, ...) {
@@ -314,8 +332,12 @@ void ScriptReader::ParserMessage (const char* header, char* message) {
 		fprintf (stderr, "%s%s\n", header, message);
 }
 
-void ScriptReader::MustString () {
-	MustNext ("\"");
+// if gotquote == 1, the current token already holds the quotation mark.
+void ScriptReader::MustString (bool gotquote) {
+	if (gotquote)
+		MustThis ("\"");
+	else
+		MustNext ("\"");
 	
 	str string;
 	// Keep reading characters until we find a terminating quote.

@@ -129,7 +129,7 @@ int main (int argc, char** argv) {
 	ReadCommands ();
 	
 	// Init stuff
-	InitStringTable();
+	InitStringTable ();
 	InitVariables ();
 	
 	// Prepare reader and writer
@@ -148,8 +148,11 @@ int main (int argc, char** argv) {
 	w->WriteToFile ();
 	
 	// Clear out the junk
+	printf ("clear r\n");
 	delete r;
+	printf ("clear w\n");
 	delete w;
+	printf ("done!\n");
 }
 
 void error (const char* text, ...) {
@@ -164,8 +167,6 @@ char* ObjectFileName (str s) {
 	if (extdot >= s.len()-4)
 		s.trim (s.len() - extdot);
 	
-	// Add new ".o" extension
 	s += ".o";
-	
 	return s.chars();
 }

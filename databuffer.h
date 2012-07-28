@@ -104,18 +104,28 @@ public:
 		}
 	}
 	
+	// Merge another data buffer into this one.
+	void Merge (DataBuffer* other) {
+		for (unsigned int x = 0; x < other->writesize; x++) {
+			unsigned char c = *(other->buffer+x);
+			Write<unsigned char> (c);
+		}
+		
+		delete other;
+	}
+	
 private:
 	template <class T> unsigned char CharByte (T a, unsigned int b) {
 		if (b >= sizeof (T))
 			error ("CharByte: tried to get byte %u out of a %u-byte %s\n",
-				b, sizeof (T), typeid(T).name());
+				b, sizeof (T), typeid (T).name());
 		
 		unsigned long p1 = pow<unsigned long> (256, b);
 		unsigned long p2 = pow<unsigned long> (256, b+1);
 		unsigned long r = (a % p2) / p1;
 		
 		if (r > 256)
-			error ("result %lu too big!", r);
+			error ("DataBuffer::CharByte: result %lu too big!", r);
 		
 		unsigned char ur = static_cast<unsigned char> (r);
 		return ur;

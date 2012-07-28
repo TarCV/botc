@@ -63,8 +63,8 @@ struct CommandDef {
 };
 
 void ReadCommands ();
-CommandDef* GetCommandByName (str a);
-int GetReturnTypeByString (str token);
+CommandDef* FindCommand (str a);
+int GetCommandType (str token);
 str GetReturnTypeName (int r);
 str GetCommandPrototype (CommandDef* comm);
 

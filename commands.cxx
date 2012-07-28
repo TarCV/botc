@@ -51,7 +51,7 @@ void ReadCommands () {
 	ScriptReader* r = new ScriptReader ("commands.def");
 	g_CommDef = NULL;
 	CommandDef* curdef = g_CommDef;
-	unsigned int numCommDefs = 0; 
+	unsigned int numCommDefs = 0;
 	
 	while (r->PeekNext().len()) {
 		CommandDef* comm = new CommandDef;
@@ -71,7 +71,7 @@ void ReadCommands () {
 		
 		// Return value
 		r->MustNext ();
-		comm->returnvalue = GetReturnTypeByString (r->token);
+		comm->returnvalue = GetCommandType (r->token);
 		if (comm->returnvalue == -1)
 			r->ParserError ("bad return value type `%s`", r->token.chars());
 		
@@ -96,7 +96,7 @@ void ReadCommands () {
 			r->MustNext (":");
 			r->MustNext ();
 			
-			int type = GetReturnTypeByString (r->token);
+			int type = GetCommandType (r->token);
 			if (type == -1)
 				r->ParserError ("bad argument %d type `%s`", curarg, r->token.chars());
 			if (type == RETURNVAL_VOID)
@@ -109,7 +109,7 @@ void ReadCommands () {
 			// - 1 because of terminating null character
 			if (r->token.len() > MAX_ARGNAMELEN - 1)
 				r->ParserWarning ("argument name is too long (%d, max is %d)",
-					r->token.len(), MAX_ARGNAMELEN-1);
+					r->token.len(), MAX_ARGNAMELEN - 1);
 			
 			strncpy (comm->argnames[curarg], r->token.chars(), MAX_ARGNAMELEN);
 			comm->argnames[curarg][MAX_ARGNAMELEN-1] = 0;
@@ -146,23 +146,22 @@ void ReadCommands () {
 	delete r;
 	
 	if (!numCommDefs)
-		error ("error: no commands defined!\n");
+		error ("no commands defined!\n");
 	printf ("%d command definitions read.\n", numCommDefs);
 }
 
-// urgh long name
-int GetReturnTypeByString (str t) {
+int GetCommandType (str t) {
 	// "float" is for now just int.
 	// TODO: find out how BotScript floats work
 	// (are they real floats or fixed? how are they
 	// stored?) and add proper floating point support.
 	// NOTE: Also, shouldn't use RETURNVAL for data types..
 	t = t.tolower();
-	return	!t.compare ("int") ? RETURNVAL_INT :
-		!t.compare ("float") ? RETURNVAL_INT :
-		!t.compare ("str") ? RETURNVAL_STRING :
-		!t.compare ("void") ? RETURNVAL_VOID :
-		!t.compare ("bool") ? RETURNVAL_BOOLEAN : -1;
+	return	!t.compare ("int") ? TYPE_INT :
+		!t.compare ("float") ? TYPE_INT :
+		!t.compare ("str") ? TYPE_STRING :
+		!t.compare ("void") ? TYPE_VOID :
+		!t.compare ("bool") ? TYPE_INT : -1;
 }
 
 // Inverse operation
@@ -177,7 +176,7 @@ str GetReturnTypeName (int r) {
 	return "";
 }
 
-CommandDef* GetCommandByName (str fname) {
+CommandDef* FindCommand (str fname) {
 	CommandDef* comm;
 	ITERATE_COMMANDS (comm) {
 		if (!fname.icompare (comm->name))

@@ -47,6 +47,7 @@
 #include "bots.h"
 #include "str.h"
 
+// Application name and version
 #define APPNAME "botc"
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 0
@@ -57,10 +58,10 @@
 	#define FILE_CASEINSENSITIVE
 #endif
 
-// Where is the parser at?
+// Parser mode: where is the parser at?
 enum parsermode {
 	MODE_TOPLEVEL,	// at top level
-	MODE_EVENT,	// inside event definition
+	MODE_EVENT,		// inside event definition
 	MODE_MAINLOOP,	// inside mainloop
 	MODE_ONENTER,	// inside onenter
 	MODE_ONEXIT,	// inside onexit
@@ -72,18 +73,21 @@ enum parsermode {
 		exit (1); \
 	}
 
+// Shortcut for formatting
 #define PERFORM_FORMAT(in, out) \
 	va_list v; \
 	va_start (v, in); \
 	char* out = vdynformat (in, v, 256); \
 	va_end (v);
 
+// Plural expression
 #define PLURAL(n) (n != 1) ? "s" : ""
 
 void error (const char* text, ...);
 char* ObjectFileName (str s);
 bool fexists (char* path);
 
+// Make the parser's variables globally available
 #ifndef __PARSER_CXX__
 extern int g_NumStates;
 extern int g_NumEvents;
@@ -92,7 +96,7 @@ extern str g_CurState;
 #endif
 
 // Power function
-template<class T> T pow (T a, T b) {
+template<class T> T pow (T a, int b) {
 	if (!b)
 		return 1;
 	
@@ -111,5 +115,8 @@ template<class T> T pow (T a, T b) {
 inline bool IsCharWhitespace (char c) {
 	return (c <= 32 || c == 127 || c == 255);
 }
+
+// Byte datatype
+typedef unsigned long int byte;
 
 #endif // __COMMON_H__

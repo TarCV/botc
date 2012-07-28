@@ -62,6 +62,8 @@ public:
 	long savedpos[MAX_FILESTACK]; // filepointer cursor position
 	str token;
 	int commentmode;
+	long prevpos;
+	str prevtoken;
 	
 	// ====================================================================
 	// METHODS
@@ -73,10 +75,12 @@ public:
 	char ReadChar ();
 	char PeekChar (int offset = 0);
 	bool Next (bool peek = false);
-	str PeekNext ();
+	void Prev ();
+	str PeekNext (int offset = 0);
 	void Seek (unsigned int n, int origin);
 	void MustNext (const char* c = "");
-	void MustString ();
+	void MustThis (const char* c);
+	void MustString (bool gotquote = false);
 	void MustNumber ();
 	void MustBool ();
 	void MustValue (int type);
@@ -89,7 +93,10 @@ public:
 	
 	// parser.cxx:
 	void BeginParse (ObjWriter* w);
-	void ParseCommand (CommandDef* comm, ObjWriter* w);
+	DataBuffer* ParseCommand (CommandDef* comm);
+	DataBuffer* ParseExpression (int reqtype);
+	int ParseOperator ();
+	DataBuffer* ParseExprValue (int reqtype);
 	
 	// preprocessor.cxx:
 	void PreprocessDirectives ();
@@ -104,6 +111,28 @@ private:
 	char PPReadChar ();
 	void PPMustChar (char c);
 	str PPReadWord (char &term);
+};
+
+enum {
+	TYPE_VOID = 0,
+	TYPE_INT,
+	TYPE_STRING,
+	TYPE_FLOAT
+};
+
+// Operators
+enum {
+	OPER_ADD,
+	OPER_SUBTRACT,
+	OPER_MULTIPLY,
+	OPER_DIVIDE,
+	OPER_MODULUS,
+	OPER_ASSIGN,
+	OPER_ASSIGNADD,
+	OPER_ASSIGNSUB,
+	OPER_ASSIGNMUL,
+	OPER_ASSIGNDIV,
+	OPER_ASSIGNMOD
 };
 
 #endif // __SCRIPTREADER_H__

@@ -68,7 +68,9 @@ public:
 	void WriteString (char* s);
 	void WriteString (const char* s);
 	void WriteString (str s);
+	void WriteBuffer (DataBuffer* buf);
 	void WriteBuffers ();
+	void WriteStringTable ();
 	void WriteToFile ();
 	
 	template <class T> void Write (T stuff) {
@@ -80,7 +82,7 @@ public:
 	}
 	
 	// Cannot use default arguments in function templates..
-	void Write (long stuff) {Write<long> (stuff);}
+	void Write (byte stuff) {Write<byte> (stuff);}
 };
 
 #endif // __OBJWRITER_H__
