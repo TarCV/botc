@@ -1,3 +1,8 @@
+/* This file defines the commands botc will treat as valid.
+ * Do not edit unless you know what you are doing!
+ *
+ * Syntax: number:name:returntype:numargs:maxargs[:argumentlist]
+ */
 0:changestate:void:1:1:str(statename)
 1:delay:void:1:1:int(tics)
 2:rand:int:2:2:int(a):int(b)

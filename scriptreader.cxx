@@ -356,9 +356,10 @@ void ScriptReader::MustString (bool gotquote) {
 	token = string;
 }
 
-void ScriptReader::MustNumber () {
+void ScriptReader::MustNumber (bool fromthis) {
 	str num;
-	MustNext ();
+	if (!fromthis)
+		MustNext ();
 	num += token;
 	
 	// Cater for a possible minus sign, since it
@@ -370,6 +371,8 @@ void ScriptReader::MustNumber () {
 	
 	if (!num.isnumber())
 		ParserError ("expected a number, got `%s`", num.chars());
+	
+	token = num;
 }
 
 void ScriptReader::MustBool () {

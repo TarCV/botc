@@ -437,16 +437,22 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			ParserError ("bad syntax");
 			break;
 		case TYPE_INT: {
-			if (!token.isnumber ())
+			printf ("value is an integer literal\n");
+			/* if (!token.isnumber ())
 				ParserError ("expected an integer, got `%s`", token.chars());
+			*/
+			MustNumber (true);
+			printf ("literal is `%s` = %d\n", token.chars(), atoi (token.chars()));
 			
 			// All values are written unsigned - thus we need to write the value's
 			// absolute value, followed by an unary minus if it was negative.
 			b->Write<byte> (DH_PUSHNUMBER);
 			long v = atoi (token.chars ());
 			b->Write<byte> (static_cast<byte> (abs (v)));
-			if (v < 0)
+			if (v < 0) {
+				printf ("%ld is negative, write abs value %d and unary minus\n", v, abs(v));
 				b->Write<byte> (DH_UNARYMINUS);
+			}
 			break;
 		}
 		case TYPE_STRING:

@@ -81,7 +81,7 @@ public:
 	void MustNext (const char* c = "");
 	void MustThis (const char* c);
 	void MustString (bool gotquote = false);
-	void MustNumber ();
+	void MustNumber (bool fromthis = false);
 	void MustBool ();
 	void MustValue (int type);
 	bool BoolValue ();
