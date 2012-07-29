@@ -117,6 +117,13 @@ inline bool IsCharWhitespace (char c) {
 }
 
 // Byte datatype
-typedef unsigned long int byte;
+typedef unsigned long int word;
+
+// Keywords
+#define NUM_KEYWORDS 20
+#ifndef __MAIN_CXX__
+extern const char** g_Keywords;
+#endif
+bool IsKeyword (str s);
 
 #endif // __COMMON_H__

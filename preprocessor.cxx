@@ -65,6 +65,7 @@ void ScriptReader::PPMustChar (char c) {
 	}
 }
 
+// ============================================================================
 // Reads a word until whitespace
 str ScriptReader::PPReadWord (char &term) {
 	str word;
@@ -79,13 +80,16 @@ str ScriptReader::PPReadWord (char &term) {
 	return word;
 }
 
+// ============================================================================
+// Preprocess any directives found in the script file
 void ScriptReader::PreprocessDirectives () {
 	size_t spos = ftell (fp[fc]);
 	if (!DoDirectivePreprocessing ())
 		fseek (fp[fc], spos, SEEK_SET);
 }
 
-/* Returns true if the pre-processing was successful, false if not.
+/* ============================================================================
+ * Returns true if the pre-processing was successful, false if not.
  * If pre-processing was successful, the file pointer remains where
  * it was, if not, it's pushed back to where it was before preprocessing
  * took place and is parsed normally.

@@ -82,7 +82,7 @@ public:
 	}
 	
 	// Cannot use default arguments in function templates..
-	void Write (byte stuff) {Write<byte> (stuff);}
+	void Write (word stuff) {Write<word> (stuff);}
 };
 
 #endif // __OBJWRITER_H__

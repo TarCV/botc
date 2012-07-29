@@ -38,6 +38,8 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define __MAIN_CXX__
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,13 +56,31 @@
 #include "bots.h"
 #include "botcommands.h"
 
-bool fexists (char* path) {
-	if (FILE* test = fopen (path, "r")) {
-		fclose (test);
-		return true;
-	}
-	return false;
-}
+const char* g_Keywords[NUM_KEYWORDS] = {
+	"state",
+	"event",
+	"mainloop",
+	"onenter",
+	"onexit",
+	"var",
+	
+	// These ones aren't implemented yet but I plan to do so, thus they are
+	// reserved. Also serves as a to-do list of sorts for me. >:F
+	"break",
+	"case",
+	"continue",
+	"default",
+	"do",
+	"else",
+	"enum", // Would enum actually be useful? I think so.
+	"for",
+	"func", // Would function support need external support from zandronum?
+	"goto", // Labels and goto must be done before if or any loops...
+	"if",
+	"return",
+	"switch",
+	"while"
+};
 
 int main (int argc, char** argv) {
 	// Intepret command-line parameters:
@@ -88,9 +108,16 @@ int main (int argc, char** argv) {
 	printf ("%s\n%s\n", header.chars(), headerline.chars());
 	
 	if (argc < 2) {
-		fprintf (stderr, "usage: %s: <infile> [outfile]\n", argv[0]);
+		fprintf (stderr, "usage: %s <infile> [outfile]\n", argv[0]);
+		fprintf (stderr, "       %s -l                 # lists commands\n", argv[0]);
 		exit (1);
 	}
+	
+	// A word should always be exactly 4 bytes. The above list command
+	// doesn't need it, but the rest of the program does.
+	if (sizeof (word) != 4)
+		error ("%s expects a word (unsigned long int) to be 4 bytes in size, is %d\n",
+			APPNAME, sizeof (word));
 	
 	str outfile;
 	if (argc < 3)
@@ -142,7 +169,7 @@ int main (int argc, char** argv) {
 	
 	// Parse done, print statistics and write to file
 	unsigned int globalcount = CountGlobalVars ();
-	printf ("%u global variable%s\n", globalcount, PLURAL (globalcount));
+	printf ("%u/%u global variable%s\n", globalcount, MAX_SCRIPT_VARIABLES, PLURAL (globalcount));
 	printf ("%d state%s written\n", g_NumStates, PLURAL (g_NumStates));
 	printf ("%d event%s written\n", g_NumEvents, PLURAL (g_NumEvents));
 	w->WriteToFile ();
@@ -155,12 +182,29 @@ int main (int argc, char** argv) {
 	printf ("done!\n");
 }
 
+// ============================================================================
+// Utility functions
+
+// ============================================================================
+// Does the given file exist?
+bool fexists (char* path) {
+	if (FILE* test = fopen (path, "r")) {
+		fclose (test);
+		return true;
+	}
+	return false;
+}
+
+// ============================================================================
+// Generic error
 void error (const char* text, ...) {
 	PERFORM_FORMAT (text, c);
 	fprintf (stderr, "error: %s", c);
 	exit (1);
 }
 
+// ============================================================================
+// Mutates given filename to an object filename
 char* ObjectFileName (str s) {
 	// Locate the extension and chop it out
 	unsigned int extdot = s.last (".");
@@ -169,4 +213,13 @@ char* ObjectFileName (str s) {
 	
 	s += ".o";
 	return s.chars();
+}
+
+// ============================================================================
+// Is the given argument a reserved keyword?
+bool IsKeyword (str s) {
+	for (unsigned int u = 0; u < NUM_KEYWORDS; u++)
+		if (!s.icompare (g_Keywords[u]))
+			return true;
+	return false;
 }
