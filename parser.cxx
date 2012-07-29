@@ -52,7 +52,10 @@
 #include "variables.h"
 
 #define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
-	ParserError ("%ss may only be defined at top level!", token.chars());
+	ParserError ("%s-statements may only be defined at top level!", token.chars());
+
+#define MUST_NOT_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
+	ParserError ("%s-statements may not be defined at top level!", token.chars());
 
 int g_NumStates = 0;
 int g_NumEvents = 0;
@@ -60,12 +63,14 @@ int g_CurMode = MODE_TOPLEVEL;
 str g_CurState = "";
 bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
+int g_StructStack = 0;
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
 // and writes the data to the object file via ObjWriter - which also takes care
 // of necessary buffering so stuff is written in the correct order.
 void ScriptReader::BeginParse (ObjWriter* w) {
+	g_StructStack = 0;
 	while (Next()) {
 		printf ("BeginParse: token: `%s`\n", token.chars());
 		if (!token.icompare ("state")) {
@@ -166,8 +171,45 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// Label
+		if (!PeekNext().compare (":")) {
+			if (IsKeyword (token))
+				ParserError ("label name `%s` conflicts with keyword\n", token.chars());
+			if (FindCommand (token))
+				ParserError ("label name `%s` conflicts with command name\n", token.chars());
+			if (FindGlobalVariable (token))
+				ParserError ("label name `%s` conflicts with variable\n", token.chars());
+			
+			w->AddMark (MARKTYPE_LABEL, token);
+			MustNext (":");
+			continue;
+		}
+		
+		// Goto
+		if (!token.icompare ("goto")) {
+			// Get the name of the label
+			MustNext ();
+			
+			// Find the mark this goto statement points to
+			unsigned int m = w->FindMark (MARKTYPE_LABEL, token);
+			if (m == MAX_MARKS)
+				ParserError ("unknown label `%s`!", token.chars());
+			
+			// Add a reference to the mark.
+			w->Write<word> (DH_GOTO);
+			w->AddReference (m);
+			MustNext (";");
+			continue;
+		}
+		
 		if (!token.compare ("}")) {
-			printf ("parse closing brace\n");
+			// If this was done inside the struct stack (i.e.
+			// inside "if" for instance), it does not end the mode.
+			if (g_StructStack > 0) {
+				g_StructStack--;
+				continue;
+			}
+			
 			// Closing brace
 			int dataheader =	(g_CurMode == MODE_EVENT) ? DH_ENDEVENT :
 						(g_CurMode == MODE_MAINLOOP) ? DH_ENDMAINLOOP :
@@ -340,9 +382,6 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 	
 	DataBuffer* lb = NULL;
 	
-	// If it's a variable, note it down - we need to do special checks with it later.
-	ScriptVar* var = FindGlobalVariable (token);
-	
 	lb = ParseExprValue (reqtype);
 	printf ("done\n");
 	
@@ -375,7 +414,7 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 	retbuf->Merge (rb);
 	retbuf->Merge (lb);
 	
-	long dh = DataHeaderByOperator (var, oper);
+	long dh = DataHeaderByOperator (NULL, oper);
 	retbuf->Write<word> (dh);
 	
 	printf ("expression complete\n");
@@ -490,23 +529,16 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 // by an assignment operator, followed by an expression value. Expects current
 // token to be the name of the variable, and expects the variable to be given.
 DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
-	printf ("ASSIGNMENT: this token is `%s`, next token is `%s`\n",
-		token.chars(), PeekNext().chars());
-	
 	// Get an operator
-	printf ("parse assignment operator at token %s\n", token.chars());
-	
 	MustNext ();
 	int oper = ParseOperator ();
 	if (!IsAssignmentOperator (oper))
 		ParserError ("expected assignment operator");
-	printf ("got %d\n", oper);
 	
 	if (g_CurMode == MODE_TOPLEVEL) // TODO: lift this restriction
 		ParserError ("can't alter variables at top level");
 	
 	// Parse the right operand,
-	printf ("parse right operand\n");
 	MustNext ();
 	DataBuffer* retbuf = ParseExprValue (TYPE_INT);
 	
@@ -514,6 +546,5 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	retbuf->Write<word> (dh);
 	retbuf->Write<word> (var->index);
 	
-	printf ("assignment complete\n");
 	return retbuf;
 }

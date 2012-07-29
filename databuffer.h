@@ -44,6 +44,8 @@
 #include <string.h>
 #include "common.h"
 
+#define MAX_MARKS 256
+
 // ============================================================================
 // DataBuffer: A dynamic data buffer.
 class DataBuffer {
@@ -57,18 +59,44 @@ public:
 	// Written size of the buffer
 	unsigned int writesize;
 	
+	// Marks and references
+	ScriptMark* marks[MAX_MARKS];
+	ScriptMarkReference* refs[MAX_MARKS];
+	
+	// ====================================================================
 	// METHODS
+	
+	// ====================================================================
+	// Constructor
 	DataBuffer (unsigned int size=128) {
 		writesize = 0;
 		
 		buffer = new unsigned char[size];
 		allocsize = size;
+		
+		// Clear the marks table out
+		for (unsigned int u = 0; u < MAX_MARKS; u++) {
+			marks[u] = NULL;
+			refs[u] = NULL;
+		}
 	}
 	
+	// ====================================================================
 	~DataBuffer () {
 		delete buffer;
+		
+		// Delete any marks and references
+		for (unsigned int u = 0; u < MAX_MARKS; u++) {
+			if (marks[u])
+				delete marks[u];
+			
+			if (refs[u])
+				delete refs[u];
+		}
 	}
 	
+	// ====================================================================
+	// Write stuff to the buffer
 	template<class T> void Write(T stuff) {
 		if (sizeof (char) != 1) {
 			error ("DataBuffer: sizeof(char) must be 1!\n");
@@ -99,39 +127,100 @@ public:
 		for (unsigned int x = 0; x < sizeof (T); x++) {
 			if (writesize >= allocsize)
 				error ("DataBuffer: written size exceeds allocated size!\n");
-			buffer[writesize] = CharByte<T> (stuff, x);
+			buffer[writesize] = GetByteIndex<T> (stuff, x);
 			writesize++;
 		}
 	}
 	
+	// ====================================================================
 	// Merge another data buffer into this one.
 	void Merge (DataBuffer* other) {
 		if (!other)
-				return;
+			return;
 		
 		for (unsigned int x = 0; x < other->writesize; x++) {
 			unsigned char c = *(other->buffer+x);
 			Write<unsigned char> (c);
 		}
 		
+		// Merge its marks and references
+		unsigned int u = 0;
+		for (u = 0; u < MAX_MARKS; u++) {
+			if (other->marks[u]) {
+				// Add the mark and offset its position.
+				unsigned int u = AddMark (other->marks[u]->type, other->marks[u]->name);
+				marks[u]->pos += other->writesize;
+			}
+			
+			if (other->refs[u]) {
+				// Same for references
+				unsigned int r = AddMarkReference (other->refs[u]->num);
+				refs[r]->pos += other->writesize;
+			}
+		}
+		
 		delete other;
 	}
 	
-private:
-	template <class T> unsigned char CharByte (T a, unsigned int b) {
-		if (b >= sizeof (T))
-			error ("CharByte: tried to get byte %u out of a %u-byte %s\n",
-				b, sizeof (T), typeid (T).name());
+	// ====================================================================
+	// Adds a mark to the buffer. A mark is a reference to a particular
+	// position in the bytecode. The actual permanent position cannot
+	// be predicted in any way or form, thus these things will be used
+	// to "mark" a position like that for future use.
+	unsigned int AddMark (int type, str name) {
+		// Find a free slot for the mark
+		unsigned int u;
+		for (u = 0; u < MAX_MARKS; u++)
+			if (!marks[u])
+				break;
 		
-		unsigned long p1 = pow<unsigned long> (256, b);
-		unsigned long p2 = pow<unsigned long> (256, b+1);
-		unsigned long r = (a % p2) / p1;
+		if (u >= MAX_MARKS)
+			error ("mark quota exceeded, all labels, if-structs and loops add marks\n");
 		
-		if (r > 256)
-			error ("DataBuffer::CharByte: result %lu too big!", r);
+		ScriptMark* m = new ScriptMark;
+		m->name = name;
+		m->type = type;
+		m->pos = writesize;
+		marks[u] = m;
+		return u;
+	}
+	
+	unsigned int AddMarkReference (unsigned int marknum) {
+		unsigned int u;
+		for (u = 0; u < MAX_MARKS; u++)
+			if (!refs[u])
+				break;
 		
-		unsigned char ur = static_cast<unsigned char> (r);
-		return ur;
+		if (u == MAX_MARKS)
+			error ("mark reference quota exceeded, all goto-statements, if-structs and loops add refs\n");
+		
+		// NOTE: Do not check if the mark actually exists here since a
+		// reference may come in the code earlier than the actual mark
+		// and the new mark number can be predicted.
+		ScriptMarkReference* r = new ScriptMarkReference;
+		r->num = marknum;
+		r->pos = writesize;
+		refs[u] = r;
+		
+		return u;
+	}
+	
+	// Delete a mark and all references to it.
+	void DeleteMark (unsigned int marknum) {
+		if (!marks[marknum])
+			return;
+		
+		// Delete the mark
+		delete marks[marknum];
+		marks[marknum] = NULL;
+		
+		// Delete its references
+		for (unsigned int u = 0; u < MAX_MARKS; u++) {
+			if (refs[u]->num == marknum) {
+				delete refs[u];
+				refs[u] = NULL;
+			}
+		}
 	}
 };
 
