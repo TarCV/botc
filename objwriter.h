@@ -72,17 +72,29 @@ public:
 	void WriteBuffers ();
 	void WriteStringTable ();
 	void WriteToFile ();
+	DataBuffer* GetCurrentBuffer ();
+	
+	unsigned int AddMark (int type, str name);
+	unsigned int FindMark (int type, str name);
+	unsigned int AddReference (unsigned int mark);
 	
 	template <class T> void Write (T stuff) {
-		DataBuffer* buffer =	(g_CurMode == MODE_MAINLOOP) ? MainLoopBuffer :
-					(g_CurMode == MODE_ONENTER) ? OnEnterBuffer :
-					MainBuffer;
+		DataBuffer* buffer = GetCurrentBuffer ();
 		buffer->Write<T> (stuff);
 		return;
 	}
 	
 	// Cannot use default arguments in function templates..
 	void Write (word stuff) {Write<word> (stuff);}
+	
+	template <class T> void WriteDataToFile (T stuff) {
+		// One byte at a time
+		for (unsigned int x = 0; x < sizeof (T); x++) {
+			unsigned char c = GetByteIndex<T> (stuff, x);
+			fwrite (&c, 1, 1, fp);
+			numWrittenBytes++;
+		}
+	}
 };
 
 #endif // __OBJWRITER_H__

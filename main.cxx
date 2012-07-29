@@ -63,6 +63,7 @@ const char* g_Keywords[NUM_KEYWORDS] = {
 	"onenter",
 	"onexit",
 	"var",
+	"goto",
 	
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
@@ -75,7 +76,6 @@ const char* g_Keywords[NUM_KEYWORDS] = {
 	"enum", // Would enum actually be useful? I think so.
 	"for",
 	"func", // Would function support need external support from zandronum?
-	"goto", // Labels and goto must be done before if or any loops...
 	"if",
 	"return",
 	"switch",

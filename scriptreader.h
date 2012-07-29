@@ -136,4 +136,11 @@ enum {
 	OPER_ASSIGNMOD
 };
 
+// Mark types
+enum {
+	MARKTYPE_LABEL,
+	MARKTYPE_IF,
+	MARKTYPE_INTERNAL, // internal structures
+};
+
 #endif // __SCRIPTREADER_H__

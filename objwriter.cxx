@@ -135,11 +135,46 @@ void ObjWriter::WriteToFile () {
 		error ("size of unsigned char isn't 1, but %d!\n", sizeof (unsigned char));
 	
 	for (unsigned int x = 0; x < MainBuffer->writesize; x++) {
-		unsigned char c = *(MainBuffer->buffer+x);
-		fwrite (&c, 1, 1, fp);
-		numWrittenBytes++;
+		// Check if this position is a reference
+		for (unsigned int r = 0; r < MAX_MARKS; r++) {
+			if (MainBuffer->refs[r] && MainBuffer->refs[r]->pos == x) {
+				word ref = static_cast<word> (MainBuffer->marks[MainBuffer->refs[r]->num]->pos);
+				WriteDataToFile<word> (ref);
+			}
+		}
+		
+		WriteDataToFile<unsigned char> (*(MainBuffer->buffer+x));
 	}
 	
 	printf ("-- %u byte%s written to %s\n", numWrittenBytes, PLURAL (numWrittenBytes), filepath.chars());
 	fclose (fp);
+}
+
+DataBuffer* ObjWriter::GetCurrentBuffer() {
+	return	(g_CurMode == MODE_MAINLOOP) ? MainLoopBuffer :
+		(g_CurMode == MODE_ONENTER) ? OnEnterBuffer :
+		MainBuffer;
+}
+
+ScriptMark* g_ScriptMark = NULL;
+
+// Adds a mark
+unsigned int ObjWriter::AddMark (int type, str name) {
+	return GetCurrentBuffer()->AddMark (type, name);
+}
+
+// Adds a reference
+unsigned int ObjWriter::AddReference (unsigned int mark) {
+	DataBuffer* b = GetCurrentBuffer();
+	return b->AddMarkReference (mark);
+}
+
+// Finds a mark
+unsigned int ObjWriter::FindMark (int type, str name) {
+	DataBuffer* b = GetCurrentBuffer();
+	for (unsigned int u = 0; u < MAX_MARKS; u++) {
+		if (b->marks[u] && b->marks[u]->type == type && !b->marks[u]->name.icompare (name))
+			return u;
+	}
+	return MAX_MARKS;
 }

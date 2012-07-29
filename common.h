@@ -126,4 +126,34 @@ extern const char** g_Keywords;
 #endif
 bool IsKeyword (str s);
 
+// Script mark -- also serves as reference type
+struct ScriptMark {
+	int type;
+	str name;
+	size_t pos;
+};
+
+struct ScriptMarkReference {
+	unsigned int num;
+	size_t pos;
+};
+
+// ====================================================================
+// Finds a byte in the given value.
+template <class T> unsigned char GetByteIndex (T a, unsigned int b) {
+	if (b >= sizeof (T))
+		error ("CharByte: tried to get byte %u out of a %u-byte %s\n",
+			b, sizeof (T), typeid (T).name());
+	
+	unsigned long p1 = pow<unsigned long> (256, b);
+	unsigned long p2 = pow<unsigned long> (256, b+1);
+	unsigned long r = (a % p2) / p1;
+	
+	if (r > 256)
+		error ("DataBuffer::CharByte: result %lu too big!", r);
+	
+	unsigned char ur = static_cast<unsigned char> (r);
+	return ur;
+}
+
 #endif // __COMMON_H__
