@@ -47,6 +47,9 @@
 #include "events.h"
 
 EventDef* g_EventDef;
+
+// ============================================================================
+// Read event definitions from file
 void ReadEvents () {
 	ScriptReader* r = new ScriptReader ("events.def");
 	g_EventDef = NULL;
@@ -75,12 +78,16 @@ void ReadEvents () {
 	printf ("%d event definitions read.\n", numEventDefs);
 }
 
+// ============================================================================
+// Delete event definitions recursively
 void UnlinkEvents (EventDef* e) {
 	if (e->next)
 		UnlinkEvents (e->next);
 	delete e;
 }
 
+// ============================================================================
+// Finds an event definition by index
 EventDef* FindEventByIdx (unsigned int idx) {
 	EventDef* e = g_EventDef;
 	while (idx > 0) {
@@ -92,6 +99,8 @@ EventDef* FindEventByIdx (unsigned int idx) {
 	return e;
 }
 
+// ============================================================================
+// Finds an event definition by name
 EventDef* FindEventByName (str a) {
 	EventDef* e;
 	for (e = g_EventDef; e->next != NULL; e = e->next) {

@@ -47,6 +47,8 @@
 #include "str.h"
 #include "commands.h"
 
+// ============================================================================
+// Reads command definitions from commands.def and stores them to memory.
 void ReadCommands () {
 	ScriptReader* r = new ScriptReader ("commands.def");
 	g_CommDef = NULL;
@@ -66,6 +68,8 @@ void ReadCommands () {
 		// Name
 		r->MustNext ();
 		comm->name = r->token;
+		if (IsKeyword (comm->name))
+			r->ParserError ("command name `%s` conflicts with keyword", comm->name.chars());
 		
 		r->MustNext (":");
 		
@@ -142,20 +146,21 @@ void ReadCommands () {
 		numCommDefs++;
 	}
 	
+	if (!numCommDefs)
+		r->ParserError ("no commands defined!\n");
+	
 	r->CloseFile ();
 	delete r;
-	
-	if (!numCommDefs)
-		error ("no commands defined!\n");
 	printf ("%d command definitions read.\n", numCommDefs);
 }
 
+// ============================================================================
+// Get command type by name
 int GetCommandType (str t) {
 	// "float" is for now just int.
 	// TODO: find out how BotScript floats work
 	// (are they real floats or fixed? how are they
-	// stored?) and add proper floating point support.
-	// NOTE: Also, shouldn't use RETURNVAL for data types..
+	// stored?) and add proper floating point number support.
 	t = t.tolower();
 	return	!t.compare ("int") ? TYPE_INT :
 		!t.compare ("float") ? TYPE_INT :
@@ -164,7 +169,8 @@ int GetCommandType (str t) {
 		!t.compare ("bool") ? TYPE_INT : -1;
 }
 
-// Inverse operation
+// ============================================================================
+// Inverse operation - type name by value
 str GetReturnTypeName (int r) {
 	switch (r) {
 	case RETURNVAL_INT: return "int"; break;
@@ -176,6 +182,8 @@ str GetReturnTypeName (int r) {
 	return "";
 }
 
+// ============================================================================
+// Finds a command by name
 CommandDef* FindCommand (str fname) {
 	CommandDef* comm;
 	ITERATE_COMMANDS (comm) {
@@ -186,6 +194,8 @@ CommandDef* FindCommand (str fname) {
 	return NULL;
 }
 
+// ============================================================================
+// Returns the prototype of the command
 str GetCommandPrototype (CommandDef* comm) {
 	str text;
 	text += GetReturnTypeName (comm->returnvalue);

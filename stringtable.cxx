@@ -46,6 +46,8 @@
 #include "bots.h"
 #include "stringtable.h"
 
+// ============================================================================
+// Initializes the string table
 void InitStringTable() {
 	// Zero out everything first.
 	for (unsigned int a = 0; a < MAX_LIST_STRINGS; a++)
@@ -53,10 +55,13 @@ void InitStringTable() {
 			g_StringTable[a][b] = 0;
 }
 
+// ============================================================================
+// Potentially adds a string to the table and returns the index of it.
 unsigned int PushToStringTable (char* s) {
 	// Find a free slot in the table. 
 	unsigned int a;
 	for (a = 0; a < MAX_LIST_STRINGS; a++) {
+		// String is already in the table, thus return it.
 		if (!strcmp (s, g_StringTable[a]))
 			return a;
 		
@@ -81,6 +86,8 @@ unsigned int PushToStringTable (char* s) {
 	return a;
 }
 
+// ============================================================================
+// Counts the amount of strings in the table.
 unsigned int CountStringTable () {
 	unsigned int count = 0;
 	for (unsigned int a = 0; a < MAX_LIST_STRINGS; a++) {

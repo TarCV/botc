@@ -59,7 +59,11 @@ ScriptReader::ScriptReader (str path) {
 }
 
 ScriptReader::~ScriptReader () {
-	FinalChecks ();
+	// If comment mode is 2 by the time the file ended, the
+	// comment was left unterminated. 1 is no problem, since
+	// it's terminated by newlines anyway.
+	if (commentmode == 2)
+		ParserError ("unterminated `/*`-style comment");
 	
 	for (unsigned int u = 0; u < MAX_FILESTACK; u++) {
 		if (fp[u]) {
@@ -362,16 +366,19 @@ void ScriptReader::MustNumber (bool fromthis) {
 		MustNext ();
 	num += token;
 	
-	// Cater for a possible minus sign, since it
-	// breaks the token, read a new one with the number.
+	// The number can possibly start off with a minus sign, which
+	// also breaks the token. If we encounter it, read another token
+	// and merge it to this one.
 	if (!token.compare ("-")) {
 		MustNext ();
 		num += token;
 	}
 	
+	// Result must be a number.
 	if (!num.isnumber())
 		ParserError ("expected a number, got `%s`", num.chars());
 	
+	// Save the number into the token.
 	token = num;
 }
 
@@ -396,13 +403,4 @@ void ScriptReader::MustValue (int type) {
 	case RETURNVAL_STRING: MustString (); break;
 	case RETURNVAL_BOOLEAN: MustBool (); break;
 	}
-}
-
-// Checks to be performed at the end of file
-void ScriptReader::FinalChecks () {
-	// If comment mode is 2 by the time the file ended, the
-	// comment was left unterminated. 1 is no problem, since
-	// it's terminated by newlines anyway.
-	if (commentmode == 2)
-		ParserError ("unterminated `/*`-style comment");
 }

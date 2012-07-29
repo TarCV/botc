@@ -59,9 +59,17 @@ void InitVariables () {
 		g_GlobalVariables[u] = NULL;
 }
 
+// ============================================================================
 // Tries to declare a new global-scope variable. Returns pointer
 // to new global variable, NULL if declaration failed.
 ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name) {
+	// Check that the name is valid
+	if (FindCommand (name))
+		r->ParserError ("name of variable-to-be `%s` conflicts with that of a command", name.chars());
+	
+	if (IsKeyword (name))
+		r->ParserError ("name of variable-to-be `%s` is a keyword", name.chars());
+	
 	// Find a NULL pointer to a global variable
 	ScriptVar* g;
 	unsigned int u = 0;
@@ -71,7 +79,7 @@ ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name) {
 			break;
 		
 		if (!g_GlobalVariables[u]->name.icompare (name))
-			r->ParserError ("tried to declare global scope variable %s twice", name.chars());
+			r->ParserError ("attempted redeclaration of variable `%s`", name.chars());
 	}
 	
 	if (u == MAX_SCRIPT_VARIABLES)
@@ -96,6 +104,7 @@ void AssignScriptVariable (ScriptReader* r, str name, str value) {
 }
 */
 
+// ============================================================================
 // Find a global variable by name
 ScriptVar* FindGlobalVariable (str name) {
 	unsigned int u = 0;
@@ -111,6 +120,8 @@ ScriptVar* FindGlobalVariable (str name) {
 	return NULL;
 }
 
+// ============================================================================
+// Count all declared global variables
 unsigned int CountGlobalVars () {
 	unsigned int count = 0;
 	unsigned int u = 0;

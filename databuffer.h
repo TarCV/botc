@@ -106,6 +106,9 @@ public:
 	
 	// Merge another data buffer into this one.
 	void Merge (DataBuffer* other) {
+		if (!other)
+				return;
+		
 		for (unsigned int x = 0; x < other->writesize; x++) {
 			unsigned char c = *(other->buffer+x);
 			Write<unsigned char> (c);

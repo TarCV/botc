@@ -48,6 +48,8 @@
 
 #define MAX_FILESTACK 8
 
+class ScriptVar;
+
 class ScriptReader {
 public:
 	// ====================================================================
@@ -89,13 +91,12 @@ public:
 	void ParserError (const char* message, ...);
 	void ParserWarning (const char* message, ...);
 	
-	void FinalChecks ();
-	
 	// parser.cxx:
 	void BeginParse (ObjWriter* w);
 	DataBuffer* ParseCommand (CommandDef* comm);
 	DataBuffer* ParseExpression (int reqtype);
-	int ParseOperator ();
+	DataBuffer* ParseAssignment (ScriptVar* var);
+	int ParseOperator (bool peek = false);
 	DataBuffer* ParseExprValue (int reqtype);
 	
 	// preprocessor.cxx:
