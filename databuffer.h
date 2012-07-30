@@ -138,10 +138,8 @@ public:
 		if (!other)
 			return;
 		
-		for (unsigned int x = 0; x < other->writesize; x++) {
-			unsigned char c = *(other->buffer+x);
-			Write<unsigned char> (c);
-		}
+		for (unsigned int x = 0; x < other->writesize; x++)
+			Write<unsigned char> (*(other->buffer+x));
 		
 		// Merge its marks and references
 		unsigned int u = 0;
@@ -160,6 +158,14 @@ public:
 		}
 		
 		delete other;
+	}
+	
+	// Clones this databuffer to a new one and returns it.
+	DataBuffer* Clone () {
+		DataBuffer* other = new DataBuffer;
+		for (unsigned int x = 0; x < writesize; x++)
+			other->Write<unsigned char> (*(buffer+x));
+		return other;
 	}
 	
 	// ====================================================================
@@ -228,6 +234,12 @@ public:
 		if (!marks[mark])
 			return;
 		marks[mark]->pos = writesize;
+	}
+	
+	// Dump the buffer (for debugging purposes)
+	void Dump() {
+		for (unsigned int x = 0; x < writesize; x++)
+			printf ("%d. [%d]\n", x, *(buffer+x));
 	}
 };
 
