@@ -58,6 +58,10 @@ void InitStringTable() {
 // ============================================================================
 // Potentially adds a string to the table and returns the index of it.
 unsigned int PushToStringTable (char* s) {
+	// Must not be too long.
+	if (strlen (s) >= MAX_STRING_LENGTH)
+		error ("string `%s` too long (%d characters max)\n", s, strlen (s));
+	
 	// Find a free slot in the table. 
 	unsigned int a;
 	for (a = 0; a < MAX_LIST_STRINGS; a++) {
@@ -72,7 +76,7 @@ unsigned int PushToStringTable (char* s) {
 	
 	// no free slots!
 	if (a == MAX_LIST_STRINGS)
-		error ("too many strings defined!");
+		error ("too many strings defined!\n");
 	
 	// Determine the length
 	size_t l1 = strlen (s);

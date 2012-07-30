@@ -64,7 +64,6 @@ public:
 	// ====================================================================
 	// METHODS
 	ObjWriter (str path);
-	~ObjWriter ();
 	void WriteString (char* s);
 	void WriteString (const char* s);
 	void WriteString (str s);
@@ -77,6 +76,7 @@ public:
 	unsigned int AddMark (int type, str name);
 	unsigned int FindMark (int type, str name);
 	unsigned int AddReference (unsigned int mark);
+	void MoveMark (unsigned int mark);
 	
 	template <class T> void Write (T stuff) {
 		DataBuffer* buffer = GetCurrentBuffer ();

@@ -45,6 +45,7 @@
 #include "common.h"
 #include "scriptreader.h"
 
+// ============================================================================
 ScriptReader::ScriptReader (str path) {
 	token = "";
 	prevtoken = "";
@@ -58,6 +59,7 @@ ScriptReader::ScriptReader (str path) {
 	commentmode = 0;
 }
 
+// ============================================================================
 ScriptReader::~ScriptReader () {
 	// If comment mode is 2 by the time the file ended, the
 	// comment was left unterminated. 1 is no problem, since
@@ -73,6 +75,7 @@ ScriptReader::~ScriptReader () {
 	}
 }
 
+// ============================================================================
 // Opens a file and pushes its pointer to stack
 void ScriptReader::OpenFile (str path) {
 	if (fc+1 >= MAX_FILESTACK) 
@@ -100,9 +103,11 @@ void ScriptReader::OpenFile (str path) {
 	atnewline = 0;
 }
 
+// ============================================================================
+// Closes the current file
 void ScriptReader::CloseFile (unsigned int u) {
 	if (u >= MAX_FILESTACK)
- 		u = fc;
+		u = fc;
 	
 	if (!fp[u])
 		return;
@@ -115,6 +120,7 @@ void ScriptReader::CloseFile (unsigned int u) {
 		fseek (fp[fc], savedpos[fc], SEEK_SET);
 }
 
+// ============================================================================
 char ScriptReader::ReadChar () {
 	if (feof (fp[fc]))
 		return 0;
@@ -141,6 +147,8 @@ char ScriptReader::ReadChar () {
 	return c[0];
 }
 
+// ============================================================================
+// Peeks the next character
 char ScriptReader::PeekChar (int offset) {
 	// Store current position
 	long curpos = ftell (fp[fc]);
@@ -162,6 +170,7 @@ char ScriptReader::PeekChar (int offset) {
 	return c[0];
 }
 
+// ============================================================================
 // Read a token from the file buffer. Returns true if token was found, false if not.
 bool ScriptReader::Next (bool peek) {
 	prevpos = ftell (fp[fc]);
@@ -252,15 +261,7 @@ bool ScriptReader::Next (bool peek) {
 	return true;
 }
 
-void ScriptReader::Prev () {
-	if (!prevpos)
-		error ("ScriptReader::Prev: cannot go back twice!\n");
-	
-	fseek (fp[fc], prevpos, SEEK_SET);
-	prevpos = 0;
-	token = prevtoken;
-}
-
+// ============================================================================
 // Returns the next token without advancing the cursor.
 str ScriptReader::PeekNext (int offset) {
 	// Store current information
@@ -283,6 +284,7 @@ str ScriptReader::PeekNext (int offset) {
 	return tmp;
 }
 
+// ============================================================================
 void ScriptReader::Seek (unsigned int n, int origin) {
 	switch (origin) {
 	case SEEK_SET:
@@ -300,6 +302,7 @@ void ScriptReader::Seek (unsigned int n, int origin) {
 		Next();
 }
 
+// ============================================================================
 void ScriptReader::MustNext (const char* c) {
 	if (!Next()) {
 		if (strlen (c))
@@ -312,22 +315,26 @@ void ScriptReader::MustNext (const char* c) {
 		MustThis (c);
 }
 
+// ============================================================================
 void ScriptReader::MustThis (const char* c) {
 	if (token.compare (c) != 0)
 		ParserError ("expected `%s`, got `%s` instead", c, token.chars());
 }
 
+// ============================================================================
 void ScriptReader::ParserError (const char* message, ...) {
 	PERFORM_FORMAT (message, outmessage);
 	ParserMessage ("\nError: ", outmessage);
 	exit (1);
 }
 
+// ============================================================================
 void ScriptReader::ParserWarning (const char* message, ...) {
 	PERFORM_FORMAT (message, outmessage);
 	ParserMessage ("Warning: ", outmessage);
 }
 
+// ============================================================================
 void ScriptReader::ParserMessage (const char* header, char* message) {
 	if (fc >= 0 && fc < MAX_FILESTACK)
 		fprintf (stderr, "%sIn file %s, at line %u, col %u: %s\n",
@@ -336,6 +343,7 @@ void ScriptReader::ParserMessage (const char* header, char* message) {
 		fprintf (stderr, "%s%s\n", header, message);
 }
 
+// ============================================================================
 // if gotquote == 1, the current token already holds the quotation mark.
 void ScriptReader::MustString (bool gotquote) {
 	if (gotquote)
@@ -360,6 +368,7 @@ void ScriptReader::MustString (bool gotquote) {
 	token = string;
 }
 
+// ============================================================================
 void ScriptReader::MustNumber (bool fromthis) {
 	str num;
 	if (!fromthis)
@@ -374,33 +383,14 @@ void ScriptReader::MustNumber (bool fromthis) {
 		num += token;
 	}
 	
-	// Result must be a number.
-	if (!num.isnumber())
-		ParserError ("expected a number, got `%s`", num.chars());
-	
-	// Save the number into the token.
-	token = num;
-}
-
-void ScriptReader::MustBool () {
-	MustNext();
-	if (!token.compare ("0") || !token.compare ("1") ||
-	    !token.compare ("true") || !token.compare ("false") ||
-	    !token.compare ("yes") || !token.compare ("no")) {
-			return;
-	}
-	
-	ParserError ("expected a boolean value, got `%s`", token.chars());
-}
-
-bool ScriptReader::BoolValue () {
-	return (!token.compare ("1") || !token.compare ("true") || !token.compare ("yes"));
-}
-
-void ScriptReader::MustValue (int type) {
-	switch (type) {
-	case RETURNVAL_INT: MustNumber (); break;
-	case RETURNVAL_STRING: MustString (); break;
-	case RETURNVAL_BOOLEAN: MustBool (); break;
+	// "true" and "false" are valid numbers
+	if (!token.icompare ("true"))
+		token = "1";
+	else if (!token.icompare ("false"))
+		token = "0";
+	else {
+		if (!num.isnumber())
+			ParserError ("expected a number, got `%s`", num.chars());
+		token = num;
 	}
 }

@@ -122,9 +122,10 @@ void ReadCommands () {
 			if (curarg >= comm->numargs) {
 				r->MustNext ("=");
 				switch (type) {
-				case RETURNVAL_INT: r->MustNumber(); break;
+				case RETURNVAL_INT:
+				case RETURNVAL_BOOLEAN:
+					r->MustNumber(); break;
 				case RETURNVAL_STRING: r->MustString(); break;
-				case RETURNVAL_BOOLEAN: r->MustBool(); break;
 				}
 				
 				comm->defvals[curarg] = r->token;

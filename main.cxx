@@ -64,6 +64,7 @@ const char* g_Keywords[NUM_KEYWORDS] = {
 	"onexit",
 	"var",
 	"goto",
+	"if",
 	
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
@@ -76,7 +77,6 @@ const char* g_Keywords[NUM_KEYWORDS] = {
 	"enum", // Would enum actually be useful? I think so.
 	"for",
 	"func", // Would function support need external support from zandronum?
-	"if",
 	"return",
 	"switch",
 	"while"
@@ -169,17 +169,17 @@ int main (int argc, char** argv) {
 	
 	// Parse done, print statistics and write to file
 	unsigned int globalcount = CountGlobalVars ();
-	printf ("%u/%u global variable%s\n", globalcount, MAX_SCRIPT_VARIABLES, PLURAL (globalcount));
+	printf ("%u / %u global variable%s\n", globalcount, MAX_SCRIPT_VARIABLES, PLURAL (globalcount));
 	printf ("%d state%s written\n", g_NumStates, PLURAL (g_NumStates));
 	printf ("%d event%s written\n", g_NumEvents, PLURAL (g_NumEvents));
 	w->WriteToFile ();
 	
 	// Clear out the junk
-	printf ("clear r\n");
 	delete r;
-	printf ("clear w\n");
 	delete w;
-	printf ("done!\n");
+	
+	// Done!
+	exit (0);
 }
 
 // ============================================================================

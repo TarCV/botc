@@ -59,16 +59,6 @@ ObjWriter::ObjWriter (str path) {
 	filepath = path;
 }
 
-ObjWriter::~ObjWriter () {
-	delete MainBuffer;
-	delete OnEnterBuffer;
-	
-	// This crashes for some reason o_O
-	// Should make no difference anyway, since ObjWriter
-	// is only deleted at the end of the program anyway
-	// delete MainLoopBuffer;
-}
-
 void ObjWriter::WriteString (char* s) {
 	Write<long> (strlen (s));
 	for (unsigned int u = 0; u < strlen (s); u++)
@@ -123,7 +113,7 @@ void ObjWriter::WriteStringTable () {
 			WriteString (g_StringTable[a]);
 	}
 	
-	printf ("%u string%s written\n", stringcount, PLURAL (stringcount));
+	printf ("%u / %u string%s written\n", stringcount, MAX_LIST_STRINGS, PLURAL (stringcount));
 }
 
 // Write main buffer to file
@@ -139,7 +129,19 @@ void ObjWriter::WriteToFile () {
 		for (unsigned int r = 0; r < MAX_MARKS; r++) {
 			if (MainBuffer->refs[r] && MainBuffer->refs[r]->pos == x) {
 				word ref = static_cast<word> (MainBuffer->marks[MainBuffer->refs[r]->num]->pos);
+				printf ("insert position %ld at script pos %u\n",
+					ref, x);
 				WriteDataToFile<word> (ref);
+				
+				// This reference is now used up
+				delete MainBuffer->refs[r];
+				MainBuffer->refs[r] = NULL;
+				
+				// All other references need their positions bumped up as the
+				// bytecode gained 4 more bytes with the written reference
+				for (unsigned int s = 0; s < MAX_MARKS; s++)
+					if (MainBuffer->refs[s])
+						MainBuffer->refs[s]->pos += sizeof (word);
 			}
 		}
 		
@@ -177,4 +179,9 @@ unsigned int ObjWriter::FindMark (int type, str name) {
 			return u;
 	}
 	return MAX_MARKS;
+}
+
+// Moves a mark to the current position
+void ObjWriter::MoveMark (unsigned int mark) {
+	GetCurrentBuffer()->MoveMark (mark);
 }

@@ -222,6 +222,13 @@ public:
 			}
 		}
 	}
+	
+	// Adjusts a mark to the current position
+	void MoveMark (unsigned int mark) {
+		if (!marks[mark])
+			return;
+		marks[mark]->pos = writesize - sizeof (word);
+	}
 };
 
 #endif // __DATABUFFER_H__
