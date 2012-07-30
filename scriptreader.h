@@ -99,6 +99,7 @@ public:
 	DataBuffer* ParseAssignment (ScriptVar* var);
 	int ParseOperator (bool peek = false);
 	DataBuffer* ParseExprValue (int reqtype);
+	void AddBlockMark (ObjWriter* w, word dataheader);
 	
 	// preprocessor.cxx:
 	void PreprocessDirectives ();

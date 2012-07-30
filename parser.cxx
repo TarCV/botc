@@ -64,13 +64,13 @@ str g_CurState = "";
 bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
 unsigned int g_BlockStackCursor = 0;
+DataBuffer* g_IfExpression = NULL;
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
 // and writes the data to the object file via ObjWriter - which also takes care
 // of necessary buffering so stuff is written in the correct order.
 void ScriptReader::BeginParse (ObjWriter* w) {
-	g_BlockStackCursor = 0;
 	while (Next()) {
 		if (!token.icompare ("state")) {
 			MUST_TOPLEVEL
@@ -206,7 +206,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// Condition
 			MustNext ("(");
 			
-			// Read the expression and write it.
+			// Read the expression and write it. Store it to memory too for else statements.
 			MustNext ();
 			DataBuffer* c = ParseExpression (TYPE_INT);
 			w->WriteBuffer (c);
@@ -214,18 +214,9 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext (")");
 			MustNext ("{");
 			
-			// Add a mark - to here temporarily - and add a reference to it.
-			// Upon a closing brace, the mark will be adjusted.
-			unsigned int marknum = w->AddMark (MARKTYPE_IF, "");
-			
 			// Use DH_IFNOTGOTO - if the expression is not true, we goto the mark
 			// we just defined - and this mark will be at the end of the block.
-			w->Write<word> (DH_IFNOTGOTO);
-			w->AddReference (marknum);
-			
-			// Store it in the block stack
-			g_BlockStackCursor++;
-			blockstack[g_BlockStackCursor] = marknum;
+			AddBlockMark (w, DH_IFNOTGOTO);
 			continue;
 		}
 		
@@ -562,4 +553,18 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	retbuf->Write<word> (var->index);
 	
 	return retbuf;
+}
+
+void ScriptReader::AddBlockMark (ObjWriter* w, word dataheader) {
+	// Add a mark - to here temporarily - and add a reference to it.
+	// Upon a closing brace, the mark will be adjusted.
+	unsigned int marknum = w->AddMark (MARKTYPE_IF, "");
+	
+	// Write the header and store reference to the mark
+	w->Write<word> (dataheader);
+	w->AddReference (marknum);
+	
+	// Store it in the block stack
+	g_BlockStackCursor++;
+	blockstack[g_BlockStackCursor] = marknum;
 }
