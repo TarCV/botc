@@ -227,7 +227,7 @@ public:
 	void MoveMark (unsigned int mark) {
 		if (!marks[mark])
 			return;
-		marks[mark]->pos = writesize - sizeof (word);
+		marks[mark]->pos = writesize;
 	}
 };
 

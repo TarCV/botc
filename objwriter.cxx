@@ -74,10 +74,7 @@ void ObjWriter::WriteString (str s) {
 }
 
 void ObjWriter::WriteBuffer (DataBuffer* buf) {
-	for (unsigned int x = 0; x < buf->writesize; x++) {
-		unsigned char c = *(buf->buffer+x);
-		Write<unsigned char> (c);
-	}
+	GetCurrentBuffer()->Merge (buf);
 }
 
 void ObjWriter::WriteBuffers () {
@@ -93,7 +90,6 @@ void ObjWriter::WriteBuffers () {
 		WriteBuffer (buf);
 		
 		// Clear the buffer afterwards for potential next state
-		delete buf;
 		buf = new DataBuffer;
 	}
 	
@@ -128,20 +124,20 @@ void ObjWriter::WriteToFile () {
 		// Check if this position is a reference
 		for (unsigned int r = 0; r < MAX_MARKS; r++) {
 			if (MainBuffer->refs[r] && MainBuffer->refs[r]->pos == x) {
+				// All marks need their positions bumped up as the bytecode will gain
+				// 4 more bytes with the written reference. Other references do not
+				// need their positions bumped because they check against mainbuffer
+				// position (x), not written ones.
+				for (unsigned int s = 0; s < MAX_MARKS; s++)
+					if (MainBuffer->marks[s])
+						MainBuffer->marks[s]->pos += sizeof (word);
+				
 				word ref = static_cast<word> (MainBuffer->marks[MainBuffer->refs[r]->num]->pos);
-				printf ("insert position %ld at script pos %u\n",
-					ref, x);
 				WriteDataToFile<word> (ref);
 				
-				// This reference is now used up
+				// This reference is now used up - no need to keep it anymore.
 				delete MainBuffer->refs[r];
 				MainBuffer->refs[r] = NULL;
-				
-				// All other references need their positions bumped up as the
-				// bytecode gained 4 more bytes with the written reference
-				for (unsigned int s = 0; s < MAX_MARKS; s++)
-					if (MainBuffer->refs[s])
-						MainBuffer->refs[s]->pos += sizeof (word);
 			}
 		}
 		
@@ -184,4 +180,9 @@ unsigned int ObjWriter::FindMark (int type, str name) {
 // Moves a mark to the current position
 void ObjWriter::MoveMark (unsigned int mark) {
 	GetCurrentBuffer()->MoveMark (mark);
+}
+
+// Deletes a mark
+void ObjWriter::DeleteMark (unsigned int mark) {
+	GetCurrentBuffer()->DeleteMark (mark);
 }
