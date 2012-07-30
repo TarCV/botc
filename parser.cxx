@@ -63,14 +63,14 @@ int g_CurMode = MODE_TOPLEVEL;
 str g_CurState = "";
 bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
-int g_StructStack = 0;
+unsigned int g_BlockStackCursor = 0;
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
 // and writes the data to the object file via ObjWriter - which also takes care
 // of necessary buffering so stuff is written in the correct order.
 void ScriptReader::BeginParse (ObjWriter* w) {
-	g_StructStack = 0;
+	g_BlockStackCursor = 0;
 	while (Next()) {
 		printf ("BeginParse: token: `%s`\n", token.chars());
 		if (!token.icompare ("state")) {
@@ -202,15 +202,53 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// If
+		if (!token.icompare ("if")) {
+			// Condition
+			MustNext ("(");
+			
+			// Read the expression and write it.
+			MustNext ();
+			DataBuffer* c = ParseExpression (TYPE_INT);
+			w->WriteBuffer (c);
+			delete c;
+			
+			MustNext (")");
+			MustNext ("{");
+			
+			// Add a mark - to here temporarily - and add a reference to it.
+			// Upon a closing brace, the mark will be adjusted.
+			unsigned int marknum = w->AddMark (MARKTYPE_IF, "");
+			
+			// Use DH_IFNOTGOTO - if the expression is not true, we goto the mark
+			// we just defined - and this mark will be at the end of the block.
+			w->Write<word> (DH_IFNOTGOTO);
+			w->AddReference (marknum);
+			
+			// Store it in the block stack
+			blockstack[g_BlockStackCursor] = marknum;
+			g_BlockStackCursor++;
+			continue;
+		}
+		
 		if (!token.compare ("}")) {
-			// If this was done inside the struct stack (i.e.
-			// inside "if" for instance), it does not end the mode.
-			if (g_StructStack > 0) {
-				g_StructStack--;
+			// Closing brace
+			
+			// If we're in the block stack, we're descending down from it now
+			if (g_BlockStackCursor > 0) {
+				// Adjust its closing mark so that it's here.
+				unsigned int marknum = blockstack[g_BlockStackCursor];
+				if (marknum != MAX_MARKS) {
+					// printf ("\tblock %d stack mark moved from %d ",
+						g_BlockStackCursor, w->GetCurrentBuffer()->marks[marknum]->pos);
+					w->MoveMark (marknum);
+					// printf ("to %d\n", w->GetCurrentBuffer()->marks[marknum]->pos);
+				}
+				
+				g_BlockStackCursor--;
 				continue;
 			}
 			
-			// Closing brace
 			int dataheader =	(g_CurMode == MODE_EVENT) ? DH_ENDEVENT :
 						(g_CurMode == MODE_MAINLOOP) ? DH_ENDMAINLOOP :
 						(g_CurMode == MODE_ONENTER) ? DH_ENDONENTER :
@@ -367,6 +405,12 @@ static long DataHeaderByOperator (ScriptVar* var, int oper) {
 	case OPER_MULTIPLY: return DH_MULTIPLY;
 	case OPER_DIVIDE: return DH_DIVIDE;
 	case OPER_MODULUS: return DH_MODULUS;
+	case OPER_EQUALS: return DH_EQUALS;
+	case OPER_NOTEQUALS: return DH_NOTEQUALS;
+	case OPER_LESSTHAN: return DH_LESSTHAN;
+	case OPER_GREATERTHAN: return DH_GREATERTHAN;
+	case OPER_LESSTHANEQUALS: return DH_LESSTHANEQUALS;
+	case OPER_GREATERTHANEQUALS: return DH_GREATERTHANEQUALS;
 	}
 	
 	error ("DataHeaderByOperator: couldn't find dataheader for operator %d!\n", oper);
@@ -431,7 +475,12 @@ int ScriptReader::ParseOperator (bool peek) {
 		oper += token;
 	
 	// Check one-char operators
-	int o =	!oper.compare ("=") ? OPER_ASSIGN :
+	bool equalsnext = !PeekNext (peek ? 1 : 0).compare ("=");
+	printf ("operator one-char: %s\nequals is%s next (`%s`)\n", oper.chars(),
+		(equalsnext) ? "" : " not", PeekNext (peek ? 1 : 0).chars());
+	int o =	(!oper.compare ("=") && !equalsnext) ? OPER_ASSIGN :
+		(!oper.compare (">") && !equalsnext) ? OPER_GREATERTHAN :
+		(!oper.compare ("<") && !equalsnext) ? OPER_LESSTHAN :
 		!oper.compare ("+") ? OPER_ADD :
 		!oper.compare ("-") ? OPER_SUBTRACT :
 		!oper.compare ("*") ? OPER_MULTIPLY :
@@ -446,11 +495,17 @@ int ScriptReader::ParseOperator (bool peek) {
 	// Two-char operators
 	oper += PeekNext (peek ? 1 : 0);
 	
+	printf ("operator two-char: %s\n", oper.chars());
+	
 	o =	!oper.compare ("+=") ? OPER_ASSIGNADD :
 		!oper.compare ("-=") ? OPER_ASSIGNSUB :
 		!oper.compare ("*=") ? OPER_ASSIGNMUL :
 		!oper.compare ("/=") ? OPER_ASSIGNDIV :
 		!oper.compare ("%=") ? OPER_ASSIGNMOD :
+		!oper.compare ("==") ? OPER_EQUALS :
+		!oper.compare ("!=") ? OPER_NOTEQUALS :
+		!oper.compare (">=") ? OPER_GREATERTHANEQUALS :
+		!oper.compare ("<=") ? OPER_LESSTHANEQUALS :
 		-1;
 	
 	if (o != -1)
@@ -502,6 +557,7 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			// All values are written unsigned - thus we need to write the value's
 			// absolute value, followed by an unary minus if it was negative.
 			b->Write<word> (DH_PUSHNUMBER);
+			
 			long v = atoi (token.chars ());
 			b->Write<word> (static_cast<word> (abs (v)));
 			if (v < 0)

@@ -47,6 +47,7 @@
 #include "commands.h"
 
 #define MAX_FILESTACK 8
+#define MAX_STRUCTSTACK 32
 
 class ScriptVar;
 
@@ -61,6 +62,7 @@ public:
 	unsigned int pos[MAX_FILESTACK];
 	unsigned int curline[MAX_FILESTACK];
 	unsigned int curchar[MAX_FILESTACK];
+	unsigned int blockstack[MAX_STRUCTSTACK];
 	long savedpos[MAX_FILESTACK]; // filepointer cursor position
 	str token;
 	int commentmode;
@@ -85,7 +87,6 @@ public:
 	void MustString (bool gotquote = false);
 	void MustNumber (bool fromthis = false);
 	void MustBool ();
-	void MustValue (int type);
 	bool BoolValue ();
 	
 	void ParserError (const char* message, ...);
@@ -133,7 +134,13 @@ enum {
 	OPER_ASSIGNSUB,
 	OPER_ASSIGNMUL,
 	OPER_ASSIGNDIV,
-	OPER_ASSIGNMOD
+	OPER_ASSIGNMOD, // -- 10
+	OPER_EQUALS,
+	OPER_NOTEQUALS,
+	OPER_LESSTHAN,
+	OPER_GREATERTHAN,
+	OPER_LESSTHANEQUALS,
+	OPER_GREATERTHANEQUALS,
 };
 
 // Mark types
