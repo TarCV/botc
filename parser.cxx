@@ -72,7 +72,6 @@ unsigned int g_BlockStackCursor = 0;
 void ScriptReader::BeginParse (ObjWriter* w) {
 	g_BlockStackCursor = 0;
 	while (Next()) {
-		printf ("BeginParse: token: `%s`\n", token.chars());
 		if (!token.icompare ("state")) {
 			MUST_TOPLEVEL
 			
@@ -211,7 +210,6 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext ();
 			DataBuffer* c = ParseExpression (TYPE_INT);
 			w->WriteBuffer (c);
-			delete c;
 			
 			MustNext (")");
 			MustNext ("{");
@@ -226,8 +224,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			w->AddReference (marknum);
 			
 			// Store it in the block stack
-			blockstack[g_BlockStackCursor] = marknum;
 			g_BlockStackCursor++;
+			blockstack[g_BlockStackCursor] = marknum;
 			continue;
 		}
 		
@@ -238,13 +236,9 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			if (g_BlockStackCursor > 0) {
 				// Adjust its closing mark so that it's here.
 				unsigned int marknum = blockstack[g_BlockStackCursor];
-				if (marknum != MAX_MARKS) {
-					// printf ("\tblock %d stack mark moved from %d ",
-						g_BlockStackCursor, w->GetCurrentBuffer()->marks[marknum]->pos);
+				if (marknum != MAX_MARKS)
 					w->MoveMark (marknum);
-					// printf ("to %d\n", w->GetCurrentBuffer()->marks[marknum]->pos);
-				}
-				
+				w->AddMark (MARKTYPE_INTERNAL, "");
 				g_BlockStackCursor--;
 				continue;
 			}
@@ -271,19 +265,14 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		// If it's a variable, expect assignment.
 		if (ScriptVar* var = FindGlobalVariable (token)) {
 			DataBuffer* b = ParseAssignment (var);
-			printf ("current token after assignment: `%s`\n", token.chars());
 			MustNext (";");
 			w->WriteBuffer (b);
-			delete b;
 			continue;
 		}
 		
 		// If it's not a keyword, parse it as an expression.
-		printf ("token length: %d, first char: %c [%d]\n", token.len(), token.chars()[0], token.chars()[0]);
 		DataBuffer* b = ParseExpression (TYPE_VOID);
 		w->WriteBuffer (b);
-		delete b;
-		printf ("expression done! current token is %s\n", token.chars());
 		MustNext (";");
 	}
 	
@@ -308,18 +297,12 @@ DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
 	if (g_CurMode == MODE_TOPLEVEL)
 		ParserError ("command call at top level");
 	
-	printf ("\n\n\n=====================================\nBEGIN PARSING COMMAND\n");
-	printf ("token: %s\n", token.chars());
 	MustNext ("(");
 	MustNext ();
 	
 	int curarg = 0;
 	while (1) {
-		printf ("at argument %d\n", curarg);
-		printf ("next token: %s\n", token.chars());
-		
 		if (!token.compare (")")) {
-			printf ("closing command with token `%s`\n", token.chars());
 			if (curarg < comm->numargs - 1)
 				ParserError ("too few arguments passed to %s\n", comm->name.chars());
 			break;
@@ -331,7 +314,6 @@ DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
 		
 		r->Merge (ParseExpression (comm->argtypes[curarg]));
 		MustNext ();
-		printf ("after expression, token is `%s`\n", token.chars());
 		
 		if (curarg < comm->numargs - 1) {
 			MustThis (",");
@@ -361,7 +343,6 @@ DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
 	r->Write<word> (comm->number);
 	r->Write<word> (comm->maxargs);
 	
-	printf ("command complete\n");
 	return r;
 }
 
@@ -420,25 +401,18 @@ static long DataHeaderByOperator (ScriptVar* var, int oper) {
 // ============================================================================
 // Parses an expression, potentially recursively
 DataBuffer* ScriptReader::ParseExpression (int reqtype) {
-	printf ("begin parsing expression. this token is `%s`, next token is `%s`\n",
-		token.chars(), PeekNext().chars());
 	DataBuffer* retbuf = new DataBuffer (64);
 	
 	DataBuffer* lb = NULL;
 	
 	lb = ParseExprValue (reqtype);
-	printf ("done\n");
 	
 	// Get an operator
-	printf ("parse operator at token %s\n", token.chars());
 	int oper = ParseOperator (true);
-	printf ("operator parsed: token is now %s\n", token.chars());
-	printf ("got %d\n", oper);
 	
 	// No operator found - stop here.
 	if (oper == -1) {
 		retbuf->Merge (lb);
-		printf ("expression complete without operator, stopping at `%s`\n", token.chars());
 		return retbuf;
 	}
 	
@@ -450,23 +424,19 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 		ParserError ("assignment operator inside expressions");
 	
 	// Parse the right operand,
-	printf ("parse right operand\n");
 	MustNext ();
 	DataBuffer* rb = ParseExprValue (reqtype);
-	printf ("done\n");
 	
 	retbuf->Merge (rb);
 	retbuf->Merge (lb);
 	
 	long dh = DataHeaderByOperator (NULL, oper);
 	retbuf->Write<word> (dh);
-	
-	printf ("expression complete\n");
 	return retbuf;
 }
 
 // ============================================================================
-// Parses an operator string. Returns the operator number code.
+// `arses an operator string. Returns the operator number code.
 int ScriptReader::ParseOperator (bool peek) {
 	str oper;
 	if (peek)
@@ -476,8 +446,6 @@ int ScriptReader::ParseOperator (bool peek) {
 	
 	// Check one-char operators
 	bool equalsnext = !PeekNext (peek ? 1 : 0).compare ("=");
-	printf ("operator one-char: %s\nequals is%s next (`%s`)\n", oper.chars(),
-		(equalsnext) ? "" : " not", PeekNext (peek ? 1 : 0).chars());
 	int o =	(!oper.compare ("=") && !equalsnext) ? OPER_ASSIGN :
 		(!oper.compare (">") && !equalsnext) ? OPER_GREATERTHAN :
 		(!oper.compare ("<") && !equalsnext) ? OPER_LESSTHAN :
@@ -494,8 +462,6 @@ int ScriptReader::ParseOperator (bool peek) {
 	
 	// Two-char operators
 	oper += PeekNext (peek ? 1 : 0);
-	
-	printf ("operator two-char: %s\n", oper.chars());
 	
 	o =	!oper.compare ("+=") ? OPER_ASSIGNADD :
 		!oper.compare ("-=") ? OPER_ASSIGNSUB :
@@ -519,20 +485,17 @@ int ScriptReader::ParseOperator (bool peek) {
 // it, contained in a data buffer. A value can be either a variable, a command,
 // a literal or an expression.
 DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
-	printf ("parse expr value `%s` with requirement type %d\n", token.chars(), reqtype);
 	DataBuffer* b = new DataBuffer(16);
 	
 	ScriptVar* g;
 	
 	if (!token.compare ("(")) {
-		printf ("value is an expression\n");
 		// Expression
 		MustNext ();
 		DataBuffer* c = ParseExpression (reqtype);
 		b->Merge (c);
 		MustNext (")");
 	} else if (CommandDef* comm = FindCommand (token)) {
-		printf ("value is a command\n");
 		delete b;
 		
 		// Command
@@ -540,12 +503,10 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			ParserError ("%s returns an incompatible data type", comm->name.chars());
 		b = ParseCommand (comm);
 	} else if ((g = FindGlobalVariable (token)) && reqtype != TYPE_STRING) {
-		printf ("value is a global var\n");
 		// Global variable
 		b->Write<word> (DH_PUSHGLOBALVAR);
 		b->Write<word> (g->index);
 	} else {
-		printf ("value is a literal\n");
 		// If nothing else, check for literal
 		switch (reqtype) {
 		case TYPE_VOID:
@@ -568,14 +529,12 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			// PushToStringTable either returns the string index of the
 			// string if it finds it in the table, or writes it to the
 			// table and returns it index if it doesn't find it there.
-			printf ("value is a string literal\n");
 			MustString (true);
 			b->Write<word> (DH_PUSHSTRINGINDEX);
 			b->Write<word> (PushToStringTable (token.chars()));
 			break;
 		}
 	}
-	printf ("value parsed: current token is `%s`\n", token.chars());
 	
 	return b;
 }

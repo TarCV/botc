@@ -77,6 +77,7 @@ public:
 	unsigned int FindMark (int type, str name);
 	unsigned int AddReference (unsigned int mark);
 	void MoveMark (unsigned int mark);
+	void DeleteMark (unsigned int mark);
 	
 	template <class T> void Write (T stuff) {
 		DataBuffer* buffer = GetCurrentBuffer ();
