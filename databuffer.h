@@ -97,37 +97,36 @@ public:
 	
 	// ====================================================================
 	// Write stuff to the buffer
-	template<class T> void Write(T stuff) {
-		if (sizeof (char) != 1) {
-			error ("DataBuffer: sizeof(char) must be 1!\n");
-		}
-		
-		// Out of space, must resize
-		if (writesize + sizeof(T) >= allocsize) {
-			// First, store the old buffer temporarily
+	template<class T> void Write (T stuff) {
+		if (writesize + sizeof (T) >= allocsize) {
+			// We don't have enough space in the buffer to write
+			// the stuff - thus resize. First, store the old
+			// buffer temporarily:
 			char* copy = new char[allocsize];
 			memcpy (copy, buffer, allocsize);
 			
-			// Remake the buffer with the new size.
-			// Have a bit of leeway so we don't have to
-			// resize immediately again.
+			// Remake the buffer with the new size. Have enough space
+			// for the stuff we're going to write, as well as a bit
+			// of leeway so we don't have to resize immediately again.
 			size_t newsize = allocsize + sizeof (T) + 128;
 			delete buffer;
 			buffer = new unsigned char[newsize];
 			allocsize = newsize;
 			
-			// Now, copy the new stuff over.
+			// Now, copy the stuff back.
 			memcpy (buffer, copy, allocsize);
-			
-			// Nuke the copy now as it's no longer needed
 			delete copy;
 		}
 		
-		// Write the new stuff one byte at a time
+		// Buffer is now guaranteed to have enough space.
+		// Write the stuff one byte at a time.
+		union_t<T> uni;
+		uni.val = stuff;
 		for (unsigned int x = 0; x < sizeof (T); x++) {
-			if (writesize >= allocsize)
+			if (writesize >= allocsize) // should NEVER happen because resizing is done above
 				error ("DataBuffer: written size exceeds allocated size!\n");
-			buffer[writesize] = GetByteIndex<T> (stuff, x);
+			
+			buffer[writesize] = uni.b[x];
 			writesize++;
 		}
 	}
@@ -169,7 +168,7 @@ public:
 	}
 	
 	// ====================================================================
-	// Adds a mark to the buffer. A mark is a reference to a particular
+	// Adds a mark to the buffer. A mark is a "pointer" to a particular
 	// position in the bytecode. The actual permanent position cannot
 	// be predicted in any way or form, thus these things will be used
 	// to "mark" a position like that for future use.
@@ -188,10 +187,13 @@ public:
 		m->type = type;
 		m->pos = writesize;
 		marks[u] = m;
-		printf ("add mark %u at %d\n", u, m->pos);
 		return u;
 	}
 	
+	// ====================================================================
+	// A ref is another "mark" that references a mark. When the bytecode
+	// is written to file, they are changed into their marks' current
+	// positions. Marks themselves are never written to files, only refs are
 	unsigned int AddMarkReference (unsigned int marknum) {
 		unsigned int u;
 		for (u = 0; u < MAX_MARKS; u++)
@@ -204,10 +206,14 @@ public:
 		// NOTE: Do not check if the mark actually exists here since a
 		// reference may come in the code earlier than the actual mark
 		// and the new mark number can be predicted.
+		//	11/8/12: eh? The mark is always created first.
 		ScriptMarkReference* r = new ScriptMarkReference;
 		r->num = marknum;
 		r->pos = writesize;
 		refs[u] = r;
+		
+		// Write a dummy placeholder for the reference
+		Write<word> (1234);
 		
 		return u;
 	}
@@ -231,18 +237,15 @@ public:
 	}
 	
 	// Adjusts a mark to the current position
-	void MoveMark (unsigned int mark) {
+	void MoveMark (unsigned int mark, int offset = -1) {
 		if (!marks[mark])
 			return;
-		printf ("move mark %u from %d to %d\n", mark, marks[mark]->pos, writesize);
 		marks[mark]->pos = writesize;
 	}
 	
-	// Adjusts a mark to the current position
 	void OffsetMark (unsigned int mark, size_t offset) {
 		if (!marks[mark])
 			return;
-		printf ("move mark %u from %d to %d\n", mark, marks[mark]->pos, marks[mark]->pos+offset);
 		marks[mark]->pos += offset;
 	}
 	

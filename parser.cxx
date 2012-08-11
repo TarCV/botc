@@ -238,7 +238,6 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		
 		// While
 		if (!token.compare ("while")) {
-			printf ("begin while loop\n");
 			MUST_NOT_TOPLEVEL
 			PushBlockStack ();
 			
@@ -279,22 +278,16 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 				BlockInformation* info = &blockstack[g_BlockStackCursor];
 				switch (info->type) {
 				case BLOCKTYPE_IF:
-					printf ("end if\n");
 					// Adjust the closing mark.
 					w->MoveMark (info->mark1);
 					break;
 				case BLOCKTYPE_WHILE:
-					printf ("end while loop\n");
-					
 					// Write down the instruction to go back to the start of the loop
 					w->Write (DH_GOTO);
 					w->AddReference (info->mark1);
 					
 					// Move the closing mark here since we're at the end of the while loop
 					w->MoveMark (info->mark2);
-					
-					// Offset it by 4 since the parser doesn't like having marks directly afte refs
-					w->OffsetMark (info->mark2, sizeof (word)*2);
 				}
 				
 				// Descend down the stack
@@ -624,9 +617,9 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 }
 
 void ScriptReader::PushBlockStack () {
+	g_BlockStackCursor++;
 	BlockInformation* info = &blockstack[g_BlockStackCursor];
 	info->type = 0;
 	info->mark1 = 0;
 	info->mark2 = 0;
-	g_BlockStackCursor++;
 }

@@ -120,35 +120,22 @@ void ObjWriter::WriteToFile () {
 	if (sizeof (unsigned char) != 1)
 		error ("size of unsigned char isn't 1, but %d!\n", sizeof (unsigned char));
 	
-	unsigned int refpos = 0;
-	for (unsigned int x = 0; x < MainBuffer->writesize; x++) {
-		// Check if this position is a reference
-		for (unsigned int r = 0; r < MAX_MARKS; r++) {
-			if (MainBuffer->refs[r] && MainBuffer->refs[r]->pos == x) {
-				word ref = static_cast<word> (MainBuffer->marks[MainBuffer->refs[r]->num]->pos);
-				printf ("insert reference to mark %d (%ld) refpos = %d\n", MainBuffer->refs[r]->num, ref, refpos);
-				WriteDataToFile<word> (ref);
-				
-				// This reference is now used up - no need to keep it anymore.
-				delete MainBuffer->refs[r];
-				MainBuffer->refs[r] = NULL;
-				
-				// All marks still ahead need their positions bumped up as the bytecode
-				// will gain 4 more bytes with the written reference. Other references
-				// do not need their positions bumped because they check against mainbuffer
-				// position (x), not written ones.
-				for (unsigned int s = 0; s < MAX_MARKS; s++)
-					if (MainBuffer->marks[s] && MainBuffer->marks[s]->pos > refpos) {
-						printf ("mark %u bumped\n", s);
-						MainBuffer->marks[s]->pos += sizeof (word);
-					}
-				refpos += sizeof (word);
-			}
-		}
+	// First, resolve references
+	for (unsigned int u = 0; u < MAX_MARKS; u++) {
+		ScriptMarkReference* ref = MainBuffer->refs[u];
+		if (!ref)
+			continue;
 		
-		WriteDataToFile<unsigned char> (*(MainBuffer->buffer+x));
-		refpos++;
+		for (unsigned int v = 0; v < sizeof (word); v++) {
+			union_t<word> uni;
+			uni.val = static_cast<word> (MainBuffer->marks[ref->num]->pos);
+			memset (MainBuffer->buffer + ref->pos + v, uni.b[v], 1);
+		}
 	}
+	
+	// Then, dump the main buffer to the file
+	for (unsigned int x = 0; x < MainBuffer->writesize; x++)
+		WriteDataToFile<unsigned char> (*(MainBuffer->buffer+x));
 	
 	printf ("-- %u byte%s written to %s\n", numWrittenBytes, PLURAL (numWrittenBytes), filepath.chars());
 	fclose (fp);

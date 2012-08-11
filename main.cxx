@@ -56,7 +56,7 @@
 #include "bots.h"
 #include "botcommands.h"
 
-const char* g_Keywords[NUM_KEYWORDS] = {
+const char* g_Keywords[] = {
 	"state",
 	"event",
 	"mainloop",
@@ -65,6 +65,7 @@ const char* g_Keywords[NUM_KEYWORDS] = {
 	"var",
 	"goto",
 	"if",
+	"while",
 	
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
@@ -79,7 +80,6 @@ const char* g_Keywords[NUM_KEYWORDS] = {
 	"func", // Would function support need external support from zandronum?
 	"return",
 	"switch",
-	"while"
 };
 
 int main (int argc, char** argv) {
@@ -116,7 +116,7 @@ int main (int argc, char** argv) {
 	// A word should always be exactly 4 bytes. The above list command
 	// doesn't need it, but the rest of the program does.
 	if (sizeof (word) != 4)
-		error ("%s expects a word (unsigned long int) to be 4 bytes in size, is %d\n",
+		error ("%s expects a word (uint32_t) to be 4 bytes in size, is %d\n",
 			APPNAME, sizeof (word));
 	
 	str outfile;
@@ -218,8 +218,12 @@ char* ObjectFileName (str s) {
 // ============================================================================
 // Is the given argument a reserved keyword?
 bool IsKeyword (str s) {
-	for (unsigned int u = 0; u < NUM_KEYWORDS; u++)
+	for (unsigned int u = 0; u < NumKeywords (); u++)
 		if (!s.icompare (g_Keywords[u]))
 			return true;
 	return false;
+}
+
+unsigned int NumKeywords () {
+	return sizeof (g_Keywords) / sizeof (const char*);
 }
