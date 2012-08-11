@@ -54,7 +54,7 @@
 #define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
 	ParserError ("%s-statements may only be defined at top level!", token.chars());
 
-#define MUST_NOT_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
+#define MUST_NOT_TOPLEVEL if (g_CurMode == MODE_TOPLEVEL) \
 	ParserError ("%s-statements may not be defined at top level!", token.chars());
 
 int g_NumStates = 0;
@@ -172,6 +172,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		
 		// Label
 		if (!PeekNext().compare (":")) {
+			MUST_NOT_TOPLEVEL
+			
 			if (IsKeyword (token))
 				ParserError ("label name `%s` conflicts with keyword\n", token.chars());
 			if (FindCommand (token))
@@ -186,6 +188,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		
 		// Goto
 		if (!token.icompare ("goto")) {
+			MUST_NOT_TOPLEVEL
+			
 			// Get the name of the label
 			MustNext ();
 			
@@ -203,6 +207,9 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		
 		// If
 		if (!token.icompare ("if")) {
+			MUST_NOT_TOPLEVEL
+			PushBlockStack ();
+			
 			// Condition
 			MustNext ("(");
 			
@@ -214,9 +221,53 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext (")");
 			MustNext ("{");
 			
+			// Add a mark - to here temporarily - and add a reference to it.
+			// Upon a closing brace, the mark will be adjusted.
+			unsigned int marknum = w->AddMark (MARKTYPE_IF, "");
+			
 			// Use DH_IFNOTGOTO - if the expression is not true, we goto the mark
 			// we just defined - and this mark will be at the end of the block.
-			AddBlockMark (w, DH_IFNOTGOTO);
+			w->Write<word> (DH_IFNOTGOTO);
+			w->AddReference (marknum);
+			
+			// Store it in the block stack
+			blockstack[g_BlockStackCursor].mark1 = marknum;
+			blockstack[g_BlockStackCursor].type = BLOCKTYPE_IF;
+			continue;
+		}
+		
+		// While
+		if (!token.compare ("while")) {
+			printf ("begin while loop\n");
+			MUST_NOT_TOPLEVEL
+			PushBlockStack ();
+			
+			// While loops need two marks - one at the start of the loop and one at the
+			// end. The condition is checked at the very start of the loop, if it fails,
+			// we use goto to skip to the end of the loop. At the end, we loop back to
+			// the beginning with a go-to statement.
+			unsigned int mark1 = w->AddMark (MARKTYPE_INTERNAL, ""); // start
+			unsigned int mark2 = w->AddMark (MARKTYPE_INTERNAL, ""); // end
+			
+			// Condition
+			MustNext ("(");
+			MustNext ();
+			DataBuffer* expr = ParseExpression (TYPE_INT);
+			MustNext (")");
+			
+			MustNext ("{");
+			
+			// Write condition
+			w->WriteBuffer (expr);
+			
+			// Instruction to go to the end if it fails
+			w->Write<word> (DH_IFNOTGOTO);
+			w->AddReference (mark2);
+			
+			// Store the needed stuff
+			blockstack[g_BlockStackCursor].mark1 = mark1;
+			blockstack[g_BlockStackCursor].mark2 = mark2;
+			blockstack[g_BlockStackCursor].type = BLOCKTYPE_WHILE;
 			continue;
 		}
 		
@@ -225,11 +276,28 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			// If we're in the block stack, we're descending down from it now
 			if (g_BlockStackCursor > 0) {
-				// Adjust its closing mark so that it's here.
-				unsigned int marknum = blockstack[g_BlockStackCursor];
-				if (marknum != MAX_MARKS)
-					w->MoveMark (marknum);
-				w->AddMark (MARKTYPE_INTERNAL, "");
+				BlockInformation* info = &blockstack[g_BlockStackCursor];
+				switch (info->type) {
+				case BLOCKTYPE_IF:
+					printf ("end if\n");
+					// Adjust the closing mark.
+					w->MoveMark (info->mark1);
+					break;
+				case BLOCKTYPE_WHILE:
+					printf ("end while loop\n");
+					
+					// Write down the instruction to go back to the start of the loop
+					w->Write (DH_GOTO);
+					w->AddReference (info->mark1);
+					
+					// Move the closing mark here since we're at the end of the while loop
+					w->MoveMark (info->mark2);
+					
+					// Offset it by 4 since the parser doesn't like having marks directly afte refs
+					w->OffsetMark (info->mark2, sizeof (word)*2);
+				}
+				
+				// Descend down the stack
 				g_BlockStackCursor--;
 				continue;
 			}
@@ -555,16 +623,10 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	return retbuf;
 }
 
-void ScriptReader::AddBlockMark (ObjWriter* w, word dataheader) {
-	// Add a mark - to here temporarily - and add a reference to it.
-	// Upon a closing brace, the mark will be adjusted.
-	unsigned int marknum = w->AddMark (MARKTYPE_IF, "");
-	
-	// Write the header and store reference to the mark
-	w->Write<word> (dataheader);
-	w->AddReference (marknum);
-	
-	// Store it in the block stack
+void ScriptReader::PushBlockStack () {
+	BlockInformation* info = &blockstack[g_BlockStackCursor];
+	info->type = 0;
+	info->mark1 = 0;
+	info->mark2 = 0;
 	g_BlockStackCursor++;
-	blockstack[g_BlockStackCursor] = marknum;
 }

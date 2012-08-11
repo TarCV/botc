@@ -188,6 +188,7 @@ public:
 		m->type = type;
 		m->pos = writesize;
 		marks[u] = m;
+		printf ("add mark %u at %d\n", u, m->pos);
 		return u;
 	}
 	
@@ -233,7 +234,16 @@ public:
 	void MoveMark (unsigned int mark) {
 		if (!marks[mark])
 			return;
+		printf ("move mark %u from %d to %d\n", mark, marks[mark]->pos, writesize);
 		marks[mark]->pos = writesize;
+	}
+	
+	// Adjusts a mark to the current position
+	void OffsetMark (unsigned int mark, size_t offset) {
+		if (!marks[mark])
+			return;
+		printf ("move mark %u from %d to %d\n", mark, marks[mark]->pos, marks[mark]->pos+offset);
+		marks[mark]->pos += offset;
 	}
 	
 	// Dump the buffer (for debugging purposes)

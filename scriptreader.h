@@ -51,6 +51,17 @@
 
 class ScriptVar;
 
+// ============================================================================
+// Meta-data about blocks
+struct BlockInformation {
+	unsigned int mark1;
+	unsigned int mark2;
+	unsigned int type;
+};
+
+// ============================================================================
+// The script reader reads the script, parses it and tells the object writer
+// the bytecode it needs to write to file.
 class ScriptReader {
 public:
 	// ====================================================================
@@ -62,7 +73,7 @@ public:
 	unsigned int pos[MAX_FILESTACK];
 	unsigned int curline[MAX_FILESTACK];
 	unsigned int curchar[MAX_FILESTACK];
-	unsigned int blockstack[MAX_STRUCTSTACK];
+	BlockInformation blockstack[MAX_STRUCTSTACK];
 	long savedpos[MAX_FILESTACK]; // filepointer cursor position
 	str token;
 	int commentmode;
@@ -99,7 +110,7 @@ public:
 	DataBuffer* ParseAssignment (ScriptVar* var);
 	int ParseOperator (bool peek = false);
 	DataBuffer* ParseExprValue (int reqtype);
-	void AddBlockMark (ObjWriter* w, word dataheader);
+	void PushBlockStack ();
 	
 	// preprocessor.cxx:
 	void PreprocessDirectives ();
@@ -149,6 +160,12 @@ enum {
 	MARKTYPE_LABEL,
 	MARKTYPE_IF,
 	MARKTYPE_INTERNAL, // internal structures
+};
+
+// Block types
+enum {
+	BLOCKTYPE_IF,
+	BLOCKTYPE_WHILE
 };
 
 #endif // __SCRIPTREADER_H__

@@ -118,6 +118,7 @@ inline bool IsCharWhitespace (char c) {
 
 // Byte datatype
 typedef unsigned long int word;
+typedef unsigned char byte;
 
 // Keywords
 #define NUM_KEYWORDS 20
@@ -126,7 +127,7 @@ extern const char** g_Keywords;
 #endif
 bool IsKeyword (str s);
 
-// Script mark -- also serves as reference type
+// Script mark and reference
 struct ScriptMark {
 	int type;
 	str name;
@@ -139,21 +140,23 @@ struct ScriptMarkReference {
 };
 
 // ====================================================================
+// Generic union
+template <class T> union union_t {
+	T val;
+	byte b[sizeof (T)];
+	char c[sizeof (T)];
+	double d;
+	float f;
+	int i;
+	word w;
+};
+
+// ====================================================================
 // Finds a byte in the given value.
-template <class T> unsigned char GetByteIndex (T a, unsigned int b) {
-	if (b >= sizeof (T))
-		error ("CharByte: tried to get byte %u out of a %u-byte %s\n",
-			b, sizeof (T), typeid (T).name());
-	
-	unsigned long p1 = pow<unsigned long> (256, b);
-	unsigned long p2 = pow<unsigned long> (256, b+1);
-	unsigned long r = (a % p2) / p1;
-	
-	if (r > 256)
-		error ("DataBuffer::CharByte: result %lu too big!", r);
-	
-	unsigned char ur = static_cast<unsigned char> (r);
-	return ur;
+template <class T> inline unsigned char GetByteIndex (T a, unsigned int b) {
+	union_t<T> uni;
+	uni.val = a;
+	return uni.b[b];
 }
 
 #endif // __COMMON_H__
