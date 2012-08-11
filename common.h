@@ -43,7 +43,8 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <typeinfo>
+#include <typeinfo> 
+#include <stdint.h>
 #include "bots.h"
 #include "str.h"
 
@@ -117,15 +118,17 @@ inline bool IsCharWhitespace (char c) {
 }
 
 // Byte datatype
-typedef unsigned long int word;
-typedef unsigned char byte;
+// typedef unsigned long int word;
+typedef int32_t word;
+typedef uint8_t byte;
 
 // Keywords
-#define NUM_KEYWORDS 20
 #ifndef __MAIN_CXX__
 extern const char** g_Keywords;
 #endif
+
 bool IsKeyword (str s);
+unsigned int NumKeywords ();
 
 // Script mark and reference
 struct ScriptMark {

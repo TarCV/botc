@@ -86,14 +86,17 @@ public:
 		return;
 	}
 	
-	// Cannot use default arguments in function templates..
-	void Write (word stuff) {Write<word> (stuff);}
+	// Default to word
+	void Write (word stuff) {
+		Write<word> (stuff);
+	}
 	
 	template <class T> void WriteDataToFile (T stuff) {
 		// One byte at a time
 		for (unsigned int x = 0; x < sizeof (T); x++) {
-			unsigned char c = GetByteIndex<T> (stuff, x);
-			fwrite (&c, 1, 1, fp);
+			union_t<T> uni;
+			uni.val = stuff;
+			fwrite (&uni.b[x], 1, 1, fp);
 			numWrittenBytes++;
 		}
 	}
