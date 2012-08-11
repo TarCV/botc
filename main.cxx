@@ -108,7 +108,7 @@ int main (int argc, char** argv) {
 	printf ("%s\n%s\n", header.chars(), headerline.chars());
 	
 	if (argc < 2) {
-		fprintf (stderr, "usage: %s <infile> [outfile]\n", argv[0]);
+		fprintf (stderr, "usage: %s <infile> [outfile] # compiles botscript\n", argv[0]);
 		fprintf (stderr, "       %s -l                 # lists commands\n", argv[0]);
 		exit (1);
 	}
