@@ -57,6 +57,7 @@
 #include "botcommands.h"
 
 const char* g_Keywords[] = {
+	"do",
 	"event",
 	"for",
 	"goto",
@@ -74,7 +75,6 @@ const char* g_Keywords[] = {
 	"case",
 	"continue",
 	"default",
-	"do",
 	"else",
 	"enum", // Would enum actually be useful? I think so.
 	"func", // Would function support need external support from zandronum?
