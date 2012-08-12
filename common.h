@@ -132,7 +132,6 @@ unsigned int NumKeywords ();
 
 // Script mark and reference
 struct ScriptMark {
-	int type;
 	str name;
 	size_t pos;
 };

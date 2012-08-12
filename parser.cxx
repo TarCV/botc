@@ -311,7 +311,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			// Add the condition
 			w->WriteBuffer (cond);
-			w->Write<long> (DH_IFNOTGOTO);
+			w->Write<word> (DH_IFNOTGOTO);
 			w->AddReference (mark2);
 			
 			// Store the marks and incrementor
@@ -328,8 +328,6 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MUST_NOT_TOPLEVEL
 			PushBlockStack ();
 			MustNext ("{");
-			
-			// Store the marks and incrementor
 			blockstack[g_BlockStackCursor].mark1 = w->AddMark ("");
 			blockstack[g_BlockStackCursor].type = BLOCKTYPE_DO;
 			continue;
