@@ -72,6 +72,7 @@ DataBuffer* g_IfExpression = NULL;
 // of necessary buffering so stuff is written in the correct order.
 void ScriptReader::BeginParse (ObjWriter* w) {
 	while (Next()) {
+		// ============================================================
 		if (!token.icompare ("state")) {
 			MUST_TOPLEVEL
 			
@@ -106,6 +107,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
 		if (!token.icompare ("event")) {
 			MUST_TOPLEVEL
 			
@@ -126,6 +128,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
 		if (!token.icompare ("mainloop")) {
 			MUST_TOPLEVEL
 			MustNext ("{");
@@ -136,6 +139,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
 		if (!token.icompare ("onenter") || !token.icompare ("onexit")) {
 			MUST_TOPLEVEL
 			bool onenter = !token.compare ("onenter");
@@ -148,6 +152,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
 		if (!token.compare ("var")) {
 			// For now, only globals are supported
 			if (g_CurMode != MODE_TOPLEVEL || g_CurState.len())
@@ -170,6 +175,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
 		// Label
 		if (!PeekNext().compare (":")) {
 			MUST_NOT_TOPLEVEL
@@ -186,6 +192,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
 		// Goto
 		if (!token.icompare ("goto")) {
 			MUST_NOT_TOPLEVEL
@@ -205,6 +212,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
 		// If
 		if (!token.icompare ("if")) {
 			MUST_NOT_TOPLEVEL
@@ -236,6 +244,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
 		// While
 		if (!token.compare ("while")) {
 			MUST_NOT_TOPLEVEL
@@ -270,6 +279,50 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
+		// ============================================================
+		// For loop
+		if (!token.icompare ("for")) {
+			MUST_NOT_TOPLEVEL
+			PushBlockStack ();
+			
+			// Initializer
+			MustNext ("(");
+			MustNext ();
+			DataBuffer* init = ParseStatement (w);
+			MustNext (";");
+			
+			// Condition
+			MustNext ();
+			DataBuffer* cond = ParseExpression (TYPE_INT);
+			MustNext (";");
+			
+			// Incrementor
+			MustNext ();
+			DataBuffer* incr = ParseStatement (w);
+			MustNext (")");
+			MustNext ("{");
+			
+			// First, write out the initializer
+			w->WriteBuffer (init);
+			
+			// Init two marks
+			int mark1 = w->AddMark (MARKTYPE_INTERNAL, "");
+			int mark2 = w->AddMark (MARKTYPE_INTERNAL, "");
+			
+			// Add the condition
+			w->WriteBuffer (cond);
+			w->Write<long> (DH_IFNOTGOTO);
+			w->AddReference (mark2);
+			
+			// Store the marks and incrementor
+			blockstack[g_BlockStackCursor].mark1 = mark1;
+			blockstack[g_BlockStackCursor].mark2 = mark2;
+			blockstack[g_BlockStackCursor].buffer1 = incr;
+			blockstack[g_BlockStackCursor].type = BLOCKTYPE_FOR;
+			continue;
+		}
+		
+		// ============================================================
 		if (!token.compare ("}")) {
 			// Closing brace
 			
@@ -281,6 +334,10 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 					// Adjust the closing mark.
 					w->MoveMark (info->mark1);
 					break;
+				case BLOCKTYPE_FOR:
+					// Write the incrementor at the end of the loop block
+					w->WriteBuffer (info->buffer1);
+					// fall-thru
 				case BLOCKTYPE_WHILE:
 					// Write down the instruction to go back to the start of the loop
 					w->Write (DH_GOTO);
@@ -314,16 +371,10 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			continue;
 		}
 		
-		// If it's a variable, expect assignment.
-		if (ScriptVar* var = FindGlobalVariable (token)) {
-			DataBuffer* b = ParseAssignment (var);
-			MustNext (";");
-			w->WriteBuffer (b);
-			continue;
-		}
-		
-		// If it's not a keyword, parse it as an expression.
-		DataBuffer* b = ParseExpression (TYPE_VOID);
+		// ============================================================
+		// If nothing else, parse it as a statement (which is either
+		// assignment or expression)
+		DataBuffer* b = ParseStatement (w);
 		w->WriteBuffer (b);
 		MustNext (";");
 	}
@@ -479,8 +530,8 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 	MustNext ();
 	DataBuffer* rb = ParseExprValue (reqtype);
 	
-	retbuf->Merge (rb);
 	retbuf->Merge (lb);
+	retbuf->Merge (rb);
 	
 	long dh = DataHeaderByOperator (NULL, oper);
 	retbuf->Write<word> (dh);
@@ -622,4 +673,17 @@ void ScriptReader::PushBlockStack () {
 	info->type = 0;
 	info->mark1 = 0;
 	info->mark2 = 0;
+	info->buffer1 = NULL;
+}
+
+DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {
+	// If it's a variable, expect assignment.
+	if (ScriptVar* var = FindGlobalVariable (token)) {
+		DataBuffer* b = ParseAssignment (var);
+		return b;
+	}
+	
+	// If it's not a keyword, parse it as an expression.
+	DataBuffer* b = ParseExpression (TYPE_VOID);
+	return b;
 }

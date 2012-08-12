@@ -57,14 +57,15 @@
 #include "botcommands.h"
 
 const char* g_Keywords[] = {
-	"state",
 	"event",
+	"for",
+	"goto",
+	"if",
 	"mainloop",
 	"onenter",
 	"onexit",
-	"var",
-	"goto",
-	"if",
+	"state",
+	"var"
 	"while",
 	
 	// These ones aren't implemented yet but I plan to do so, thus they are
@@ -76,7 +77,6 @@ const char* g_Keywords[] = {
 	"do",
 	"else",
 	"enum", // Would enum actually be useful? I think so.
-	"for",
 	"func", // Would function support need external support from zandronum?
 	"return",
 	"switch",
@@ -169,7 +169,11 @@ int main (int argc, char** argv) {
 	
 	// Parse done, print statistics and write to file
 	unsigned int globalcount = CountGlobalVars ();
+	int NumMarks = w->MainBuffer->CountMarks ();
+	int NumRefs = w->MainBuffer->CountReferences ();
 	printf ("%u / %u global variable%s\n", globalcount, MAX_SCRIPT_VARIABLES, PLURAL (globalcount));
+	printf ("%d / %d mark%s used\n", NumMarks, MAX_MARKS, PLURAL (NumMarks));
+	printf ("%d / %d ref%s used\n", NumRefs, MAX_MARKS, PLURAL (NumRefs));
 	printf ("%d state%s written\n", g_NumStates, PLURAL (g_NumStates));
 	printf ("%d event%s written\n", g_NumEvents, PLURAL (g_NumEvents));
 	w->WriteToFile ();
