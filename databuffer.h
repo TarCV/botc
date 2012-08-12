@@ -145,7 +145,7 @@ public:
 		for (u = 0; u < MAX_MARKS; u++) {
 			if (other->marks[u]) {
 				// Add the mark and offset its position.
-				unsigned int u = AddMark (other->marks[u]->type, other->marks[u]->name);
+				unsigned int u = AddMark (other->marks[u]->name);
 				marks[u]->pos += other->writesize;
 			}
 			
@@ -172,7 +172,7 @@ public:
 	// position in the bytecode. The actual permanent position cannot
 	// be predicted in any way or form, thus these things will be used
 	// to "mark" a position like that for future use.
-	unsigned int AddMark (int type, str name) {
+	unsigned int AddMark (str name) {
 		// Find a free slot for the mark
 		unsigned int u;
 		for (u = 0; u < MAX_MARKS; u++)
@@ -184,7 +184,6 @@ public:
 		
 		ScriptMark* m = new ScriptMark;
 		m->name = name;
-		m->type = type;
 		m->pos = writesize;
 		marks[u] = m;
 		return u;
