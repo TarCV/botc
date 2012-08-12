@@ -254,6 +254,22 @@ public:
 		for (unsigned int x = 0; x < writesize; x++)
 			printf ("%d. [%d]\n", x, *(buffer+x));
 	}
+	
+	// Count the amount of marks
+	unsigned int CountMarks () {
+		unsigned int count = 0;
+		for (unsigned int u = 0; u < MAX_MARKS; u++)
+			count += !!marks[u];
+		return count;
+	}
+	
+	// Count the amount of refs
+	unsigned int CountReferences () {
+		unsigned int count = 0;
+		for (unsigned int u = 0; u < MAX_MARKS; u++)
+			count += !!refs[u];
+		return count;
+	}
 };
 
 #endif // __DATABUFFER_H__

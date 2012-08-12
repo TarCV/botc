@@ -57,6 +57,7 @@ struct BlockInformation {
 	unsigned int mark1;
 	unsigned int mark2;
 	unsigned int type;
+	DataBuffer* buffer1;
 };
 
 // ============================================================================
@@ -115,6 +116,7 @@ public:
 	// preprocessor.cxx:
 	void PreprocessDirectives ();
 	void PreprocessMacros ();
+	DataBuffer* ParseStatement (ObjWriter* w);
 	
 private:
 	bool atnewline;
@@ -165,7 +167,8 @@ enum {
 // Block types
 enum {
 	BLOCKTYPE_IF,
-	BLOCKTYPE_WHILE
+	BLOCKTYPE_WHILE,
+	BLOCKTYPE_FOR
 };
 
 #endif // __SCRIPTREADER_H__

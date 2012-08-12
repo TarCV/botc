@@ -60,6 +60,7 @@ public:
 	DataBuffer* OnEnterBuffer;
 	DataBuffer* MainLoopBuffer;
 	unsigned int numWrittenBytes;
+	unsigned int numWrittenReferences;
 	
 	// ====================================================================
 	// METHODS

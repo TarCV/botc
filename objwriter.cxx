@@ -56,6 +56,7 @@ ObjWriter::ObjWriter (str path) {
 	MainLoopBuffer = new DataBuffer;
 	OnEnterBuffer = new DataBuffer;
 	numWrittenBytes = 0;
+	numWrittenReferences = 0;
 	filepath = path;
 }
 
@@ -121,6 +122,7 @@ void ObjWriter::WriteToFile () {
 		error ("size of unsigned char isn't 1, but %d!\n", sizeof (unsigned char));
 	
 	// First, resolve references
+	numWrittenReferences = 0;
 	for (unsigned int u = 0; u < MAX_MARKS; u++) {
 		ScriptMarkReference* ref = MainBuffer->refs[u];
 		if (!ref)
@@ -131,6 +133,8 @@ void ObjWriter::WriteToFile () {
 			uni.val = static_cast<word> (MainBuffer->marks[ref->num]->pos);
 			memset (MainBuffer->buffer + ref->pos + v, uni.b[v], 1);
 		}
+		
+		numWrittenReferences++;
 	}
 	
 	// Then, dump the main buffer to the file
