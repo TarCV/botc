@@ -533,40 +533,34 @@ static long DataHeaderByOperator (ScriptVar* var, int oper) {
 DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 	DataBuffer* retbuf = new DataBuffer (64);
 	
-	DataBuffer* lb = NULL;
+	// Parse first operand
+	retbuf->Merge (ParseExprValue (reqtype));
 	
-	lb = ParseExprValue (reqtype);
-	
-	// Get an operator
-	int oper = ParseOperator (true);
-	
-	// No operator found - stop here.
-	if (oper == -1) {
-		retbuf->Merge (lb);
-		return retbuf;
+	// Parse any and all operators we get
+	int oper;
+	while ((oper = ParseOperator (true)) != -1) {
+		// We peeked the operator, move forward now
+		MustNext();
+		
+		// Can't be an assignement operator, those belong in assignments.
+		if (IsAssignmentOperator (oper))
+			ParserError ("assignment operator inside expressions");
+		
+		// Parse the right operand,
+		MustNext ();
+		DataBuffer* rb = ParseExprValue (reqtype);
+		
+		// Write to buffer
+		retbuf->Merge (rb);
+		long dh = DataHeaderByOperator (NULL, oper);
+		retbuf->Write<word> (dh);
 	}
 	
-	// We peeked the operator, move forward now
-	MustNext();
-	
-	// Can't be an assignement operator, those belong in assignments.
-	if (IsAssignmentOperator (oper))
-		ParserError ("assignment operator inside expressions");
-	
-	// Parse the right operand,
-	MustNext ();
-	DataBuffer* rb = ParseExprValue (reqtype);
-	
-	retbuf->Merge (lb);
-	retbuf->Merge (rb);
-	
-	long dh = DataHeaderByOperator (NULL, oper);
-	retbuf->Write<word> (dh);
 	return retbuf;
 }
 
 // ============================================================================
-// `arses an operator string. Returns the operator number code.
+// Parses an operator string. Returns the operator number code.
 int ScriptReader::ParseOperator (bool peek) {
 	str oper;
 	if (peek)
@@ -685,7 +679,7 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	
 	// Parse the right operand,
 	MustNext ();
-	DataBuffer* retbuf = ParseExprValue (TYPE_INT);
+	DataBuffer* retbuf = ParseExpression (TYPE_INT);
 	
 	long dh = DataHeaderByOperator (var, oper);
 	retbuf->Write<word> (dh);
