@@ -187,7 +187,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			if (FindGlobalVariable (token))
 				ParserError ("label name `%s` conflicts with variable\n", token.chars());
 			
-			w->AddMark (MARKTYPE_LABEL, token);
+			w->AddMark (token);
 			MustNext (":");
 			continue;
 		}
@@ -201,7 +201,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext ();
 			
 			// Find the mark this goto statement points to
-			unsigned int m = w->FindMark (MARKTYPE_LABEL, token);
+			unsigned int m = w->FindMark (token);
 			if (m == MAX_MARKS)
 				ParserError ("unknown label `%s`!", token.chars());
 			
@@ -231,7 +231,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			
 			// Add a mark - to here temporarily - and add a reference to it.
 			// Upon a closing brace, the mark will be adjusted.
-			unsigned int marknum = w->AddMark (MARKTYPE_IF, "");
+			unsigned int marknum = w->AddMark ("");
 			
 			// Use DH_IFNOTGOTO - if the expression is not true, we goto the mark
 			// we just defined - and this mark will be at the end of the block.
@@ -254,8 +254,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// end. The condition is checked at the very start of the loop, if it fails,
 			// we use goto to skip to the end of the loop. At the end, we loop back to
 			// the beginning with a go-to statement.
-			unsigned int mark1 = w->AddMark (MARKTYPE_INTERNAL, ""); // start
-			unsigned int mark2 = w->AddMark (MARKTYPE_INTERNAL, ""); // end
+			unsigned int mark1 = w->AddMark (""); // start
+			unsigned int mark2 = w->AddMark (""); // end
 			
 			// Condition
 			MustNext ("(");
@@ -306,8 +306,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			w->WriteBuffer (init);
 			
 			// Init two marks
-			int mark1 = w->AddMark (MARKTYPE_INTERNAL, "");
-			int mark2 = w->AddMark (MARKTYPE_INTERNAL, "");
+			int mark1 = w->AddMark ("");
+			int mark2 = w->AddMark ("");
 			
 			// Add the condition
 			w->WriteBuffer (cond);
@@ -330,7 +330,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext ("{");
 			
 			// Store the marks and incrementor
-			blockstack[g_BlockStackCursor].mark1 = w->AddMark (MARKTYPE_INTERNAL, "");
+			blockstack[g_BlockStackCursor].mark1 = w->AddMark ("");
 			blockstack[g_BlockStackCursor].type = BLOCKTYPE_DO;
 			continue;
 		}

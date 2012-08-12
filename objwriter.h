@@ -72,12 +72,10 @@ public:
 	void WriteBuffers ();
 	void WriteStringTable ();
 	void WriteToFile ();
-	void StartDo ();
-	void EndDo ();
 	DataBuffer* GetCurrentBuffer ();
 	
-	unsigned int AddMark (int type, str name);
-	unsigned int FindMark (int type, str name);
+	unsigned int AddMark (str name);
+	unsigned int FindMark (str name);
 	unsigned int AddReference (unsigned int mark);
 	void MoveMark (unsigned int mark);
 	void OffsetMark (unsigned int mark, int offset);

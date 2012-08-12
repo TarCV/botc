@@ -154,8 +154,8 @@ DataBuffer* ObjWriter::GetCurrentBuffer() {
 ScriptMark* g_ScriptMark = NULL;
 
 // Adds a mark
-unsigned int ObjWriter::AddMark (int type, str name) {
-	return GetCurrentBuffer()->AddMark (type, name);
+unsigned int ObjWriter::AddMark (str name) {
+	return GetCurrentBuffer()->AddMark (name);
 }
 
 // Adds a reference
@@ -165,10 +165,10 @@ unsigned int ObjWriter::AddReference (unsigned int mark) {
 }
 
 // Finds a mark
-unsigned int ObjWriter::FindMark (int type, str name) {
+unsigned int ObjWriter::FindMark (str name) {
 	DataBuffer* b = GetCurrentBuffer();
 	for (unsigned int u = 0; u < MAX_MARKS; u++) {
-		if (b->marks[u] && b->marks[u]->type == type && !b->marks[u]->name.icompare (name))
+		if (b->marks[u] && !b->marks[u]->name.icompare (name))
 			return u;
 	}
 	return MAX_MARKS;
