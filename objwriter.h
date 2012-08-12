@@ -72,6 +72,8 @@ public:
 	void WriteBuffers ();
 	void WriteStringTable ();
 	void WriteToFile ();
+	void StartDo ();
+	void EndDo ();
 	DataBuffer* GetCurrentBuffer ();
 	
 	unsigned int AddMark (int type, str name);

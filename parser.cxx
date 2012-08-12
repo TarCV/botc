@@ -323,6 +323,19 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		}
 		
 		// ============================================================
+		// Do/while loop
+		if (!token.icompare ("do")) {
+			MUST_NOT_TOPLEVEL
+			PushBlockStack ();
+			MustNext ("{");
+			
+			// Store the marks and incrementor
+			blockstack[g_BlockStackCursor].mark1 = w->AddMark (MARKTYPE_INTERNAL, "");
+			blockstack[g_BlockStackCursor].type = BLOCKTYPE_DO;
+			continue;
+		}
+		
+		// ============================================================
 		if (!token.compare ("}")) {
 			// Closing brace
 			
@@ -345,6 +358,20 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 					
 					// Move the closing mark here since we're at the end of the while loop
 					w->MoveMark (info->mark2);
+					break;
+				case BLOCKTYPE_DO:
+					MustNext ("while");
+					MustNext ("(");
+					MustNext ();
+					DataBuffer* expr = ParseExpression (TYPE_INT);
+					MustNext (")");
+					MustNext (";");
+					
+					// If the condition runs true, go back to the start.
+					w->WriteBuffer (expr);
+					w->Write<long> (DH_IFGOTO);
+					w->AddReference (info->mark1);
+					break;
 				}
 				
 				// Descend down the stack
@@ -613,7 +640,7 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 		// If nothing else, check for literal
 		switch (reqtype) {
 		case TYPE_VOID:
-			ParserError ("bad syntax");
+			ParserError ("unknown identifier `%s` (expected keyword, function or variable)", token.chars());
 			break;
 		case TYPE_INT: {
 			MustNumber (true);
