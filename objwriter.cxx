@@ -101,15 +101,17 @@ void ObjWriter::WriteBuffers () {
 
 // Write string table
 void ObjWriter::WriteStringTable () {
-	// If we added strings here, we need to write a list of them.
 	unsigned int stringcount = CountStringTable ();
-	if (stringcount) {
-		Write<long> (DH_STRINGLIST);
-		Write<long> (stringcount);
-		
-		for (unsigned int a = 0; a < stringcount; a++)
-			WriteString (g_StringTable[a]);
-	}
+	if (!stringcount)
+		return;
+	
+	// Write header
+	Write<long> (DH_STRINGLIST);
+	Write<long> (stringcount);
+	
+	// Write all strings
+	for (unsigned int a = 0; a < stringcount; a++)
+		WriteString (g_StringTable[a]);
 }
 
 // Write main buffer to file
@@ -124,11 +126,11 @@ void ObjWriter::WriteToFile () {
 		if (!ref)
 			continue;
 		
-		for (unsigned int v = 0; v < sizeof (word); v++) {
-			union_t<word> uni;
-			uni.val = static_cast<word> (MainBuffer->marks[ref->num]->pos);
+		// Substitute the placeholder with the mark position
+		union_t<word> uni;
+		uni.val = static_cast<word> (MainBuffer->marks[ref->num]->pos);
+		for (unsigned int v = 0; v < sizeof (word); v++)
 			memset (MainBuffer->buffer + ref->pos + v, uni.b[v], 1);
-		}
 		
 		/*
 		printf ("reference %u at %d resolved to %u at %d\n",
@@ -139,7 +141,7 @@ void ObjWriter::WriteToFile () {
 	
 	// Then, dump the main buffer to the file
 	for (unsigned int x = 0; x < MainBuffer->writesize; x++)
-		WriteDataToFile<unsigned char> (*(MainBuffer->buffer+x));
+		WriteDataToFile<byte> (*(MainBuffer->buffer+x));
 	
 	printf ("-- %u byte%s written to %s\n", numWrittenBytes, PLURAL (numWrittenBytes), filepath.chars());
 	fclose (fp);

@@ -59,6 +59,7 @@
 const char* g_Keywords[] = {
 	"break",
 	"case",
+	"default",
 	"do",
 	"event",
 	"for",
@@ -75,7 +76,6 @@ const char* g_Keywords[] = {
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
 	"continue",
-	"default",
 	"else",
 	"enum", // Would enum actually be useful? I think so.
 	"func", // Would function support need external support from zandronum?
@@ -163,12 +163,12 @@ int main (int argc, char** argv) {
 	InitVariables ();
 	
 	// Prepare reader and writer
-	ScriptReader *r = new ScriptReader (argv[1]);
-	ObjWriter *w = new ObjWriter (outfile);
+	ScriptReader* r = new ScriptReader (argv[1]);
+	ObjWriter* w = new ObjWriter (outfile);
 	
 	// We're set, begin parsing :)
 	printf ("Parsing script...\n");
-	r->BeginParse (w);
+	r->ParseBotScript (w);
 	printf ("Script parsed successfully.\n");
 	
 	// Parse done, print statistics and write to file

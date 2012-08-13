@@ -70,10 +70,10 @@ DataBuffer* g_IfExpression = NULL;
 // Main parser code. Begins read of the script file, checks the syntax of it
 // and writes the data to the object file via ObjWriter - which also takes care
 // of necessary buffering so stuff is written in the correct order.
-void ScriptReader::BeginParse (ObjWriter* w) {
+void ScriptReader::ParseBotScript (ObjWriter* w) {
 	while (Next()) {
 		// ============================================================
-		if (!token.icompare ("state")) {
+		if (!token.compare ("state")) {
 			MUST_TOPLEVEL
 			
 			MustString ();
@@ -108,7 +108,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.icompare ("event")) {
+		if (!token.compare ("event")) {
 			MUST_TOPLEVEL
 			
 			// Event definition
@@ -129,7 +129,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.icompare ("mainloop")) {
+		if (!token.compare ("mainloop")) {
 			MUST_TOPLEVEL
 			MustNext ("{");
 			
@@ -140,7 +140,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.icompare ("onenter") || !token.icompare ("onexit")) {
+		if (!token.compare ("onenter") || !token.compare ("onexit")) {
 			MUST_TOPLEVEL
 			bool onenter = !token.compare ("onenter");
 			MustNext ("{");
@@ -176,25 +176,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		// Label
-		if (!PeekNext().compare (":")) {
-			MUST_NOT_TOPLEVEL
-			
-			if (IsKeyword (token))
-				ParserError ("label name `%s` conflicts with keyword\n", token.chars());
-			if (FindCommand (token))
-				ParserError ("label name `%s` conflicts with command name\n", token.chars());
-			if (FindGlobalVariable (token))
-				ParserError ("label name `%s` conflicts with variable\n", token.chars());
-			
-			w->AddMark (token);
-			MustNext (":");
-			continue;
-		}
-		
-		// ============================================================
 		// Goto
-		if (!token.icompare ("goto")) {
+		if (!token.compare ("goto")) {
 			MUST_NOT_TOPLEVEL
 			
 			// Get the name of the label
@@ -216,7 +199,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		
 		// ============================================================
 		// If
-		if (!token.icompare ("if")) {
+		if (!token.compare ("if")) {
 			MUST_NOT_TOPLEVEL
 			PushBlockStack ();
 			
@@ -266,7 +249,6 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext ();
 			DataBuffer* expr = ParseExpression (TYPE_INT);
 			MustNext (")");
-			
 			MustNext ("{");
 			
 			// Write condition
@@ -285,7 +267,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		
 		// ============================================================
 		// For loop
-		if (!token.icompare ("for")) {
+		if (!token.compare ("for")) {
 			MUST_NOT_TOPLEVEL
 			PushBlockStack ();
 			
@@ -328,7 +310,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		
 		// ============================================================
 		// Do/while loop
-		if (!token.icompare ("do")) {
+		if (!token.compare ("do")) {
 			MUST_NOT_TOPLEVEL
 			PushBlockStack ();
 			MustNext ("{");
@@ -339,7 +321,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		
 		// ============================================================
 		// Switch
-		if (!token.icompare ("switch")) {
+		if (!token.compare ("switch")) {
 			/* This goes a bit tricky. switch is structured in the
 			 * bytecode followingly:
 			 * (expression)
@@ -362,50 +344,70 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext ("{");
 			blockstack[g_BlockStackCursor].type = BLOCKTYPE_SWITCH;
 			blockstack[g_BlockStackCursor].mark1 = w->AddMark (""); // end mark
+			blockstack[g_BlockStackCursor].buffer1 = NULL; // default header
 			continue;
 		}
 		
 		// ============================================================
-		if (!token.icompare ("case")) {
+		if (!token.compare ("case")) {
 			// case is only allowed inside switch
-			if (g_BlockStackCursor <= 0 || blockstack[g_BlockStackCursor].type != BLOCKTYPE_SWITCH)
-				ParserError ("`case` outside switch");
-			
 			BlockInformation* info = &blockstack[g_BlockStackCursor];
-			info->casecursor++;
-			if (info->casecursor >= MAX_CASE)
-				ParserError ("too many `case` statements in one switch");
+			if (info->type != BLOCKTYPE_SWITCH)
+				ParserError ("case label outside switch");
 			
 			// Get the literal (Zandronum does not support expressions here)
 			MustNumber ();
 			int num = atoi (token.chars ());
-			
 			MustNext (":");
 			
-			// Init a mark for the case buffer
-			int m = w->AddMark ("");
-			info->casemarks[info->casecursor] = m;
+			for (int i = 0; i < MAX_CASE; i++)
+				if (info->casenumbers[i] == num)
+					ParserError ("multiple case %d labels in one switch", num);
 			
 			// Write down the expression and case-go-to. This builds
 			// the case tree. The closing event will write the actual
 			// blocks and move the marks appropriately.
-			//
-			// NULL the switch buffer for the case-go-to statement,
+			//	AddSwitchCase will add the reference to the mark
+			// for the case block that this heralds, and takes care
+			// of buffering setup and stuff like that.
+			//	NULL the switch buffer for the case-go-to statement,
 			// we want it all under the switch, not into the case-buffers.
 			w->SwitchBuffer = NULL;
 			w->Write<word> (DH_CASEGOTO);
 			w->Write<word> (num);
-			w->AddReference (m);
+			AddSwitchCase (w, NULL);
+			info->casenumbers[info->casecursor] = num;
+			continue;
+		}
+		
+		if (!token.compare ("default")) {
+			BlockInformation* info = &blockstack[g_BlockStackCursor];
+			if (info->type != BLOCKTYPE_SWITCH)
+				ParserError ("default label outside switch");
 			
-			// Init a buffer for the case block, tell the object
-			// writer to record all written data to it.
-			info->casebuffers[info->casecursor] = w->SwitchBuffer = new DataBuffer;
+			if (info->buffer1)
+				ParserError ("multiple default labels in one switch");
+			
+			MustNext (":");
+			
+			// The default header is buffered into buffer1, since
+			// it has to be the last of the case headers
+			//
+			// Since the expression is pushed into the switch
+			// and is only popped when case succeeds, we have
+			// to pop it with DH_DROP manually if we end up in
+			// a default.
+			DataBuffer* b = new DataBuffer;
+			info->buffer1 = b;
+			b->Write<word> (DH_DROP);
+			b->Write<word> (DH_GOTO);
+			AddSwitchCase (w, b);
 			continue;
 		}
 		
 		// ============================================================
 		// Break statement.
-		if (!token.icompare ("break")) {
+		if (!token.compare ("break")) {
 			if (!g_BlockStackCursor)
 				ParserError ("unexpected `break`");
 			
@@ -430,6 +432,23 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			}
 			
 			MustNext (";");
+			continue;
+		}
+		
+		// ============================================================
+		// Label
+		if (!PeekNext().compare (":")) {
+			MUST_NOT_TOPLEVEL
+			
+			if (IsKeyword (token))
+				ParserError ("label name `%s` conflicts with keyword\n", token.chars());
+			if (FindCommand (token))
+				ParserError ("label name `%s` conflicts with command name\n", token.chars());
+			if (FindGlobalVariable (token))
+				ParserError ("label name `%s` conflicts with variable\n", token.chars());
+			
+			w->AddMark (token);
+			MustNext (":");
 			continue;
 		}
 		
@@ -471,7 +490,6 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 					w->AddReference (info->mark1);
 					break;
 				}
-				
 				case BLOCKTYPE_SWITCH: {
 					// Switch closes. Move down to the record buffer of
 					// the lower block.
@@ -480,6 +498,17 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 						w->SwitchBuffer = previnfo->casebuffers[previnfo->casecursor];
 					else
 						w->SwitchBuffer = NULL;
+					
+					// If there was a default in the switch, write its header down now.
+					// If not, write instruction to jump to the end of switch after
+					// the headers (thus won't fall-through if no case matched)
+					if (info->buffer1)
+						w->WriteBuffer (info->buffer1);
+					else {
+						w->Write<word> (DH_DROP);
+						w->Write<word> (DH_GOTO);
+						w->AddReference (info->mark1);
+					}
 					
 					// Go through all of the buffers we
 					// recorded down and write them.
@@ -821,6 +850,7 @@ void ScriptReader::PushBlockStack () {
 	for (int i = 0; i < MAX_CASE; i++) {
 		info->casemarks[i] = MAX_MARKS;
 		info->casebuffers[i] = NULL;
+		info->casenumbers[i] = -1;
 	}
 }
 
@@ -834,4 +864,27 @@ DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {
 	// If it's not a keyword, parse it as an expression.
 	DataBuffer* b = ParseExpression (TYPE_VOID);
 	return b;
+}
+
+void ScriptReader::AddSwitchCase (ObjWriter* w, DataBuffer* b) {
+	BlockInformation* info = &blockstack[g_BlockStackCursor];
+	
+	info->casecursor++;
+	if (info->casecursor >= MAX_CASE)
+		ParserError ("too many cases in one switch");
+	
+	// Init a mark for the case buffer
+	int m = w->AddMark ("");
+	info->casemarks[info->casecursor] = m;
+	
+	// Add a reference to the mark. "case" and "default" both
+	// add the necessary bytecode before the reference.
+	if (b)
+		b->AddMarkReference (m);
+	else
+		w->AddReference (m);
+	
+	// Init a buffer for the case block and tell the object
+	// writer to record all written data to it.
+	info->casebuffers[info->casecursor] = w->SwitchBuffer = new DataBuffer;
 }

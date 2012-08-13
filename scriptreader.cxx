@@ -125,8 +125,8 @@ char ScriptReader::ReadChar () {
 	if (feof (fp[fc]))
 		return 0;
 	
-	char* c = (char*)malloc (sizeof (char));
-	if (!fread (c, sizeof (char), 1, fp[fc]))
+	char c;
+	if (!fread (&c, 1, 1, fp[fc]))
 		return 0;
 	
 	// We're at a newline, thus next char read will begin the next line
@@ -136,7 +136,7 @@ char ScriptReader::ReadChar () {
 		curchar[fc] = 0; // gets incremented to 1
 	}
 	
-	if (c[0] == '\n') {
+	if (c == '\n') {
 		atnewline = true;
 		
 		// Check for pre-processor directives
@@ -144,7 +144,7 @@ char ScriptReader::ReadChar () {
 	}
 	
 	curchar[fc]++;
-	return c[0];
+	return c;
 }
 
 // ============================================================================
@@ -375,14 +375,6 @@ void ScriptReader::MustNumber (bool fromthis) {
 		MustNext ();
 	num += token;
 	
-	// The number can possibly start off with a minus sign, which
-	// also breaks the token. If we encounter it, read another token
-	// and merge it to this one.
-	if (!token.compare ("-")) {
-		MustNext ();
-		num += token;
-	}
-	
 	// "true" and "false" are valid numbers
 	if (!token.icompare ("true"))
 		token = "1";
@@ -392,5 +384,11 @@ void ScriptReader::MustNumber (bool fromthis) {
 		if (!num.isnumber())
 			ParserError ("expected a number, got `%s`", num.chars());
 		token = num;
+		
+		// Overflow check
+		str check;
+		check.appendformat ("%d", atoi (num));
+		if (token.compare (check) != 0)
+			ParserWarning ("integer too large: %s -> %s", token.chars(), check.chars());
 	}
 }

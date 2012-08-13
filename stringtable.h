@@ -39,7 +39,6 @@
  */
 
 #include "bots.h"
-#include "str.h"
 
 void InitStringTable();
 unsigned int PushToStringTable (char* s);

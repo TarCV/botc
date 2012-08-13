@@ -44,7 +44,7 @@
 #include <string.h>
 #include "common.h"
 
-#define MAX_MARKS 256
+#define MAX_MARKS 512
 
 extern int g_NextMark;
 
