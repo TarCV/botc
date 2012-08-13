@@ -848,6 +848,35 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			b->Write<word> (DH_PUSHSTRINGINDEX);
 			b->Write<word> (PushToStringTable (token.chars()));
 			break;
+		case TYPE_FLOAT: {
+			str floatstring;
+			
+			MustNumber (true);
+			floatstring += token;
+			
+			// Go after the decimal point
+			if (!PeekNext ().compare(".")) {
+				MustNext (".");
+				MustNumber (false);
+				floatstring += ".";
+				floatstring += token;
+			}
+			
+			// TODO: Casting float to word causes the decimal to be lost.
+			// Find a way to store the number without such loss.
+			float val = atof (floatstring);
+			b->Write<word> (DH_PUSHNUMBER);
+			b->Write<word> (static_cast<word> ((val > 0) ? val : -val));
+			if (val < 0)
+				b->Write<word> (DH_UNARYMINUS);
+			
+			// TODO: Keep this check after decimal loss is fixed, but make
+			// it a real precision loss check. 55.5123 -> 55.512299, this
+			// should probably be warned of.
+			float check = static_cast<float> (static_cast<word> (val));
+			if (val != check)
+				ParserWarning ("floating point number %f loses precision (-> %f)", val, check);
+		}
 		}
 	}
 	
