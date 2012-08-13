@@ -51,18 +51,17 @@
  * own bare-bones variant of the function for file reading.
  */
 char ScriptReader::PPReadChar () {
-	char* c = (char*)malloc (sizeof (char));
-	if (!fread (c, sizeof (char), 1, fp[fc]))
+	char c;
+	if (!fread (&c, sizeof (char), 1, fp[fc]))
 		return 0;
 	curchar[fc]++;
-	return c[0];
+	return c;
 }
 
 void ScriptReader::PPMustChar (char c) {
 	char d = PPReadChar ();
-	if (c != d) {
+	if (c != d)
 		ParserError ("expected `%c`, got `%d`", c, d);
-	}
 }
 
 // ============================================================================

@@ -55,6 +55,7 @@ ObjWriter::ObjWriter (str path) {
 	MainBuffer = new DataBuffer;
 	MainLoopBuffer = new DataBuffer;
 	OnEnterBuffer = new DataBuffer;
+	RecordBuffer = NULL; // created on demand
 	numWrittenBytes = 0;
 	numWrittenReferences = 0;
 	filepath = path;
@@ -109,17 +110,12 @@ void ObjWriter::WriteStringTable () {
 		for (unsigned int a = 0; a < stringcount; a++)
 			WriteString (g_StringTable[a]);
 	}
-	
-	printf ("%u / %u string%s written\n", stringcount, MAX_LIST_STRINGS, PLURAL (stringcount));
 }
 
 // Write main buffer to file
 void ObjWriter::WriteToFile () {
 	fp = fopen (filepath, "w");
 	CHECK_FILE (fp, filepath, "writing");
-	
-	if (sizeof (unsigned char) != 1)
-		error ("size of unsigned char isn't 1, but %d!\n", sizeof (unsigned char));
 	
 	// First, resolve references
 	numWrittenReferences = 0;
@@ -134,6 +130,10 @@ void ObjWriter::WriteToFile () {
 			memset (MainBuffer->buffer + ref->pos + v, uni.b[v], 1);
 		}
 		
+		/*
+		printf ("reference %u at %d resolved to %u at %d\n",
+			u, ref->pos, ref->num, MainBuffer->marks[ref->num]->pos);
+		*/
 		numWrittenReferences++;
 	}
 	
@@ -146,7 +146,8 @@ void ObjWriter::WriteToFile () {
 }
 
 DataBuffer* ObjWriter::GetCurrentBuffer() {
-	return	(g_CurMode == MODE_MAINLOOP) ? MainLoopBuffer :
+	return	RecordBuffer ? RecordBuffer :
+		(g_CurMode == MODE_MAINLOOP) ? MainLoopBuffer :
 		(g_CurMode == MODE_ONENTER) ? OnEnterBuffer :
 		MainBuffer;
 }
