@@ -147,12 +147,7 @@ public:
 		unsigned int u = 0;
 		for (u = 0; u < MAX_MARKS; u++) {
 			if (other->marks[u]) {
-				// Add the mark and offset its position.
-				/* str name = other->marks[u]->name;
-				unsigned int x = AddMark (name);
-				marks[x]->pos = other->marks[u]->pos + oldsize;
-				*/
-				
+				// Merge the mark and offset its position.
 				if (marks[u])
 					error ("DataBuffer: duplicate mark %d!\n");
 				
@@ -168,6 +163,7 @@ public:
 			
 			if (other->refs[u]) {
 				// Same for references
+				// TODO: add a g_NextRef system like here, akin to marks!
 				unsigned int r = AddMarkReference (other->refs[u]->num, false);
 				refs[r]->pos = other->refs[u]->pos + oldsize;
 			}

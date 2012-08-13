@@ -389,14 +389,17 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// Write down the expression and case-go-to. This builds
 			// the case tree. The closing event will write the actual
 			// blocks and move the marks appropriately.
-			info->casebuffers[info->casecursor] = w->RecordBuffer = NULL;
+			//
+			// NULL the switch buffer for the case-go-to statement,
+			// we want it all under the switch, not into the case-buffers.
+			w->SwitchBuffer = NULL;
 			w->Write<word> (DH_CASEGOTO);
 			w->Write<word> (num);
 			w->AddReference (m);
 			
 			// Init a buffer for the case block, tell the object
 			// writer to record all written data to it.
-			info->casebuffers[info->casecursor] = w->RecordBuffer = new DataBuffer;
+			info->casebuffers[info->casecursor] = w->SwitchBuffer = new DataBuffer;
 			continue;
 		}
 		
@@ -474,9 +477,9 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 					// the lower block.
 					BlockInformation* previnfo = &blockstack[g_BlockStackCursor - 1];
 					if (previnfo->casecursor != -1)
-						w->RecordBuffer = previnfo->casebuffers[previnfo->casecursor];
+						w->SwitchBuffer = previnfo->casebuffers[previnfo->casecursor];
 					else
-						w->RecordBuffer = NULL;
+						w->SwitchBuffer = NULL;
 					
 					// Go through all of the buffers we
 					// recorded down and write them.
