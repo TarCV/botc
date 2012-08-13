@@ -636,6 +636,8 @@ static bool IsAssignmentOperator (int oper) {
 	case OPER_ASSIGNMUL:
 	case OPER_ASSIGNDIV:
 	case OPER_ASSIGNMOD:
+	case OPER_ASSIGNLEFTSHIFT:
+	case OPER_ASSIGNRIGHTSHIFT:
 	case OPER_ASSIGN:
 		return true;
 	}
@@ -650,6 +652,9 @@ static long DataHeaderByOperator (ScriptVar* var, int oper) {
 			error ("operator %d requires left operand to be a variable\n", oper);
 		
 		// TODO: At the moment, vars only are global
+		// OPER_ASSIGNLEFTSHIFT and OPER_ASSIGNRIGHTSHIFT do not
+		// have data headers, instead they are expanded out in
+		// the operator parser
 		switch (oper) {
 		case OPER_ASSIGNADD: return DH_ADDGLOBALVAR;
 		case OPER_ASSIGNSUB: return DH_SUBGLOBALVAR;
@@ -673,6 +678,8 @@ static long DataHeaderByOperator (ScriptVar* var, int oper) {
 	case OPER_GREATERTHAN: return DH_GREATERTHAN;
 	case OPER_LESSTHANEQUALS: return DH_LESSTHANEQUALS;
 	case OPER_GREATERTHANEQUALS: return DH_GREATERTHANEQUALS;
+	case OPER_LEFTSHIFT: return DH_LSHIFT;
+	case OPER_RIGHTSHIFT: return DH_RSHIFT;
 	}
 	
 	error ("DataHeaderByOperator: couldn't find dataheader for operator %d!\n", oper);
@@ -695,7 +702,7 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 		
 		// Can't be an assignement operator, those belong in assignments.
 		if (IsAssignmentOperator (oper))
-			ParserError ("assignment operator inside expressions");
+			ParserError ("assignment operator inside expression");
 		
 		// Parse the right operand,
 		MustNext ();
@@ -712,6 +719,7 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 
 // ============================================================================
 // Parses an operator string. Returns the operator number code.
+#define ISNEXT(char) !PeekNext (peek ? 1 : 0).compare (char)
 int ScriptReader::ParseOperator (bool peek) {
 	str oper;
 	if (peek)
@@ -720,10 +728,13 @@ int ScriptReader::ParseOperator (bool peek) {
 		oper += token;
 	
 	// Check one-char operators
-	bool equalsnext = !PeekNext (peek ? 1 : 0).compare ("=");
+	bool equalsnext = ISNEXT ("=");
+	bool morenext = ISNEXT (">");
+	bool lessnext = ISNEXT ("<");
+	
 	int o =	(!oper.compare ("=") && !equalsnext) ? OPER_ASSIGN :
-		(!oper.compare (">") && !equalsnext) ? OPER_GREATERTHAN :
-		(!oper.compare ("<") && !equalsnext) ? OPER_LESSTHAN :
+		(!oper.compare (">") && !equalsnext && !morenext) ? OPER_GREATERTHAN :
+		(!oper.compare ("<") && !equalsnext && !lessnext) ? OPER_LESSTHAN :
 		!oper.compare ("+") ? OPER_ADD :
 		!oper.compare ("-") ? OPER_SUBTRACT :
 		!oper.compare ("*") ? OPER_MULTIPLY :
@@ -737,6 +748,7 @@ int ScriptReader::ParseOperator (bool peek) {
 	
 	// Two-char operators
 	oper += PeekNext (peek ? 1 : 0);
+	equalsnext = !PeekNext (peek ? 2 : 1).compare ("=");
 	
 	o =	!oper.compare ("+=") ? OPER_ASSIGNADD :
 		!oper.compare ("-=") ? OPER_ASSIGNSUB :
@@ -747,10 +759,25 @@ int ScriptReader::ParseOperator (bool peek) {
 		!oper.compare ("!=") ? OPER_NOTEQUALS :
 		!oper.compare (">=") ? OPER_GREATERTHANEQUALS :
 		!oper.compare ("<=") ? OPER_LESSTHANEQUALS :
+		(!oper.compare ("<<") && !equalsnext) ? OPER_LEFTSHIFT :
+		(!oper.compare (">>") && !equalsnext) ? OPER_RIGHTSHIFT :
 		-1;
 	
-	if (o != -1)
+	if (o != -1) {
 		MustNext ();
+		return o;
+	}
+	
+	// Three-char opers
+	oper += PeekNext (peek ? 2 : 1);
+	o =	!oper.compare ("<<=") ? OPER_ASSIGNLEFTSHIFT :
+		!oper.compare (">>=") ? OPER_ASSIGNRIGHTSHIFT :
+		-1;
+	
+	if (o != -1) {
+		MustNext ();
+		MustNext ();
+	}
 	
 	return o;
 }
@@ -819,6 +846,8 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 // by an assignment operator, followed by an expression value. Expects current
 // token to be the name of the variable, and expects the variable to be given.
 DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
+	bool global = !var->statename.len ();
+	
 	// Get an operator
 	MustNext ();
 	int oper = ParseOperator ();
@@ -828,13 +857,27 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	if (g_CurMode == MODE_TOPLEVEL) // TODO: lift this restriction
 		ParserError ("can't alter variables at top level");
 	
-	// Parse the right operand,
+	// Parse the right operand
 	MustNext ();
-	DataBuffer* retbuf = ParseExpression (TYPE_INT);
+	DataBuffer* retbuf = new DataBuffer;
+	DataBuffer* expr = ParseExpression (TYPE_INT);
 	
-	long dh = DataHeaderByOperator (var, oper);
-	retbuf->Write<word> (dh);
-	retbuf->Write<word> (var->index);
+	// <<= and >>= do not have data headers. Solution: expand them.
+	// a <<= b -> a = a << b
+	// a >>= b -> a = a >> b
+	if (oper == OPER_ASSIGNLEFTSHIFT || oper == OPER_ASSIGNRIGHTSHIFT) {
+		retbuf->Write<word> (global ? DH_PUSHGLOBALVAR : DH_PUSHLOCALVAR);
+		retbuf->Write<word> (var->index);
+		retbuf->Merge (expr);
+		retbuf->Write<word> ((oper == OPER_ASSIGNLEFTSHIFT) ? DH_LSHIFT : DH_RSHIFT);
+		retbuf->Write<word> (global ? DH_ASSIGNGLOBALVAR : DH_ASSIGNLOCALVAR);
+		retbuf->Write<word> (var->index);
+	} else {
+		retbuf->Merge (expr);
+		long dh = DataHeaderByOperator (var, oper);
+		retbuf->Write<word> (dh);
+		retbuf->Write<word> (var->index);
+	}
 	
 	return retbuf;
 }
