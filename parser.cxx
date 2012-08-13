@@ -646,7 +646,7 @@ static bool IsAssignmentOperator (int oper) {
 
 // ============================================================================
 // Finds an operator's corresponding dataheader
-static long DataHeaderByOperator (ScriptVar* var, int oper) {
+static word DataHeaderByOperator (ScriptVar* var, int oper) {
 	if (IsAssignmentOperator (oper)) {
 		if (!var)
 			error ("operator %d requires left operand to be a variable\n", oper);
@@ -791,6 +791,11 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 	
 	ScriptVar* g;
 	
+	// Prefixing "!" means negation.
+	bool negate = !token.compare ("!");
+	if (negate) // Jump past the "!"
+		MustNext ();
+	
 	if (!token.compare ("(")) {
 		// Expression
 		MustNext ();
@@ -837,6 +842,10 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			break;
 		}
 	}
+	
+	// Negate it now if desired
+	if (negate)
+		b->Write<word> (DH_NEGATELOGICAL);
 	
 	return b;
 }
