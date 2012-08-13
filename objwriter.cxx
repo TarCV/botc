@@ -55,7 +55,7 @@ ObjWriter::ObjWriter (str path) {
 	MainBuffer = new DataBuffer;
 	MainLoopBuffer = new DataBuffer;
 	OnEnterBuffer = new DataBuffer;
-	RecordBuffer = NULL; // created on demand
+	SwitchBuffer = NULL; // created on demand
 	numWrittenBytes = 0;
 	numWrittenReferences = 0;
 	filepath = path;
@@ -146,7 +146,7 @@ void ObjWriter::WriteToFile () {
 }
 
 DataBuffer* ObjWriter::GetCurrentBuffer() {
-	return	RecordBuffer ? RecordBuffer :
+	return	SwitchBuffer ? SwitchBuffer :
 		(g_CurMode == MODE_MAINLOOP) ? MainLoopBuffer :
 		(g_CurMode == MODE_ONENTER) ? OnEnterBuffer :
 		MainBuffer;
