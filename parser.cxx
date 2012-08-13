@@ -680,6 +680,11 @@ static word DataHeaderByOperator (ScriptVar* var, int oper) {
 	case OPER_GREATERTHANEQUALS: return DH_GREATERTHANEQUALS;
 	case OPER_LEFTSHIFT: return DH_LSHIFT;
 	case OPER_RIGHTSHIFT: return DH_RSHIFT;
+	case OPER_OR: return DH_ORLOGICAL;
+	case OPER_AND: return DH_ANDLOGICAL;
+	case OPER_BITWISEOR: return DH_ORBITWISE;
+	case OPER_BITWISEEOR: return DH_EORBITWISE;
+	case OPER_BITWISEAND: return DH_ANDBITWISE;
 	}
 	
 	error ("DataHeaderByOperator: couldn't find dataheader for operator %d!\n", oper);
@@ -729,12 +734,13 @@ int ScriptReader::ParseOperator (bool peek) {
 	
 	// Check one-char operators
 	bool equalsnext = ISNEXT ("=");
-	bool morenext = ISNEXT (">");
-	bool lessnext = ISNEXT ("<");
 	
 	int o =	(!oper.compare ("=") && !equalsnext) ? OPER_ASSIGN :
-		(!oper.compare (">") && !equalsnext && !morenext) ? OPER_GREATERTHAN :
-		(!oper.compare ("<") && !equalsnext && !lessnext) ? OPER_LESSTHAN :
+		(!oper.compare (">") && !equalsnext && !ISNEXT (">")) ? OPER_GREATERTHAN :
+		(!oper.compare ("<") && !equalsnext && !ISNEXT ("<")) ? OPER_LESSTHAN :
+		(!oper.compare ("&") && !ISNEXT ("&")) ? OPER_BITWISEAND :
+		(!oper.compare ("|") && !ISNEXT ("|")) ? OPER_BITWISEOR :
+		!oper.compare ("^") ? OPER_BITWISEEOR :
 		!oper.compare ("+") ? OPER_ADD :
 		!oper.compare ("-") ? OPER_SUBTRACT :
 		!oper.compare ("*") ? OPER_MULTIPLY :
@@ -759,6 +765,8 @@ int ScriptReader::ParseOperator (bool peek) {
 		!oper.compare ("!=") ? OPER_NOTEQUALS :
 		!oper.compare (">=") ? OPER_GREATERTHANEQUALS :
 		!oper.compare ("<=") ? OPER_LESSTHANEQUALS :
+		!oper.compare ("&&") ? OPER_AND :
+		!oper.compare ("||") ? OPER_OR :
 		(!oper.compare ("<<") && !equalsnext) ? OPER_LEFTSHIFT :
 		(!oper.compare (">>") && !equalsnext) ? OPER_RIGHTSHIFT :
 		-1;
