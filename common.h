@@ -120,7 +120,7 @@ inline bool IsCharWhitespace (char c) {
 // Byte datatype
 // typedef unsigned long int word;
 typedef int32_t word;
-typedef uint8_t byte;
+typedef unsigned char byte;
 
 // Keywords
 #ifndef __MAIN_CXX__

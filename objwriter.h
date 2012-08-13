@@ -54,13 +54,33 @@ class ObjWriter {
 public:
 	// ====================================================================
 	// MEMBERS
+	
+	// Pointer to the file we're writing to
 	FILE* fp;
+	
+	// Path to the file we're writing to
 	str filepath;
+	
+	// The main buffer - the contents of this is what we
+	// write to file after parsing is complete
 	DataBuffer* MainBuffer;
+	
+	// onenter buffer - the contents of the onenter{} block
+	// is buffered here and is merged further at the end of state
 	DataBuffer* OnEnterBuffer;
+	
+	// Mainloop buffer - the contents of the mainloop{} block
+	// is buffered here and is merged further at the end of state
 	DataBuffer* MainLoopBuffer;
+	
+	// Switch buffer - switch case data is recorded to this
+	// buffer initially, instead of into main buffer.
 	DataBuffer* SwitchBuffer;
+	
+	// How many bytes have we written to file?
 	unsigned int numWrittenBytes;
+	
+	// How many references did we resolve in the main buffer?
 	unsigned int numWrittenReferences;
 	
 	// ====================================================================
@@ -83,9 +103,7 @@ public:
 	void DeleteMark (unsigned int mark);
 	
 	template <class T> void Write (T stuff) {
-		DataBuffer* buffer = GetCurrentBuffer ();
-		buffer->Write<T> (stuff);
-		return;
+		GetCurrentBuffer ()->Write<T> (stuff);
 	}
 	
 	// Default to word
@@ -93,11 +111,13 @@ public:
 		Write<word> (stuff);
 	}
 	
+private:
+	// Write given data to file.
 	template <class T> void WriteDataToFile (T stuff) {
 		// One byte at a time
+		union_t<T> uni;
+		uni.val = stuff;
 		for (unsigned int x = 0; x < sizeof (T); x++) {
-			union_t<T> uni;
-			uni.val = stuff;
 			fwrite (&uni.b[x], 1, 1, fp);
 			numWrittenBytes++;
 		}

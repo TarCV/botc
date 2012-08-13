@@ -67,6 +67,9 @@ struct BlockInformation {
 	// Marks to case-blocks
 	int casemarks[MAX_CASE];
 	
+	// Numbers of the case labels
+	int casenumbers[MAX_CASE];
+	
 	// actual case blocks
 	DataBuffer* casebuffers[MAX_CASE];
 	
@@ -119,7 +122,7 @@ public:
 	void ParserWarning (const char* message, ...);
 	
 	// parser.cxx:
-	void BeginParse (ObjWriter* w);
+	void ParseBotScript (ObjWriter* w);
 	DataBuffer* ParseCommand (CommandDef* comm);
 	DataBuffer* ParseExpression (int reqtype);
 	DataBuffer* ParseAssignment (ScriptVar* var);
@@ -131,6 +134,7 @@ public:
 	void PreprocessDirectives ();
 	void PreprocessMacros ();
 	DataBuffer* ParseStatement (ObjWriter* w);
+	void AddSwitchCase (ObjWriter* w, DataBuffer* b);
 	
 private:
 	bool atnewline;
