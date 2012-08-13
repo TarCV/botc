@@ -59,6 +59,7 @@ public:
 	DataBuffer* MainBuffer;
 	DataBuffer* OnEnterBuffer;
 	DataBuffer* MainLoopBuffer;
+	DataBuffer* RecordBuffer;
 	unsigned int numWrittenBytes;
 	unsigned int numWrittenReferences;
 	

@@ -57,6 +57,8 @@
 #include "botcommands.h"
 
 const char* g_Keywords[] = {
+	"break",
+	"case",
 	"do",
 	"event",
 	"for",
@@ -66,21 +68,22 @@ const char* g_Keywords[] = {
 	"onenter",
 	"onexit",
 	"state",
+	"switch",
 	"var"
 	"while",
 	
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
-	"break",
-	"case",
 	"continue",
 	"default",
 	"else",
 	"enum", // Would enum actually be useful? I think so.
 	"func", // Would function support need external support from zandronum?
 	"return",
-	"switch",
 };
+
+// databuffer global variable
+int g_NextMark = 0;
 
 int main (int argc, char** argv) {
 	// Intepret command-line parameters:
@@ -164,18 +167,22 @@ int main (int argc, char** argv) {
 	ObjWriter *w = new ObjWriter (outfile);
 	
 	// We're set, begin parsing :)
-	printf ("Parsing script..\n");
+	printf ("Parsing script...\n");
 	r->BeginParse (w);
+	printf ("Script parsed successfully.\n");
 	
 	// Parse done, print statistics and write to file
 	unsigned int globalcount = CountGlobalVars ();
+	unsigned int stringcount = CountStringTable ();
 	int NumMarks = w->MainBuffer->CountMarks ();
 	int NumRefs = w->MainBuffer->CountReferences ();
-	printf ("%u / %u global variable%s\n", globalcount, MAX_SCRIPT_VARIABLES, PLURAL (globalcount));
-	printf ("%d / %d mark%s used\n", NumMarks, MAX_MARKS, PLURAL (NumMarks));
-	printf ("%d / %d ref%s used\n", NumRefs, MAX_MARKS, PLURAL (NumRefs));
-	printf ("%d state%s written\n", g_NumStates, PLURAL (g_NumStates));
-	printf ("%d event%s written\n", g_NumEvents, PLURAL (g_NumEvents));
+	printf ("%u / %u strings written\n", stringcount, MAX_LIST_STRINGS);
+	printf ("%u / %u global variables\n", globalcount, MAX_SCRIPT_VARIABLES);
+	printf ("%d / %d bytecode marks\n", NumMarks, MAX_MARKS);
+	printf ("%d / %d bytecode references\n", NumRefs, MAX_MARKS);
+	printf ("%d / %d events\n", g_NumEvents, MAX_NUM_EVENTS);
+	printf ("%d state%s\n", g_NumStates, PLURAL (g_NumStates));
+	
 	w->WriteToFile ();
 	
 	// Clear out the junk

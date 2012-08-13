@@ -201,6 +201,8 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			MustNext ();
 			
 			// Find the mark this goto statement points to
+			// TODO: This should define the mark instead of bombing
+			// out if the mark isn't found!
 			unsigned int m = w->FindMark (token);
 			if (m == MAX_MARKS)
 				ParserError ("unknown label `%s`!", token.chars());
@@ -221,7 +223,9 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 			// Condition
 			MustNext ("(");
 			
-			// Read the expression and write it. Store it to memory too for else statements.
+			// Read the expression and write it.
+			// TODO: This should be storing it into a variable first, so
+			// that else statements would be possible!
 			MustNext ();
 			DataBuffer* c = ParseExpression (TYPE_INT);
 			w->WriteBuffer (c);
@@ -334,6 +338,99 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 		}
 		
 		// ============================================================
+		// Switch
+		if (!token.icompare ("switch")) {
+			/* This goes a bit tricky. switch is structured in the
+			 * bytecode followingly:
+			 * (expression)
+			 * case a: goto casemark1
+			 * case b: goto casemark2
+			 * case c: goto casemark3
+			 * goto mark1 // jump to end if no matches
+			 * casemark1: ...
+			 * casemark2: ...
+			 * casemark3: ...
+			 * mark1: // end mark
+			 */
+			
+			MUST_NOT_TOPLEVEL
+			PushBlockStack ();
+			MustNext ("(");
+			MustNext ();
+			w->WriteBuffer (ParseExpression (TYPE_INT));
+			MustNext (")");
+			MustNext ("{");
+			blockstack[g_BlockStackCursor].type = BLOCKTYPE_SWITCH;
+			blockstack[g_BlockStackCursor].mark1 = w->AddMark (""); // end mark
+			continue;
+		}
+		
+		// ============================================================
+		if (!token.icompare ("case")) {
+			// case is only allowed inside switch
+			if (g_BlockStackCursor <= 0 || blockstack[g_BlockStackCursor].type != BLOCKTYPE_SWITCH)
+				ParserError ("`case` outside switch");
+			
+			BlockInformation* info = &blockstack[g_BlockStackCursor];
+			info->casecursor++;
+			if (info->casecursor >= MAX_CASE)
+				ParserError ("too many `case` statements in one switch");
+			
+			// Get the literal (Zandronum does not support expressions here)
+			MustNumber ();
+			int num = atoi (token.chars ());
+			
+			MustNext (":");
+			
+			// Init a mark for the case buffer
+			int m = w->AddMark ("");
+			info->casemarks[info->casecursor] = m;
+			
+			// Write down the expression and case-go-to. This builds
+			// the case tree. The closing event will write the actual
+			// blocks and move the marks appropriately.
+			info->casebuffers[info->casecursor] = w->RecordBuffer = NULL;
+			w->Write<word> (DH_CASEGOTO);
+			w->Write<word> (num);
+			w->AddReference (m);
+			
+			// Init a buffer for the case block, tell the object
+			// writer to record all written data to it.
+			info->casebuffers[info->casecursor] = w->RecordBuffer = new DataBuffer;
+			continue;
+		}
+		
+		// ============================================================
+		// Break statement.
+		if (!token.icompare ("break")) {
+			if (!g_BlockStackCursor)
+				ParserError ("unexpected `break`");
+			
+			BlockInformation* info = &blockstack[g_BlockStackCursor];
+			
+			w->Write<word> (DH_GOTO);
+			
+			// switch and if use mark1 for the closing point,
+			// for and while use mark2.
+			switch (info->type) {
+			case BLOCKTYPE_IF:
+			case BLOCKTYPE_SWITCH:
+				w->AddReference (info->mark1);
+				break;
+			case BLOCKTYPE_FOR:
+			case BLOCKTYPE_WHILE:
+				w->AddReference (info->mark2);
+				break;
+			default:
+				ParserError ("unexpected `break`");
+				break;
+			}
+			
+			MustNext (";");
+			continue;
+		}
+		
+		// ============================================================
 		if (!token.compare ("}")) {
 			// Closing brace
 			
@@ -357,7 +454,7 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 					// Move the closing mark here since we're at the end of the while loop
 					w->MoveMark (info->mark2);
 					break;
-				case BLOCKTYPE_DO:
+				case BLOCKTYPE_DO: { 
 					MustNext ("while");
 					MustNext ("(");
 					MustNext ();
@@ -370,6 +467,30 @@ void ScriptReader::BeginParse (ObjWriter* w) {
 					w->Write<long> (DH_IFGOTO);
 					w->AddReference (info->mark1);
 					break;
+				}
+				
+				case BLOCKTYPE_SWITCH: {
+					// Switch closes. Move down to the record buffer of
+					// the lower block.
+					BlockInformation* previnfo = &blockstack[g_BlockStackCursor - 1];
+					if (previnfo->casecursor != -1)
+						w->RecordBuffer = previnfo->casebuffers[previnfo->casecursor];
+					else
+						w->RecordBuffer = NULL;
+					
+					// Go through all of the buffers we
+					// recorded down and write them.
+					for (unsigned int u = 0; u < MAX_CASE; u++) {
+						if (!info->casebuffers[u])
+							continue;
+						
+						w->MoveMark (info->casemarks[u]);
+						w->WriteBuffer (info->casebuffers[u]);
+					}
+					
+					// Move the closing mark here
+					w->MoveMark (info->mark1);
+				}
 				}
 				
 				// Descend down the stack
@@ -693,6 +814,11 @@ void ScriptReader::PushBlockStack () {
 	info->mark1 = 0;
 	info->mark2 = 0;
 	info->buffer1 = NULL;
+	info->casecursor = -1;
+	for (int i = 0; i < MAX_CASE; i++) {
+		info->casemarks[i] = MAX_MARKS;
+		info->casebuffers[i] = NULL;
+	}
 }
 
 DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {

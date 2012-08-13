@@ -46,6 +46,8 @@
 
 #define MAX_MARKS 256
 
+extern int g_NextMark;
+
 // ============================================================================
 // DataBuffer: A dynamic data buffer.
 class DataBuffer {
@@ -136,23 +138,38 @@ public:
 	void Merge (DataBuffer* other) {
 		if (!other)
 			return;
+		int oldsize = writesize;
 		
 		for (unsigned int x = 0; x < other->writesize; x++)
-			Write<unsigned char> (*(other->buffer+x));
+			Write<byte> (*(other->buffer+x));
 		
 		// Merge its marks and references
 		unsigned int u = 0;
 		for (u = 0; u < MAX_MARKS; u++) {
 			if (other->marks[u]) {
 				// Add the mark and offset its position.
-				unsigned int u = AddMark (other->marks[u]->name);
-				marks[u]->pos += other->writesize;
+				/* str name = other->marks[u]->name;
+				unsigned int x = AddMark (name);
+				marks[x]->pos = other->marks[u]->pos + oldsize;
+				*/
+				
+				if (marks[u])
+					error ("DataBuffer: duplicate mark %d!\n");
+				
+				marks[u] = other->marks[u];
+				marks[u]->pos += oldsize;
+				
+				// The original mark becomes NULL so that the deconstructor
+				// will not delete it prematurely. (should it delete any
+				// marks in the first place since there is no such thing
+				// as at temporary mark?)
+				other->marks[u] = NULL;
 			}
 			
 			if (other->refs[u]) {
 				// Same for references
-				unsigned int r = AddMarkReference (other->refs[u]->num);
-				refs[r]->pos += other->writesize;
+				unsigned int r = AddMarkReference (other->refs[u]->num, false);
+				refs[r]->pos = other->refs[u]->pos + oldsize;
 			}
 		}
 		
@@ -174,10 +191,10 @@ public:
 	// to "mark" a position like that for future use.
 	unsigned int AddMark (str name) {
 		// Find a free slot for the mark
-		unsigned int u;
-		for (u = 0; u < MAX_MARKS; u++)
-			if (!marks[u])
-				break;
+		unsigned int u = g_NextMark++;
+		
+		if (marks[u])
+			error ("DataBuffer: attempted to re-create mark %u!\n", u);
 		
 		if (u >= MAX_MARKS)
 			error ("mark quota exceeded, all labels, if-structs and loops add marks\n");
@@ -193,7 +210,7 @@ public:
 	// A ref is another "mark" that references a mark. When the bytecode
 	// is written to file, they are changed into their marks' current
 	// positions. Marks themselves are never written to files, only refs are
-	unsigned int AddMarkReference (unsigned int marknum) {
+	unsigned int AddMarkReference (unsigned int marknum, bool placeholder = true) {
 		unsigned int u;
 		for (u = 0; u < MAX_MARKS; u++)
 			if (!refs[u])
@@ -212,7 +229,8 @@ public:
 		refs[u] = r;
 		
 		// Write a dummy placeholder for the reference
-		Write<word> (1234);
+		if (placeholder)
+			Write<word> (1234);
 		
 		return u;
 	}

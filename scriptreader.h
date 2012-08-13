@@ -48,6 +48,7 @@
 
 #define MAX_FILESTACK 8
 #define MAX_STRUCTSTACK 32
+#define MAX_CASE 64
 
 class ScriptVar;
 
@@ -58,6 +59,19 @@ struct BlockInformation {
 	unsigned int mark2;
 	unsigned int type;
 	DataBuffer* buffer1;
+	
+	// switch-related stuff
+	// Which case are we at?
+	short casecursor;
+	
+	// Marks to case-blocks
+	int casemarks[MAX_CASE];
+	
+	// actual case blocks
+	DataBuffer* casebuffers[MAX_CASE];
+	
+	// What is the current buffer of the block?
+	DataBuffer* recordbuffer;
 };
 
 // ============================================================================
@@ -170,6 +184,7 @@ enum {
 	BLOCKTYPE_WHILE,
 	BLOCKTYPE_FOR,
 	BLOCKTYPE_DO,
+	BLOCKTYPE_SWITCH,
 };
 
 #endif // __SCRIPTREADER_H__
