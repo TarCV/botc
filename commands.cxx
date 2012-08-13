@@ -77,7 +77,7 @@ void ReadCommands () {
 		r->MustNext ();
 		comm->returnvalue = GetCommandType (r->token);
 		if (comm->returnvalue == -1)
-			r->ParserError ("bad return value type `%s`", r->token.chars());
+			r->ParserError ("bad return value type `%s` for command %s", r->token.chars(), comm->name.chars());
 		
 		r->MustNext (":");
 		
@@ -158,13 +158,9 @@ void ReadCommands () {
 // ============================================================================
 // Get command type by name
 int GetCommandType (str t) {
-	// "float" is for now just int.
-	// TODO: find out how BotScript floats work
-	// (are they real floats or fixed? how are they
-	// stored?) and add proper floating point number support.
 	t = t.tolower();
 	return	!t.compare ("int") ? TYPE_INT :
-		!t.compare ("float") ? TYPE_INT :
+		!t.compare ("float") ? TYPE_FLOAT :
 		!t.compare ("str") ? TYPE_STRING :
 		!t.compare ("void") ? TYPE_VOID :
 		!t.compare ("bool") ? TYPE_INT : -1;
