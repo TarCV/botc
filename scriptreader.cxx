@@ -370,10 +370,8 @@ void ScriptReader::MustString (bool gotquote) {
 
 // ============================================================================
 void ScriptReader::MustNumber (bool fromthis) {
-	str num;
 	if (!fromthis)
 		MustNext ();
-	num += token;
 	
 	// "true" and "false" are valid numbers
 	if (!token.icompare ("true"))
@@ -381,13 +379,11 @@ void ScriptReader::MustNumber (bool fromthis) {
 	else if (!token.icompare ("false"))
 		token = "0";
 	else {
-		if (!num.isnumber())
-			ParserError ("expected a number, got `%s`", num.chars());
-		token = num;
+		if (!token.isnumber())
+			ParserError ("expected a number, got `%s`", token.chars());
 		
-		// Overflow check
 		str check;
-		check.appendformat ("%d", atoi (num));
+		check.appendformat ("%d", atoi (token));
 		if (token.compare (check) != 0)
 			ParserWarning ("integer too large: %s -> %s", token.chars(), check.chars());
 	}
