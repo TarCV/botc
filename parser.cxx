@@ -68,7 +68,7 @@ bool g_GotMainLoop = false;
 unsigned int g_ScopeCursor = 0;
 DataBuffer* g_IfExpression = NULL;
 bool g_CanElse = false;
-str* g_UnmarkedLabels[MAX_MARKS];
+str* g_UndefinedLabels[MAX_MARKS];
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
@@ -80,7 +80,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		ZERO(scopestack[i]);
 	
 	for (int i = 0; i < MAX_MARKS; i++)
-		g_UnmarkedLabels[i] = NULL;
+		g_UndefinedLabels[i] = NULL;
 	
 	while (Next()) {
 		// Check if else is potentically valid
@@ -206,7 +206,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// If not set, define it
 			if (m == MAX_MARKS) {
 				m = w->AddMark (token);
-				g_UnmarkedLabels[m] = new str (token);
+				g_UndefinedLabels[m] = new str (token);
 			}
 			
 			// Add a reference to the mark.
@@ -515,16 +515,16 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			if (FindGlobalVariable (token))
 				ParserError ("label name `%s` conflicts with variable\n", token.chars());
 			
-			// See if the label is already defined but unmarked
+			// See if a mark already exists for this label
 			int mark = -1;
 			for (int i = 0; i < MAX_MARKS; i++) {
-				if (g_UnmarkedLabels[i] && !g_UnmarkedLabels[i]->compare (token)) {
+				if (g_UndefinedLabels[i] && !g_UndefinedLabels[i]->compare (token)) {
 					mark = i;
 					w->MoveMark (i);
 					
-					// No longer unmarked
-					delete g_UnmarkedLabels[i];
-					g_UnmarkedLabels[i] = NULL;
+					// No longer undefinde
+					delete g_UndefinedLabels[i];
+					g_UndefinedLabels[i] = NULL;
 				}
 			}
 			
@@ -655,8 +655,8 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		ParserError ("script must have a state named `stateSpawn`!");
 	
 	for (int i = 0; i < MAX_MARKS; i++)
-		if (g_UnmarkedLabels[i])
-			ParserError ("label `%s` is referenced via `goto` but isn't defined\n", g_UnmarkedLabels[i]->chars());
+		if (g_UndefinedLabels[i])
+			ParserError ("label `%s` is referenced via `goto` but isn't defined\n", g_UndefinedLabels[i]->chars());
 	
 	// Dump the last state's onenter and mainloop
 	w->WriteBuffers ();
