@@ -68,6 +68,7 @@ bool g_GotMainLoop = false;
 unsigned int g_ScopeCursor = 0;
 DataBuffer* g_IfExpression = NULL;
 bool g_CanElse = false;
+str* g_UnmarkedLabels[MAX_MARKS];
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
@@ -77,6 +78,9 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 	// Zero the entire block stack first
 	for (int i = 0; i < MAX_SCOPE; i++)
 		ZERO(scopestack[i]);
+	
+	for (int i = 0; i < MAX_MARKS; i++)
+		g_UnmarkedLabels[i] = NULL;
 	
 	while (Next()) {
 		// Check if else is potentically valid
@@ -197,11 +201,13 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MustNext ();
 			
 			// Find the mark this goto statement points to
-			// TODO: This should define the mark instead of bombing
-			// out if the mark isn't found!
 			unsigned int m = w->FindMark (token);
-			if (m == MAX_MARKS)
-				ParserError ("unknown label `%s`!", token.chars());
+			
+			// If not set, define it
+			if (m == MAX_MARKS) {
+				m = w->AddMark (token);
+				g_UnmarkedLabels[m] = new str (token);
+			}
 			
 			// Add a reference to the mark.
 			w->Write<word> (DH_GOTO);
@@ -501,6 +507,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		if (!PeekNext().compare (":")) {
 			MUST_NOT_TOPLEVEL
 			
+			// want no conflicts..
 			if (IsKeyword (token))
 				ParserError ("label name `%s` conflicts with keyword\n", token.chars());
 			if (FindCommand (token))
@@ -508,7 +515,23 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			if (FindGlobalVariable (token))
 				ParserError ("label name `%s` conflicts with variable\n", token.chars());
 			
-			w->AddMark (token);
+			// See if the label is already defined but unmarked
+			int mark = -1;
+			for (int i = 0; i < MAX_MARKS; i++) {
+				if (g_UnmarkedLabels[i] && !g_UnmarkedLabels[i]->compare (token)) {
+					mark = i;
+					w->MoveMark (i);
+					
+					// No longer unmarked
+					delete g_UnmarkedLabels[i];
+					g_UnmarkedLabels[i] = NULL;
+				}
+			}
+			
+			// Not found in unmarked lists, define it now
+			if (mark == -1)
+				w->AddMark (token);
+			
 			MustNext (":");
 			continue;
 		}
@@ -630,6 +653,10 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 	// stateSpawn must be defined!
 	if (!g_stateSpawnDefined)
 		ParserError ("script must have a state named `stateSpawn`!");
+	
+	for (int i = 0; i < MAX_MARKS; i++)
+		if (g_UnmarkedLabels[i])
+			ParserError ("label `%s` is referenced via `goto` but isn't defined\n", g_UnmarkedLabels[i]->chars());
 	
 	// Dump the last state's onenter and mainloop
 	w->WriteBuffers ();
