@@ -105,7 +105,12 @@ int main (int argc, char** argv) {
 	// Print header
 	str header;
 	str headerline = "-=";
-	header.appendformat ("%s version %d.%d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
+	header.appendformat ("%s version %d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR);
+	
+	// Include revision if non-zero
+	if (VERSION_REVISION)
+		header.appendformat (".%d", VERSION_REVISION);
+	
 	headerline.repeat ((header.len()/2)-1);
 	headerline += '-';
 	printf ("%s\n%s\n", header.chars(), headerline.chars());
