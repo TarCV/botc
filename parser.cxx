@@ -67,6 +67,7 @@ bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
 unsigned int g_BlockStackCursor = 0;
 DataBuffer* g_IfExpression = NULL;
+bool g_CanElse = false;
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
@@ -78,6 +79,12 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		memset (&blockstack[i], 0, sizeof (BlockInformation));
 	
 	while (Next()) {
+		// Check if else is potentically valid
+		if (!token.compare ("else") && !g_CanElse)
+			ParserError ("else without preceding if");
+		if (token.compare ("else") != 0)
+			g_CanElse = false;
+		
 		// ============================================================
 		if (!token.compare ("state")) {
 			MUST_TOPLEVEL
@@ -488,6 +495,9 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 				case BLOCKTYPE_IF:
 					// Adjust the closing mark.
 					w->MoveMark (SCOPE(0).mark1);
+					
+					// We're returning from if, thus else can be next
+					g_CanElse = true;
 					break;
 				case BLOCKTYPE_ELSE:
 					// else instead uses mark1 for itself (so if expression
