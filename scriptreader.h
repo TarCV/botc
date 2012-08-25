@@ -47,14 +47,14 @@
 #include "commands.h"
 
 #define MAX_FILESTACK 8
-#define MAX_STRUCTSTACK 32
+#define MAX_SCOPE 32
 #define MAX_CASE 64
 
 class ScriptVar;
 
 // ============================================================================
 // Meta-data about blocks
-struct BlockInformation {
+struct ScopeInfo {
 	unsigned int mark1;
 	unsigned int mark2;
 	unsigned int type;
@@ -91,7 +91,7 @@ public:
 	unsigned int pos[MAX_FILESTACK];
 	unsigned int curline[MAX_FILESTACK];
 	unsigned int curchar[MAX_FILESTACK];
-	BlockInformation scopestack[MAX_STRUCTSTACK];
+	ScopeInfo scopestack[MAX_SCOPE];
 	long savedpos[MAX_FILESTACK]; // filepointer cursor position
 	str token;
 	int commentmode;
