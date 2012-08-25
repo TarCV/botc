@@ -61,6 +61,7 @@ const char* g_Keywords[] = {
 	"case",
 	"default",
 	"do",
+	"else",
 	"event",
 	"for",
 	"goto",
@@ -76,7 +77,6 @@ const char* g_Keywords[] = {
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
 	"continue",
-	"else",
 	"enum", // Would enum actually be useful? I think so.
 	"func", // Would function support need external support from zandronum?
 	"return",
