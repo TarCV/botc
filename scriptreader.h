@@ -91,7 +91,7 @@ public:
 	unsigned int pos[MAX_FILESTACK];
 	unsigned int curline[MAX_FILESTACK];
 	unsigned int curchar[MAX_FILESTACK];
-	BlockInformation blockstack[MAX_STRUCTSTACK];
+	BlockInformation scopestack[MAX_STRUCTSTACK];
 	long savedpos[MAX_FILESTACK]; // filepointer cursor position
 	str token;
 	int commentmode;
@@ -128,7 +128,7 @@ public:
 	DataBuffer* ParseAssignment (ScriptVar* var);
 	int ParseOperator (bool peek = false);
 	DataBuffer* ParseExprValue (int reqtype);
-	void PushBlockStack ();
+	void PushScope ();
 	
 	// preprocessor.cxx:
 	void PreprocessDirectives ();
@@ -194,13 +194,13 @@ enum {
 
 // Block types
 enum {
-	BLOCKTYPE_UNSET = 0,
-	BLOCKTYPE_IF,
-	BLOCKTYPE_WHILE,
-	BLOCKTYPE_FOR,
-	BLOCKTYPE_DO,
-	BLOCKTYPE_SWITCH,
-	BLOCKTYPE_ELSE,
+	SCOPETYPE_UNSET = 0,
+	SCOPETYPE_IF,
+	SCOPETYPE_WHILE,
+	SCOPETYPE_FOR,
+	SCOPETYPE_DO,
+	SCOPETYPE_SWITCH,
+	SCOPETYPE_ELSE,
 };
 
 #endif // __SCRIPTREADER_H__

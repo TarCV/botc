@@ -57,7 +57,7 @@
 #define MUST_NOT_TOPLEVEL if (g_CurMode == MODE_TOPLEVEL) \
 	ParserError ("%s-statements may not be defined at top level!", token.chars());
 
-#define SCOPE(n) blockstack[g_BlockStackCursor - n]
+#define SCOPE(n) scopestack[g_ScopeCursor - n]
 
 int g_NumStates = 0;
 int g_NumEvents = 0;
@@ -65,7 +65,7 @@ int g_CurMode = MODE_TOPLEVEL;
 str g_CurState = "";
 bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
-unsigned int g_BlockStackCursor = 0;
+unsigned int g_ScopeCursor = 0;
 DataBuffer* g_IfExpression = NULL;
 bool g_CanElse = false;
 
@@ -76,7 +76,7 @@ bool g_CanElse = false;
 void ScriptReader::ParseBotScript (ObjWriter* w) {
 	// Zero the entire block stack first
 	for (int i = 0; i < MAX_STRUCTSTACK; i++)
-		memset (&blockstack[i], 0, sizeof (BlockInformation));
+		memset (&scopestack[i], 0, sizeof (BlockInformation));
 	
 	while (Next()) {
 		// Check if else is potentically valid
@@ -214,7 +214,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		// If
 		if (!token.compare ("if")) {
 			MUST_NOT_TOPLEVEL
-			PushBlockStack ();
+			PushScope ();
 			
 			// Condition
 			MustNext ("(");
@@ -232,13 +232,13 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			unsigned int marknum = w->AddMark ("");
 			
 			// Use DH_IFNOTGOTO - if the expression is not true, we goto the mark
-			// we just defined - and this mark will be at the end of the block.
+			// we just defined - and this mark will be at the end of the scope block.
 			w->Write<word> (DH_IFNOTGOTO);
 			w->AddReference (marknum);
 			
-			// Store it in the block stack
+			// Store it
 			SCOPE(0).mark1 = marknum;
-			SCOPE(0).type = BLOCKTYPE_IF;
+			SCOPE(0).type = SCOPETYPE_IF;
 			continue;
 		}
 		
@@ -246,12 +246,12 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MUST_NOT_TOPLEVEL
 			MustNext ("{");
 			
-			// Don't use PushBlockStack as that will reset the scope.
-			g_BlockStackCursor++;
-			if (g_BlockStackCursor >= MAX_STRUCTSTACK)
+			// Don't use PushScope that will reset the scope.
+			g_ScopeCursor++;
+			if (g_ScopeCursor >= MAX_STRUCTSTACK)
 				ParserError ("too deep scope");
 			
-			if (SCOPE(0).type != BLOCKTYPE_IF)
+			if (SCOPE(0).type != SCOPETYPE_IF)
 				ParserError ("else without preceding if");
 			
 			// Write down to jump to the end of the else statement
@@ -264,7 +264,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			
 			// Move the ifnot mark here and set type to else
 			w->MoveMark (SCOPE(0).mark1);
-			SCOPE(0).type = BLOCKTYPE_ELSE;
+			SCOPE(0).type = SCOPETYPE_ELSE;
 			continue;
 		}
 		
@@ -272,7 +272,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		// While
 		if (!token.compare ("while")) {
 			MUST_NOT_TOPLEVEL
-			PushBlockStack ();
+			PushScope ();
 			
 			// While loops need two marks - one at the start of the loop and one at the
 			// end. The condition is checked at the very start of the loop, if it fails,
@@ -298,7 +298,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// Store the needed stuff
 			SCOPE(0).mark1 = mark1;
 			SCOPE(0).mark2 = mark2;
-			SCOPE(0).type = BLOCKTYPE_WHILE;
+			SCOPE(0).type = SCOPETYPE_WHILE;
 			continue;
 		}
 		
@@ -306,7 +306,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		// For loop
 		if (!token.compare ("for")) {
 			MUST_NOT_TOPLEVEL
-			PushBlockStack ();
+			PushScope ();
 			
 			// Initializer
 			MustNext ("(");
@@ -341,7 +341,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			SCOPE(0).mark1 = mark1;
 			SCOPE(0).mark2 = mark2;
 			SCOPE(0).buffer1 = incr;
-			SCOPE(0).type = BLOCKTYPE_FOR;
+			SCOPE(0).type = SCOPETYPE_FOR;
 			continue;
 		}
 		
@@ -349,10 +349,10 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		// Do/while loop
 		if (!token.compare ("do")) {
 			MUST_NOT_TOPLEVEL
-			PushBlockStack ();
+			PushScope ();
 			MustNext ("{");
 			SCOPE(0).mark1 = w->AddMark ("");
-			SCOPE(0).type = BLOCKTYPE_DO;
+			SCOPE(0).type = SCOPETYPE_DO;
 			continue;
 		}
 		
@@ -373,13 +373,13 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			 */
 			
 			MUST_NOT_TOPLEVEL
-			PushBlockStack ();
+			PushScope ();
 			MustNext ("(");
 			MustNext ();
 			w->WriteBuffer (ParseExpression (TYPE_INT));
 			MustNext (")");
 			MustNext ("{");
-			SCOPE(0).type = BLOCKTYPE_SWITCH;
+			SCOPE(0).type = SCOPETYPE_SWITCH;
 			SCOPE(0).mark1 = w->AddMark (""); // end mark
 			SCOPE(0).buffer1 = NULL; // default header
 			continue;
@@ -388,7 +388,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		// ============================================================
 		if (!token.compare ("case")) {
 			// case is only allowed inside switch
-			if (SCOPE(0).type != BLOCKTYPE_SWITCH)
+			if (SCOPE(0).type != SCOPETYPE_SWITCH)
 				ParserError ("case label outside switch");
 			
 			// Get the literal (Zandronum does not support expressions here)
@@ -417,7 +417,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		if (!token.compare ("default")) {
-			if (SCOPE(0).type != BLOCKTYPE_SWITCH)
+			if (SCOPE(0).type != SCOPETYPE_SWITCH)
 				ParserError ("default label outside switch");
 			
 			if (SCOPE(0).buffer1)
@@ -443,7 +443,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		// ============================================================
 		// Break statement.
 		if (!token.compare ("break")) {
-			if (!g_BlockStackCursor)
+			if (!g_ScopeCursor)
 				ParserError ("unexpected `break`");
 			
 			w->Write<word> (DH_GOTO);
@@ -451,12 +451,12 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// switch and if use mark1 for the closing point,
 			// for and while use mark2.
 			switch (SCOPE(0).type) {
-			case BLOCKTYPE_IF:
-			case BLOCKTYPE_SWITCH:
+			case SCOPETYPE_IF:
+			case SCOPETYPE_SWITCH:
 				w->AddReference (SCOPE(0).mark1);
 				break;
-			case BLOCKTYPE_FOR:
-			case BLOCKTYPE_WHILE:
+			case SCOPETYPE_FOR:
+			case SCOPETYPE_WHILE:
 				w->AddReference (SCOPE(0).mark2);
 				break;
 			default:
@@ -490,25 +490,25 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// Closing brace
 			
 			// If we're in the block stack, we're descending down from it now
-			if (g_BlockStackCursor > 0) {
+			if (g_ScopeCursor > 0) {
 				switch (SCOPE(0).type) {
-				case BLOCKTYPE_IF:
+				case SCOPETYPE_IF:
 					// Adjust the closing mark.
 					w->MoveMark (SCOPE(0).mark1);
 					
 					// We're returning from if, thus else can be next
 					g_CanElse = true;
 					break;
-				case BLOCKTYPE_ELSE:
+				case SCOPETYPE_ELSE:
 					// else instead uses mark1 for itself (so if expression
 					// fails, jump to else), mark2 means end of else
 					w->MoveMark (SCOPE(0).mark2);
 					break;
-				case BLOCKTYPE_FOR:
+				case SCOPETYPE_FOR:
 					// Write the incrementor at the end of the loop block
 					w->WriteBuffer (SCOPE(0).buffer1);
 					// fall-thru
-				case BLOCKTYPE_WHILE:
+				case SCOPETYPE_WHILE:
 					// Write down the instruction to go back to the start of the loop
 					w->Write (DH_GOTO);
 					w->AddReference (SCOPE(0).mark1);
@@ -516,7 +516,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					// Move the closing mark here since we're at the end of the while loop
 					w->MoveMark (SCOPE(0).mark2);
 					break;
-				case BLOCKTYPE_DO: { 
+				case SCOPETYPE_DO: { 
 					MustNext ("while");
 					MustNext ("(");
 					MustNext ();
@@ -530,7 +530,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					w->AddReference (SCOPE(0).mark1);
 					break;
 				}
-				case BLOCKTYPE_SWITCH: {
+				case SCOPETYPE_SWITCH: {
 					// Switch closes. Move down to the record buffer of
 					// the lower block.
 					if (SCOPE(1).casecursor != -1)
@@ -565,7 +565,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 				}
 				
 				// Descend down the stack
-				g_BlockStackCursor--;
+				g_ScopeCursor--;
 				continue;
 			}
 			
@@ -989,9 +989,9 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	return retbuf;
 }
 
-void ScriptReader::PushBlockStack () {
-	g_BlockStackCursor++;
-	if (g_BlockStackCursor >= MAX_STRUCTSTACK)
+void ScriptReader::PushScope () {
+	g_ScopeCursor++;
+	if (g_ScopeCursor >= MAX_STRUCTSTACK)
 		ParserError ("too deep scope");
 	
 	BlockInformation* info = &SCOPE(0);
