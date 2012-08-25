@@ -713,10 +713,31 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 		MustNext ();
 		DataBuffer* rb = ParseExprValue (reqtype);
 		
-		// Write to buffer
-		retbuf->Merge (rb);
-		long dh = DataHeaderByOperator (NULL, oper);
-		retbuf->Write<word> (dh);
+		// Ternary operator requires - naturally - a third operator
+		if (oper == OPER_TERNARY) {
+			MustNext (":");
+			MustNext ();
+			DataBuffer* tb = ParseExprValue (reqtype);
+			
+			// It also is handled differently: there isn't a dataheader for ternary
+			// operator. Instead, we abuse PUSHNUMBER and IFNOTGOTO for this.
+			int mark1 = retbuf->AddMark (""); // start of "else" case
+			int mark2 = retbuf->AddMark (""); // end of expression
+			retbuf->Write<word> (DH_IFNOTGOTO);
+			retbuf->AddMarkReference (mark1);
+			retbuf->Merge (rb);
+			retbuf->Write<word> (DH_GOTO);
+			retbuf->AddMarkReference (mark2);
+			retbuf->MoveMark (mark1); // start of "else" case
+			retbuf->Merge (tb);
+			retbuf->Write<word> (DH_GOTO);
+			retbuf->AddMarkReference (mark2);
+			retbuf->MoveMark (mark2); // move endmark to end
+		} else {
+			// Write to buffer
+			retbuf->Merge (rb);
+			retbuf->Write<word> (DataHeaderByOperator (NULL, oper));
+		}
 	}
 	
 	return retbuf;
@@ -746,6 +767,7 @@ int ScriptReader::ParseOperator (bool peek) {
 		!oper.compare ("*") ? OPER_MULTIPLY :
 		!oper.compare ("/") ? OPER_DIVIDE :
 		!oper.compare ("%") ? OPER_MODULUS :
+		!oper.compare ("?") ? OPER_TERNARY :
 		-1;
 	
 	if (o != -1) {
