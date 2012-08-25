@@ -75,8 +75,8 @@ bool g_CanElse = false;
 // of necessary buffering so stuff is written in the correct order.
 void ScriptReader::ParseBotScript (ObjWriter* w) {
 	// Zero the entire block stack first
-	for (int i = 0; i < MAX_STRUCTSTACK; i++)
-		memset (&scopestack[i], 0, sizeof (BlockInformation));
+	for (int i = 0; i < MAX_SCOPE; i++)
+		ZERO(scopestack[i]);
 	
 	while (Next()) {
 		// Check if else is potentically valid
@@ -248,7 +248,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			
 			// Don't use PushScope that will reset the scope.
 			g_ScopeCursor++;
-			if (g_ScopeCursor >= MAX_STRUCTSTACK)
+			if (g_ScopeCursor >= MAX_SCOPE)
 				ParserError ("too deep scope");
 			
 			if (SCOPE(0).type != SCOPETYPE_IF)
@@ -465,6 +465,34 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			}
 			
 			MustNext (";");
+			continue;
+		}
+		
+		// ============================================================
+		// Continue
+		if (!token.compare ("continue")) {
+			MustNext (";");
+			
+			int curs;
+			bool found = false;
+			
+			// Drop through the scope until we find a loop block
+			for (curs = g_ScopeCursor; curs > 0 && !found; curs--) {
+				switch (scopestack[curs].type) {
+				case SCOPETYPE_FOR:
+				case SCOPETYPE_WHILE:
+				case SCOPETYPE_DO:
+					w->Write<word> (DH_GOTO);
+					w->AddReference (scopestack[curs].mark1);
+					found = true;
+					break;
+				}
+			}
+			
+			// No loop blocks
+			if (!found)
+				ParserError ("`continue`-statement not inside a loop");
+			
 			continue;
 		}
 		
@@ -991,10 +1019,10 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 
 void ScriptReader::PushScope () {
 	g_ScopeCursor++;
-	if (g_ScopeCursor >= MAX_STRUCTSTACK)
+	if (g_ScopeCursor >= MAX_SCOPE)
 		ParserError ("too deep scope");
 	
-	BlockInformation* info = &SCOPE(0);
+	ScopeInfo* info = &SCOPE(0);
 	info->type = 0;
 	info->mark1 = 0;
 	info->mark2 = 0;
@@ -1020,7 +1048,7 @@ DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {
 }
 
 void ScriptReader::AddSwitchCase (ObjWriter* w, DataBuffer* b) {
-	BlockInformation* info = &SCOPE(0);
+	ScopeInfo* info = &SCOPE(0);
 	
 	info->casecursor++;
 	if (info->casecursor >= MAX_CASE)

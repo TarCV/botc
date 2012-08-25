@@ -84,6 +84,9 @@ enum parsermode {
 // Plural expression
 #define PLURAL(n) (n != 1) ? "s" : ""
 
+// Shortcut for zeroing something
+#define ZERO(obj) memset (&obj, 0, sizeof (obj));
+
 void error (const char* text, ...);
 char* ObjectFileName (str s);
 bool fexists (char* path);
