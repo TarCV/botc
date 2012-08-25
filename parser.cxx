@@ -57,6 +57,8 @@
 #define MUST_NOT_TOPLEVEL if (g_CurMode == MODE_TOPLEVEL) \
 	ParserError ("%s-statements may not be defined at top level!", token.chars());
 
+#define SCOPE(n) blockstack[g_BlockStackCursor - n]
+
 int g_NumStates = 0;
 int g_NumEvents = 0;
 int g_CurMode = MODE_TOPLEVEL;
@@ -71,6 +73,10 @@ DataBuffer* g_IfExpression = NULL;
 // and writes the data to the object file via ObjWriter - which also takes care
 // of necessary buffering so stuff is written in the correct order.
 void ScriptReader::ParseBotScript (ObjWriter* w) {
+	// Zero the entire block stack first
+	for (int i = 0; i < MAX_STRUCTSTACK; i++)
+		memset (&blockstack[i], 0, sizeof (BlockInformation));
+	
 	while (Next()) {
 		// ============================================================
 		if (!token.compare ("state")) {
@@ -207,8 +213,6 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MustNext ("(");
 			
 			// Read the expression and write it.
-			// TODO: This should be storing it into a variable first, so
-			// that else statements would be possible!
 			MustNext ();
 			DataBuffer* c = ParseExpression (TYPE_INT);
 			w->WriteBuffer (c);
@@ -226,8 +230,34 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			w->AddReference (marknum);
 			
 			// Store it in the block stack
-			blockstack[g_BlockStackCursor].mark1 = marknum;
-			blockstack[g_BlockStackCursor].type = BLOCKTYPE_IF;
+			SCOPE(0).mark1 = marknum;
+			SCOPE(0).type = BLOCKTYPE_IF;
+			continue;
+		}
+		
+		if (!token.compare ("else")) {
+			MUST_NOT_TOPLEVEL
+			MustNext ("{");
+			
+			// Don't use PushBlockStack as that will reset the scope.
+			g_BlockStackCursor++;
+			if (g_BlockStackCursor >= MAX_STRUCTSTACK)
+				ParserError ("too deep scope");
+			
+			if (SCOPE(0).type != BLOCKTYPE_IF)
+				ParserError ("else without preceding if");
+			
+			// Write down to jump to the end of the else statement
+			// Otherwise we have fall-throughs
+			SCOPE(0).mark2 = w->AddMark ("");
+			
+			// Instruction to jump to the end after if block is complete
+			w->Write (DH_GOTO);
+			w->AddReference (SCOPE(0).mark2);
+			
+			// Move the ifnot mark here and set type to else
+			w->MoveMark (SCOPE(0).mark1);
+			SCOPE(0).type = BLOCKTYPE_ELSE;
 			continue;
 		}
 		
@@ -259,9 +289,9 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			w->AddReference (mark2);
 			
 			// Store the needed stuff
-			blockstack[g_BlockStackCursor].mark1 = mark1;
-			blockstack[g_BlockStackCursor].mark2 = mark2;
-			blockstack[g_BlockStackCursor].type = BLOCKTYPE_WHILE;
+			SCOPE(0).mark1 = mark1;
+			SCOPE(0).mark2 = mark2;
+			SCOPE(0).type = BLOCKTYPE_WHILE;
 			continue;
 		}
 		
@@ -301,10 +331,10 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			w->AddReference (mark2);
 			
 			// Store the marks and incrementor
-			blockstack[g_BlockStackCursor].mark1 = mark1;
-			blockstack[g_BlockStackCursor].mark2 = mark2;
-			blockstack[g_BlockStackCursor].buffer1 = incr;
-			blockstack[g_BlockStackCursor].type = BLOCKTYPE_FOR;
+			SCOPE(0).mark1 = mark1;
+			SCOPE(0).mark2 = mark2;
+			SCOPE(0).buffer1 = incr;
+			SCOPE(0).type = BLOCKTYPE_FOR;
 			continue;
 		}
 		
@@ -314,8 +344,8 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MUST_NOT_TOPLEVEL
 			PushBlockStack ();
 			MustNext ("{");
-			blockstack[g_BlockStackCursor].mark1 = w->AddMark ("");
-			blockstack[g_BlockStackCursor].type = BLOCKTYPE_DO;
+			SCOPE(0).mark1 = w->AddMark ("");
+			SCOPE(0).type = BLOCKTYPE_DO;
 			continue;
 		}
 		
@@ -342,17 +372,16 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			w->WriteBuffer (ParseExpression (TYPE_INT));
 			MustNext (")");
 			MustNext ("{");
-			blockstack[g_BlockStackCursor].type = BLOCKTYPE_SWITCH;
-			blockstack[g_BlockStackCursor].mark1 = w->AddMark (""); // end mark
-			blockstack[g_BlockStackCursor].buffer1 = NULL; // default header
+			SCOPE(0).type = BLOCKTYPE_SWITCH;
+			SCOPE(0).mark1 = w->AddMark (""); // end mark
+			SCOPE(0).buffer1 = NULL; // default header
 			continue;
 		}
 		
 		// ============================================================
 		if (!token.compare ("case")) {
 			// case is only allowed inside switch
-			BlockInformation* info = &blockstack[g_BlockStackCursor];
-			if (info->type != BLOCKTYPE_SWITCH)
+			if (SCOPE(0).type != BLOCKTYPE_SWITCH)
 				ParserError ("case label outside switch");
 			
 			// Get the literal (Zandronum does not support expressions here)
@@ -361,7 +390,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MustNext (":");
 			
 			for (int i = 0; i < MAX_CASE; i++)
-				if (info->casenumbers[i] == num)
+				if (SCOPE(0).casenumbers[i] == num)
 					ParserError ("multiple case %d labels in one switch", num);
 			
 			// Write down the expression and case-go-to. This builds
@@ -376,16 +405,15 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			w->Write<word> (DH_CASEGOTO);
 			w->Write<word> (num);
 			AddSwitchCase (w, NULL);
-			info->casenumbers[info->casecursor] = num;
+			SCOPE(0).casenumbers[SCOPE(0).casecursor] = num;
 			continue;
 		}
 		
 		if (!token.compare ("default")) {
-			BlockInformation* info = &blockstack[g_BlockStackCursor];
-			if (info->type != BLOCKTYPE_SWITCH)
+			if (SCOPE(0).type != BLOCKTYPE_SWITCH)
 				ParserError ("default label outside switch");
 			
-			if (info->buffer1)
+			if (SCOPE(0).buffer1)
 				ParserError ("multiple default labels in one switch");
 			
 			MustNext (":");
@@ -398,7 +426,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// to pop it with DH_DROP manually if we end up in
 			// a default.
 			DataBuffer* b = new DataBuffer;
-			info->buffer1 = b;
+			SCOPE(0).buffer1 = b;
 			b->Write<word> (DH_DROP);
 			b->Write<word> (DH_GOTO);
 			AddSwitchCase (w, b);
@@ -411,20 +439,18 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			if (!g_BlockStackCursor)
 				ParserError ("unexpected `break`");
 			
-			BlockInformation* info = &blockstack[g_BlockStackCursor];
-			
 			w->Write<word> (DH_GOTO);
 			
 			// switch and if use mark1 for the closing point,
 			// for and while use mark2.
-			switch (info->type) {
+			switch (SCOPE(0).type) {
 			case BLOCKTYPE_IF:
 			case BLOCKTYPE_SWITCH:
-				w->AddReference (info->mark1);
+				w->AddReference (SCOPE(0).mark1);
 				break;
 			case BLOCKTYPE_FOR:
 			case BLOCKTYPE_WHILE:
-				w->AddReference (info->mark2);
+				w->AddReference (SCOPE(0).mark2);
 				break;
 			default:
 				ParserError ("unexpected `break`");
@@ -458,23 +484,27 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			
 			// If we're in the block stack, we're descending down from it now
 			if (g_BlockStackCursor > 0) {
-				BlockInformation* info = &blockstack[g_BlockStackCursor];
-				switch (info->type) {
+				switch (SCOPE(0).type) {
 				case BLOCKTYPE_IF:
 					// Adjust the closing mark.
-					w->MoveMark (info->mark1);
+					w->MoveMark (SCOPE(0).mark1);
+					break;
+				case BLOCKTYPE_ELSE:
+					// else instead uses mark1 for itself (so if expression
+					// fails, jump to else), mark2 means end of else
+					w->MoveMark (SCOPE(0).mark2);
 					break;
 				case BLOCKTYPE_FOR:
 					// Write the incrementor at the end of the loop block
-					w->WriteBuffer (info->buffer1);
+					w->WriteBuffer (SCOPE(0).buffer1);
 					// fall-thru
 				case BLOCKTYPE_WHILE:
 					// Write down the instruction to go back to the start of the loop
 					w->Write (DH_GOTO);
-					w->AddReference (info->mark1);
+					w->AddReference (SCOPE(0).mark1);
 					
 					// Move the closing mark here since we're at the end of the while loop
-					w->MoveMark (info->mark2);
+					w->MoveMark (SCOPE(0).mark2);
 					break;
 				case BLOCKTYPE_DO: { 
 					MustNext ("while");
@@ -487,41 +517,40 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					// If the condition runs true, go back to the start.
 					w->WriteBuffer (expr);
 					w->Write<long> (DH_IFGOTO);
-					w->AddReference (info->mark1);
+					w->AddReference (SCOPE(0).mark1);
 					break;
 				}
 				case BLOCKTYPE_SWITCH: {
 					// Switch closes. Move down to the record buffer of
 					// the lower block.
-					BlockInformation* previnfo = &blockstack[g_BlockStackCursor - 1];
-					if (previnfo->casecursor != -1)
-						w->SwitchBuffer = previnfo->casebuffers[previnfo->casecursor];
+					if (SCOPE(1).casecursor != -1)
+						w->SwitchBuffer = SCOPE(1).casebuffers[SCOPE(1).casecursor];
 					else
 						w->SwitchBuffer = NULL;
 					
 					// If there was a default in the switch, write its header down now.
 					// If not, write instruction to jump to the end of switch after
 					// the headers (thus won't fall-through if no case matched)
-					if (info->buffer1)
-						w->WriteBuffer (info->buffer1);
+					if (SCOPE(0).buffer1)
+						w->WriteBuffer (SCOPE(0).buffer1);
 					else {
 						w->Write<word> (DH_DROP);
 						w->Write<word> (DH_GOTO);
-						w->AddReference (info->mark1);
+						w->AddReference (SCOPE(0).mark1);
 					}
 					
 					// Go through all of the buffers we
 					// recorded down and write them.
 					for (unsigned int u = 0; u < MAX_CASE; u++) {
-						if (!info->casebuffers[u])
+						if (!SCOPE(0).casebuffers[u])
 							continue;
 						
-						w->MoveMark (info->casemarks[u]);
-						w->WriteBuffer (info->casebuffers[u]);
+						w->MoveMark (SCOPE(0).casemarks[u]);
+						w->WriteBuffer (SCOPE(0).casebuffers[u]);
 					}
 					
 					// Move the closing mark here
-					w->MoveMark (info->mark1);
+					w->MoveMark (SCOPE(0).mark1);
 				}
 				}
 				
@@ -713,8 +742,8 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 		MustNext ();
 		DataBuffer* rb = ParseExprValue (reqtype);
 		
-		// Ternary operator requires - naturally - a third operator
 		if (oper == OPER_TERNARY) {
+			// Ternary operator requires - naturally - a third operand.
 			MustNext (":");
 			MustNext ();
 			DataBuffer* tb = ParseExprValue (reqtype);
@@ -952,7 +981,10 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 
 void ScriptReader::PushBlockStack () {
 	g_BlockStackCursor++;
-	BlockInformation* info = &blockstack[g_BlockStackCursor];
+	if (g_BlockStackCursor >= MAX_STRUCTSTACK)
+		ParserError ("too deep scope");
+	
+	BlockInformation* info = &SCOPE(0);
 	info->type = 0;
 	info->mark1 = 0;
 	info->mark2 = 0;
@@ -978,7 +1010,7 @@ DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {
 }
 
 void ScriptReader::AddSwitchCase (ObjWriter* w, DataBuffer* b) {
-	BlockInformation* info = &blockstack[g_BlockStackCursor];
+	BlockInformation* info = &SCOPE(0);
 	
 	info->casecursor++;
 	if (info->casecursor >= MAX_CASE)
