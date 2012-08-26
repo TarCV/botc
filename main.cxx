@@ -52,13 +52,16 @@
 #include "commands.h"
 #include "stringtable.h"
 #include "variables.h"
+#include "array.h"
 
 #include "bots.h"
 #include "botcommands.h"
 
+// List of keywords
 const char* g_Keywords[] = {
 	"break",
 	"case",
+	"continue",
 	"default",
 	"do",
 	"else",
@@ -76,7 +79,6 @@ const char* g_Keywords[] = {
 	
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
-	"continue",
 	"enum", // Would enum actually be useful? I think so.
 	"func", // Would function support need external support from zandronum?
 	"return",

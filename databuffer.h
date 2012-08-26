@@ -215,10 +215,6 @@ public:
 		if (u == MAX_MARKS)
 			error ("mark reference quota exceeded, all goto-statements, if-structs and loops add refs\n");
 		
-		// NOTE: Do not check if the mark actually exists here since a
-		// reference may come in the code earlier than the actual mark
-		// and the new mark number can be predicted.
-		//	11/8/12: eh? The mark is always created first.
 		ScriptMarkReference* r = new ScriptMarkReference;
 		r->num = marknum;
 		r->pos = writesize;
