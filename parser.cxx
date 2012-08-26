@@ -678,7 +678,7 @@ DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
 	int curarg = 0;
 	while (1) {
 		if (!token.compare (")")) {
-			if (curarg < comm->numargs - 1)
+			if (curarg < comm->numargs)
 				ParserError ("too few arguments passed to %s\n", comm->name.chars());
 			break;
 			curarg++;
