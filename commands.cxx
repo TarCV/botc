@@ -163,11 +163,24 @@ int GetCommandType (str t) {
 		!t.compare ("float") ? TYPE_FLOAT :
 		!t.compare ("str") ? TYPE_STRING :
 		!t.compare ("void") ? TYPE_VOID :
-		!t.compare ("bool") ? TYPE_INT : -1;
+		!t.compare ("bool") ? TYPE_BOOL : -1;
 }
 
 // ============================================================================
 // Inverse operation - type name by value
+str GetTypeName (int r) {
+	switch (r) {
+	case TYPE_INT: return "int"; break;
+	case TYPE_STRING: return "str"; break;
+	case TYPE_VOID: return "void"; break;
+	case TYPE_FLOAT: return "float"; break;
+	case TYPE_BOOL: return "bool"; break;
+	}
+	
+	return "";
+}
+
+// ============================================================================
 str GetReturnTypeName (int r) {
 	switch (r) {
 	case RETURNVAL_INT: return "int"; break;
@@ -195,7 +208,7 @@ CommandDef* FindCommand (str fname) {
 // Returns the prototype of the command
 str GetCommandPrototype (CommandDef* comm) {
 	str text;
-	text += GetReturnTypeName (comm->returnvalue);
+	text += GetTypeName (comm->returnvalue);
 	text += ' ';
 	text += comm->name;
 	text += '(';
@@ -210,7 +223,7 @@ str GetCommandPrototype (CommandDef* comm) {
 		if (i)
 			text += ", ";
 		
-		text += GetReturnTypeName (comm->argtypes[i]);
+		text += GetTypeName (comm->argtypes[i]);
 		text += ' ';
 		text += comm->argnames[i];
 		

@@ -97,7 +97,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			
 			// State name must be a word.
 			if (token.first (" ") != token.len())
-				ParserError ("state name must be a single word! got `%s`", token.chars());
+				ParserError ("state name must be a single word, got `%s`", token.chars());
 			str statename = token;
 			
 			// stateSpawn is special - it *must* be defined. If we
@@ -133,7 +133,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			
 			EventDef* e = FindEventByName (token);
 			if (!e)
-				ParserError ("bad event! got `%s`\n", token.chars());
+				ParserError ("bad event, got `%s`\n", token.chars());
 			
 			MustNext ("{");
 			
@@ -679,13 +679,15 @@ DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
 	while (1) {
 		if (!token.compare (")")) {
 			if (curarg < comm->numargs)
-				ParserError ("too few arguments passed to %s\n", comm->name.chars());
+				ParserError ("too few arguments passed to %s\n\tprototype: %s",
+					comm->name.chars(), GetCommandPrototype (comm).chars());
 			break;
 			curarg++;
 		}
 		
 		if (curarg >= comm->maxargs)
-			ParserError ("too many arguments passed to %s\n", comm->name.chars());
+			ParserError ("too many arguments passed to %s\n\tprototype: %s",
+				comm->name.chars(), GetCommandPrototype (comm).chars());
 		
 		r->Merge (ParseExpression (comm->argtypes[curarg]));
 		MustNext ();
@@ -797,13 +799,13 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 	int oper;
 	while ((oper = ParseOperator (true)) != -1) {
 		// We peeked the operator, move forward now
-		MustNext();
+		Next ();
 		
 		// Can't be an assignement operator, those belong in assignments.
 		if (IsAssignmentOperator (oper))
 			ParserError ("assignment operator inside expression");
 		
-		// Parse the right operand,
+		// Parse the right operand.
 		MustNext ();
 		DataBuffer* rb = ParseExprValue (reqtype);
 		
@@ -943,6 +945,7 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 		case TYPE_VOID:
 			ParserError ("unknown identifier `%s` (expected keyword, function or variable)", token.chars());
 			break;
+		case TYPE_BOOL:
 		case TYPE_INT: {
 			MustNumber (true);
 			
@@ -1069,9 +1072,8 @@ DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {
 		return b;
 	}
 	
-	// If it's not a keyword, parse it as an expression.
-	DataBuffer* b = ParseExpression (TYPE_VOID);
-	return b;
+	ParserError ("bad statement");
+	return NULL;
 }
 
 void ScriptReader::AddSwitchCase (ObjWriter* w, DataBuffer* b) {
