@@ -43,7 +43,6 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <typeinfo> 
 #include <stdint.h>
 #include "bots.h"
 #include "str.h"
@@ -100,16 +99,14 @@ extern str g_CurState;
 #endif
 
 // Power function
-template<class T> T pow (T a, int b) {
+template<class T> T pow (T a, unsigned int b) {
 	if (!b)
 		return 1;
 	
 	T r = a;
 	while (b > 1) {
 		b--;
-		
-		// r *= a fails here with large numbers
-		r += a * a;
+		r = r * a;
 	}
 	
 	return r;
@@ -121,7 +118,6 @@ inline bool IsCharWhitespace (char c) {
 }
 
 // Byte datatype
-// typedef unsigned long int word;
 typedef int32_t word;
 typedef unsigned char byte;
 

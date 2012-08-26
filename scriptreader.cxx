@@ -45,6 +45,16 @@
 #include "common.h"
 #include "scriptreader.h"
 
+#define STORE_POSITION \
+	bool _atnewline = atnewline; \
+	unsigned int _curline = curline[fc]; \
+	unsigned int _curchar = curchar[fc];
+
+#define RESTORE_POSITION \
+	atnewline = _atnewline; \
+	curline[fc] = _curline; \
+	curchar[fc] = _curchar;
+
 // ============================================================================
 ScriptReader::ScriptReader (str path) {
 	token = "";
@@ -152,6 +162,7 @@ char ScriptReader::ReadChar () {
 char ScriptReader::PeekChar (int offset) {
 	// Store current position
 	long curpos = ftell (fp[fc]);
+	STORE_POSITION
 	
 	// Forward by offset
 	fseek (fp[fc], offset, SEEK_CUR);
@@ -166,6 +177,7 @@ char ScriptReader::PeekChar (int offset) {
 	
 	// Rewind back
 	fseek (fp[fc], curpos, SEEK_SET);
+	RESTORE_POSITION
 	
 	return c[0];
 }
@@ -267,6 +279,7 @@ str ScriptReader::PeekNext (int offset) {
 	// Store current information
 	str storedtoken = token;
 	int cpos = ftell (fp[fc]);
+	STORE_POSITION
 	
 	// Advance on the token.
 	while (offset >= 0) {
@@ -281,6 +294,7 @@ str ScriptReader::PeekNext (int offset) {
 	fseek (fp[fc], cpos, SEEK_SET);
 	pos[fc]--;
 	token = storedtoken;
+	RESTORE_POSITION
 	return tmp;
 }
 
@@ -337,7 +351,7 @@ void ScriptReader::ParserWarning (const char* message, ...) {
 // ============================================================================
 void ScriptReader::ParserMessage (const char* header, char* message) {
 	if (fc >= 0 && fc < MAX_FILESTACK)
-		fprintf (stderr, "%sIn file %s, at line %u, col %u: %s\n",
+		fprintf (stderr, "%s%s:%u:%u: %s\n",
 			header, filepath[fc], curline[fc], curchar[fc], message);
 	else
 		fprintf (stderr, "%s%s\n", header, message);
