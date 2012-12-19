@@ -50,8 +50,15 @@
 // Application name and version
 #define APPNAME "botc"
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 0
-#define VERSION_REVISION 999
+#define VERSION_MINOR 999
+
+// Use a macro for Write so we can get the function name
+// This can be pretty crucial in debugging.
+#ifdef __GNUC__
+#define Write(STUFF) DoWrite (__PRETTY_FUNCTION__, STUFF)
+#else
+#define Write(STUFF) DoWrite (__func__, STUFF)
+#endif
 
 // On Windows, files are case-insensitive
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
@@ -72,9 +79,7 @@ enum type_e {
 	TYPE_VOID,
 	TYPE_INT,
 	TYPE_STRING,
-	TYPE_FLOAT,
 	TYPE_BOOL,
-	
 };
 
 #define CHECK_FILE(pointer,path,action) \

@@ -69,7 +69,6 @@ const char* g_Keywords[] = {
 	"do",
 	"else",
 	"event",
-	"float",
 	"for",
 	"goto",
 	"if",
@@ -115,10 +114,6 @@ int main (int argc, char** argv) {
 	str header;
 	str headerline = "-=";
 	header.appendformat ("%s version %d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR);
-	
-	// Include revision if non-zero
-	if (VERSION_REVISION)
-		header.appendformat (".%d", VERSION_REVISION);
 	
 	headerline *= (header.len() / 2) - 1;
 	headerline += '-';
@@ -252,12 +247,10 @@ unsigned int NumKeywords () {
 	return sizeof (g_Keywords) / sizeof (const char*);
 }
 
-
 // ============================================================================
 type_e GetTypeByName (str t) {
 	t = t.tolower();
 	return	(t == "int") ? TYPE_INT :
-			(t == "float") ? TYPE_FLOAT :
 			(t == "str") ? TYPE_STRING :
 			(t == "void") ? TYPE_VOID :
 			(t == "bool") ? TYPE_BOOL :
@@ -272,7 +265,6 @@ str GetTypeName (type_e type) {
 	case TYPE_INT: return "int"; break;
 	case TYPE_STRING: return "str"; break;
 	case TYPE_VOID: return "void"; break;
-	case TYPE_FLOAT: return "float"; break;
 	case TYPE_BOOL: return "bool"; break;
 	case TYPE_UNKNOWN: return "???"; break;
 	}
