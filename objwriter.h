@@ -45,8 +45,8 @@
 #include <typeinfo>
 #include <string.h>
 #include "common.h"
-#include "databuffer.h"
 #include "str.h"
+#include "databuffer.h"
 
 class ObjWriter {
 public:
@@ -99,7 +99,6 @@ public:
 	void MoveMark (unsigned int mark);
 	void OffsetMark (unsigned int mark, int offset);
 	void DeleteMark (unsigned int mark);
-	
 	template <class T> void Write (T stuff) {
 		GetCurrentBuffer ()->Write<T> (stuff);
 	}

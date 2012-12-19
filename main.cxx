@@ -53,28 +53,34 @@
 #include "stringtable.h"
 #include "variables.h"
 #include "array.h"
+#include "databuffer.h"
 
 #include "bots.h"
 #include "botcommands.h"
 
 // List of keywords
 const char* g_Keywords[] = {
+	"bool",
 	"break",
 	"case",
 	"continue",
+	"const",
 	"default",
 	"do",
 	"else",
 	"event",
+	"float",
 	"for",
 	"goto",
 	"if",
+	"int",
 	"mainloop",
 	"onenter",
 	"onexit",
 	"state",
 	"switch",
-	"var"
+	"str"
+	"void",
 	"while",
 	
 	// These ones aren't implemented yet but I plan to do so, thus they are
@@ -244,4 +250,32 @@ bool IsKeyword (str s) {
 
 unsigned int NumKeywords () {
 	return sizeof (g_Keywords) / sizeof (const char*);
+}
+
+
+// ============================================================================
+type_e GetTypeByName (str t) {
+	t = t.tolower();
+	return	(t == "int") ? TYPE_INT :
+			(t == "float") ? TYPE_FLOAT :
+			(t == "str") ? TYPE_STRING :
+			(t == "void") ? TYPE_VOID :
+			(t == "bool") ? TYPE_BOOL :
+			TYPE_UNKNOWN;
+}
+
+
+// ============================================================================
+// Inverse operation - type name by value
+str GetTypeName (type_e type) {
+	switch (type) {
+	case TYPE_INT: return "int"; break;
+	case TYPE_STRING: return "str"; break;
+	case TYPE_VOID: return "void"; break;
+	case TYPE_FLOAT: return "float"; break;
+	case TYPE_BOOL: return "bool"; break;
+	case TYPE_UNKNOWN: return "???"; break;
+	}
+	
+	return "";
 }

@@ -50,6 +50,7 @@
 #include "commands.h"
 #include "stringtable.h"
 #include "variables.h"
+#include "array.h"
 
 #define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
 	ParserError ("%s-statements may only be defined at top level!", token.chars());
@@ -70,6 +71,7 @@ DataBuffer* g_IfExpression = NULL;
 bool g_CanElse = false;
 str* g_UndefinedLabels[MAX_MARKS];
 bool g_Neurosphere = false; // neurosphere-compat
+array<constinfo_t> g_ConstInfo;
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
@@ -258,7 +260,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MUST_NOT_TOPLEVEL
 			MustNext ("{");
 			
-			// Don't use PushScope that will reset the scope.
+			// Don't use PushScope as it resets the scope
 			g_ScopeCursor++;
 			if (g_ScopeCursor >= MAX_SCOPE)
 				ParserError ("too deep scope");
@@ -554,6 +556,47 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
+		if (token == "const") {
+			constinfo_t info;
+			
+			// Get the type
+			MustNext ();
+			info.type = GetTypeByName (token);
+			
+			if (info.type == TYPE_UNKNOWN || info.type == TYPE_VOID)
+				ParserError ("unknown type `%s` for constant", (char*)token);
+			
+			MustNext ();
+			info.name = token;
+			
+			MustNext ("=");
+			
+			switch (info.type) {
+			case TYPE_BOOL:
+			case TYPE_INT:
+				MustNumber (false);
+				info.val = token;
+				break;
+			case TYPE_STRING:
+				MustString ();
+				info.val = token;
+				break;
+			case TYPE_FLOAT:
+				MustNext ();
+				info.val = ParseFloat ();
+				break;
+			case TYPE_UNKNOWN:
+			case TYPE_VOID:
+				break;
+			}
+			
+			g_ConstInfo << info;
+			
+			MustNext (";");
+			continue;
+		}
+		
+		// ============================================================
 		if (token == "}") {
 			// Closing brace
 			
@@ -821,7 +864,7 @@ static word DataHeaderByOperator (ScriptVar* var, int oper) {
 
 // ============================================================================
 // Parses an expression, potentially recursively
-DataBuffer* ScriptReader::ParseExpression (int reqtype) {
+DataBuffer* ScriptReader::ParseExpression (type_e reqtype) {
 	DataBuffer* retbuf = new DataBuffer (64);
 	
 	// Parse first operand
@@ -879,6 +922,9 @@ int ScriptReader::ParseOperator (bool peek) {
 		oper += PeekNext ();
 	else
 		oper += token;
+	
+	if (-oper == "strlen")
+		return OPER_STRLEN;
 	
 	// Check one-char operators
 	bool equalsnext = ISNEXT ("=");
@@ -940,10 +986,26 @@ int ScriptReader::ParseOperator (bool peek) {
 }
 
 // ============================================================================
+str ScriptReader::ParseFloat () {
+	MustNumber (true);
+	str floatstring = token;
+	
+	// Go after the decimal point
+	if (PeekNext () == ".") {
+		Next (".");
+		MustNumber (false);
+		floatstring += ".";
+		floatstring += token;
+	}
+	
+	return floatstring;
+}
+
+// ============================================================================
 // Parses a value in the expression and returns the data needed to push
 // it, contained in a data buffer. A value can be either a variable, a command,
 // a literal or an expression.
-DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
+DataBuffer* ScriptReader::ParseExprValue (type_e reqtype) {
 	DataBuffer* b = new DataBuffer(16);
 	
 	ScriptVar* g;
@@ -953,7 +1015,24 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 	if (negate) // Jump past the "!"
 		Next ();
 	
-	if (token == "(") {
+	// Handle strlen
+	if (token == "strlen") {
+		MustNext ("(");
+		MustNext ();
+		
+		// By this token we should get a string constant.
+		constinfo_t* constant = FindConstant (token);
+		if (!constant || constant->type != TYPE_STRING)
+			ParserError ("strlen only works with const str");
+		
+		if (reqtype != TYPE_INT)
+			ParserError ("strlen returns int but %s is expected\n", (char*)GetTypeName (reqtype));
+		
+		b->Write<word> (DH_PUSHNUMBER);
+		b->Write<word> (constant->val.len ());
+		
+		MustNext (")");
+	} else if (token == "(") {
 		// Expression
 		MustNext ();
 		DataBuffer* c = ParseExpression (reqtype);
@@ -966,15 +1045,38 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 		if (reqtype && comm->returnvalue != reqtype)
 			ParserError ("%s returns an incompatible data type", comm->name.chars());
 		b = ParseCommand (comm);
+	} else if (constinfo_t* constant = FindConstant (token)) {
+		// Type check
+		if (reqtype != constant->type)
+			ParserError ("constant `%s` is %s, expression requires %s\n",
+				(char*)constant->name, (char*)GetTypeName (constant->type),
+				(char*)GetTypeName (reqtype));
+		
+		switch (constant->type) {
+		case TYPE_BOOL:
+		case TYPE_INT:
+			b->Write<word> (DH_PUSHNUMBER);
+			b->Write<word> (atoi (constant->val));
+			break;
+		case TYPE_FLOAT:
+			b->WriteFloat (constant->val);
+			break;
+		case TYPE_STRING:
+			b->WriteString (constant->val);
+			break;
+		case TYPE_VOID:
+		case TYPE_UNKNOWN:
+			break;
+		}
 	} else if ((g = FindGlobalVariable (token))) {
 		// Global variable
 		b->Write<word> (DH_PUSHGLOBALVAR);
 		b->Write<word> (g->index);
 	} else {
 		// If nothing else, check for literal
-		printf ("reqtype: %d\n", reqtype);
 		switch (reqtype) {
 		case TYPE_VOID:
+		case TYPE_UNKNOWN:
 			ParserError ("unknown identifier `%s` (expected keyword, function or variable)", token.chars());
 			break;
 		case TYPE_BOOL:
@@ -996,37 +1098,21 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			// string if it finds it in the table, or writes it to the
 			// table and returns it index if it doesn't find it there.
 			MustString (true);
-			b->Write<word> (DH_PUSHSTRINGINDEX);
-			b->Write<word> (PushToStringTable (token.chars()));
+			b->WriteString (token);
 			break;
 		case TYPE_FLOAT: {
-			str floatstring;
-			
-			MustNumber (true);
-			floatstring += token;
-			
-			// Go after the decimal point
-			if (PeekNext () == ".") {
-				MustNext (".");
-				MustNumber (false);
-				floatstring += ".";
-				floatstring += token;
-			}
-			
-			// TODO: Casting float to word causes the decimal to be lost.
-			// Find a way to store the number without such loss.
-			float val = atof (floatstring);
-			b->Write<word> (DH_PUSHNUMBER);
-			b->Write<word> (static_cast<word> ((val > 0) ? val : -val));
-			if (val < 0)
-				b->Write<word> (DH_UNARYMINUS);
+			str floatstring = ParseFloat ();
 			
 			// TODO: Keep this check after decimal loss is fixed, but make
 			// it a real precision loss check. 55.5123 -> 55.512299, this
 			// should probably be warned of.
-			float check = static_cast<float> (static_cast<word> (val));
-			if (val != check)
-				ParserWarning ("floating point number %f loses precision (-> %f)", val, check);
+			float check = static_cast<float> (static_cast<word> (atof (floatstring)));
+			if (atof (floatstring) != check)
+				ParserWarning ("floating point number %f loses precision (-> %f)",
+					atof (floatstring), check);
+			
+			b->WriteFloat (floatstring);
+			break;
 		}
 		}
 	}
@@ -1048,7 +1134,6 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	// Get an operator
 	MustNext ();
 	int oper = ParseOperator ();
-	printf ("got operator %d\n", oper);
 	if (!IsAssignmentOperator (oper))
 		ParserError ("expected assignment operator");
 	
@@ -1099,11 +1184,12 @@ void ScriptReader::PushScope () {
 }
 
 DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {
+	if (FindConstant (token)) // There should not be constants here.
+		ParserError ("invalid use for constant\n");
+	
 	// If it's a variable, expect assignment.
-	if (ScriptVar* var = FindGlobalVariable (token)) {
-		DataBuffer* b = ParseAssignment (var);
-		return b;
-	}
+	if (ScriptVar* var = FindGlobalVariable (token))
+		return ParseAssignment (var);
 	
 	return NULL;
 }
@@ -1129,4 +1215,11 @@ void ScriptReader::AddSwitchCase (ObjWriter* w, DataBuffer* b) {
 	// Init a buffer for the case block and tell the object
 	// writer to record all written data to it.
 	info->casebuffers[info->casecursor] = w->SwitchBuffer = new DataBuffer;
+}
+
+constinfo_t* FindConstant (str token) {
+	for (uint i = 0; i < g_ConstInfo.size(); i++)
+		if (g_ConstInfo[i].name == token)
+			return &g_ConstInfo[i];
+	return NULL;
 }
