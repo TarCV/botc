@@ -168,7 +168,6 @@ int main (int argc, char** argv) {
 	
 	// Init stuff
 	InitStringTable ();
-	InitVariables ();
 	
 	// Prepare reader and writer
 	ScriptReader* r = new ScriptReader (argv[1]);
@@ -180,7 +179,7 @@ int main (int argc, char** argv) {
 	printf ("Script parsed successfully.\n");
 	
 	// Parse done, print statistics and write to file
-	unsigned int globalcount = CountGlobalVars ();
+	unsigned int globalcount = g_GlobalVariables.size();
 	unsigned int stringcount = CountStringTable ();
 	int NumMarks = w->MainBuffer->CountMarks ();
 	int NumRefs = w->MainBuffer->CountReferences ();

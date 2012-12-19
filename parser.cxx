@@ -61,7 +61,7 @@
 
 int g_NumStates = 0;
 int g_NumEvents = 0;
-int g_CurMode = MODE_TOPLEVEL;
+parsermode_e g_CurMode = MODE_TOPLEVEL;
 str g_CurState = "";
 bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
@@ -171,10 +171,15 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (token == "var") {
+		if (token == "int" || token == "str" || token == "float" || token == "bool") {
 			// For now, only globals are supported
 			if (g_CurMode != MODE_TOPLEVEL || g_CurState.len())
 				ParserError ("variables must only be global for now");
+			
+			type_e type =	(token == "int") ? TYPE_INT :
+							(token == "str") ? TYPE_STRING :
+							(token == "float") ? TYPE_FLOAT :
+							TYPE_BOOL;
 			
 			MustNext ();
 			
@@ -183,7 +188,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 				ParserError ("variable name must not be a number");
 			
 			str varname = token;
-			ScriptVar* var = DeclareGlobalVariable (this, varname);
+			ScriptVar* var = DeclareGlobalVariable (this, type, varname);
 			
 			if (!var)
 				ParserError ("declaring %s variable %s failed",
@@ -319,16 +324,25 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MustNext ("(");
 			MustNext ();
 			DataBuffer* init = ParseStatement (w);
+			if (!init)
+				ParserError ("bad statement for initializer of for");
+			
 			MustNext (";");
 			
 			// Condition
 			MustNext ();
 			DataBuffer* cond = ParseExpression (TYPE_INT);
+			if (!cond)
+				ParserError ("bad statement for condition of for");
+			
 			MustNext (";");
 			
 			// Incrementor
 			MustNext ();
 			DataBuffer* incr = ParseStatement (w);
+			if (!incr)
+				ParserError ("bad statement for incrementor of for");
+			
 			MustNext (")");
 			MustNext ("{");
 			
@@ -507,7 +521,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// Label
-		if (!PeekNext().compare (":")) {
+		if (PeekNext() == ":") {
 			MUST_NOT_TOPLEVEL
 			
 			// want no conflicts..
@@ -521,7 +535,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// See if a mark already exists for this label
 			int mark = -1;
 			for (int i = 0; i < MAX_MARKS; i++) {
-				if (g_UndefinedLabels[i] && !g_UndefinedLabels[i]->compare (token)) {
+				if (g_UndefinedLabels[i] && *g_UndefinedLabels[i] == token) {
 					mark = i;
 					w->MoveMark (i);
 					
@@ -540,7 +554,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.compare ("}")) {
+		if (token == "}") {
 			// Closing brace
 			
 			// If we're in the block stack, we're descending down from it now
@@ -640,7 +654,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			w->Write (dataheader);
 			g_CurMode = MODE_TOPLEVEL;
 			
-			if (!PeekNext().compare (";"))
+			if (PeekNext() == ";")
 				MustNext (";");
 			continue;
 		}
@@ -656,6 +670,9 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		// ============================================================
 		// If nothing else, parse it as a statement
 		DataBuffer* b = ParseStatement (w);
+		if (!b)
+			ParserError ("unknown token `%s`", token.chars());
+		
 		w->WriteBuffer (b);
 		MustNext (";");
 	}
@@ -692,7 +709,7 @@ DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
 	
 	int curarg = 0;
 	while (1) {
-		if (!token.compare (")")) {
+		if (token == ")") {
 			if (curarg < comm->numargs)
 				ParserError ("too few arguments passed to %s\n\tprototype: %s",
 					comm->name.chars(), GetCommandPrototype (comm).chars());
@@ -712,7 +729,7 @@ DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
 			MustNext ();
 		} else if (curarg < comm->maxargs - 1) {
 			// Can continue, but can terminate as well.
-			if (!token.compare (")")) {
+			if (token == ")") {
 				curarg++;
 				break;
 			} else {
@@ -855,7 +872,7 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 
 // ============================================================================
 // Parses an operator string. Returns the operator number code.
-#define ISNEXT(char) !PeekNext (peek ? 1 : 0).compare (char)
+#define ISNEXT(char) (!PeekNext (peek ? 1 : 0) == char)
 int ScriptReader::ParseOperator (bool peek) {
 	str oper;
 	if (peek)
@@ -866,18 +883,18 @@ int ScriptReader::ParseOperator (bool peek) {
 	// Check one-char operators
 	bool equalsnext = ISNEXT ("=");
 	
-	int o =	(!oper.compare ("=") && !equalsnext) ? OPER_ASSIGN :
-		(!oper.compare (">") && !equalsnext && !ISNEXT (">")) ? OPER_GREATERTHAN :
-		(!oper.compare ("<") && !equalsnext && !ISNEXT ("<")) ? OPER_LESSTHAN :
-		(!oper.compare ("&") && !ISNEXT ("&")) ? OPER_BITWISEAND :
-		(!oper.compare ("|") && !ISNEXT ("|")) ? OPER_BITWISEOR :
-		!oper.compare ("^") ? OPER_BITWISEEOR :
-		!oper.compare ("+") ? OPER_ADD :
-		!oper.compare ("-") ? OPER_SUBTRACT :
-		!oper.compare ("*") ? OPER_MULTIPLY :
-		!oper.compare ("/") ? OPER_DIVIDE :
-		!oper.compare ("%") ? OPER_MODULUS :
-		!oper.compare ("?") ? OPER_TERNARY :
+	int o =	(oper == "=" && !equalsnext) ? OPER_ASSIGN :
+		(oper == ">" && !equalsnext && !ISNEXT (">")) ? OPER_GREATERTHAN :
+		(oper == "<" && !equalsnext && !ISNEXT ("<")) ? OPER_LESSTHAN :
+		(oper == "&" && !ISNEXT ("&")) ? OPER_BITWISEAND :
+		(oper == "|" && !ISNEXT ("|")) ? OPER_BITWISEOR :
+		(oper == "+" && !equalsnext) ? OPER_ADD :
+		(oper == "-" && !equalsnext) ? OPER_SUBTRACT :
+		(oper == "*" && !equalsnext) ? OPER_MULTIPLY :
+		(oper == "/" && !equalsnext) ? OPER_DIVIDE :
+		(oper == "%" && !equalsnext) ? OPER_MODULUS :
+		(oper == "^") ? OPER_BITWISEEOR :
+		(oper == "?") ? OPER_TERNARY :
 		-1;
 	
 	if (o != -1) {
@@ -886,21 +903,21 @@ int ScriptReader::ParseOperator (bool peek) {
 	
 	// Two-char operators
 	oper += PeekNext (peek ? 1 : 0);
-	equalsnext = !PeekNext (peek ? 2 : 1).compare ("=");
+	equalsnext = PeekNext (peek ? 2 : 1) == ("=");
 	
-	o =	!oper.compare ("+=") ? OPER_ASSIGNADD :
-		!oper.compare ("-=") ? OPER_ASSIGNSUB :
-		!oper.compare ("*=") ? OPER_ASSIGNMUL :
-		!oper.compare ("/=") ? OPER_ASSIGNDIV :
-		!oper.compare ("%=") ? OPER_ASSIGNMOD :
-		!oper.compare ("==") ? OPER_EQUALS :
-		!oper.compare ("!=") ? OPER_NOTEQUALS :
-		!oper.compare (">=") ? OPER_GREATERTHANEQUALS :
-		!oper.compare ("<=") ? OPER_LESSTHANEQUALS :
-		!oper.compare ("&&") ? OPER_AND :
-		!oper.compare ("||") ? OPER_OR :
-		(!oper.compare ("<<") && !equalsnext) ? OPER_LEFTSHIFT :
-		(!oper.compare (">>") && !equalsnext) ? OPER_RIGHTSHIFT :
+	o =	(oper == "+=") ? OPER_ASSIGNADD :
+		(oper == "-=") ? OPER_ASSIGNSUB :
+		(oper == "*=") ? OPER_ASSIGNMUL :
+		(oper == "/=") ? OPER_ASSIGNDIV :
+		(oper == "%=") ? OPER_ASSIGNMOD :
+		(oper == "==") ? OPER_EQUALS :
+		(oper == "!=") ? OPER_NOTEQUALS :
+		(oper == ">=") ? OPER_GREATERTHANEQUALS :
+		(oper == "<=") ? OPER_LESSTHANEQUALS :
+		(oper == "&&") ? OPER_AND :
+		(oper == "||") ? OPER_OR :
+		(oper == "<<" && !equalsnext) ? OPER_LEFTSHIFT :
+		(oper == ">>" && !equalsnext) ? OPER_RIGHTSHIFT :
 		-1;
 	
 	if (o != -1) {
@@ -910,8 +927,8 @@ int ScriptReader::ParseOperator (bool peek) {
 	
 	// Three-char opers
 	oper += PeekNext (peek ? 2 : 1);
-	o =	!oper.compare ("<<=") ? OPER_ASSIGNLEFTSHIFT :
-		!oper.compare (">>=") ? OPER_ASSIGNRIGHTSHIFT :
+	o =	oper == "<<=" ? OPER_ASSIGNLEFTSHIFT :
+		oper == ">>=" ? OPER_ASSIGNRIGHTSHIFT :
 		-1;
 	
 	if (o != -1) {
@@ -932,11 +949,11 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 	ScriptVar* g;
 	
 	// Prefixing "!" means negation.
-	bool negate = !token.compare ("!");
+	bool negate = (token == "!");
 	if (negate) // Jump past the "!"
-		MustNext ();
+		Next ();
 	
-	if (!token.compare ("(")) {
+	if (token == "(") {
 		// Expression
 		MustNext ();
 		DataBuffer* c = ParseExpression (reqtype);
@@ -949,12 +966,13 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 		if (reqtype && comm->returnvalue != reqtype)
 			ParserError ("%s returns an incompatible data type", comm->name.chars());
 		b = ParseCommand (comm);
-	} else if ((g = FindGlobalVariable (token)) && reqtype != TYPE_STRING) {
+	} else if ((g = FindGlobalVariable (token))) {
 		// Global variable
 		b->Write<word> (DH_PUSHGLOBALVAR);
 		b->Write<word> (g->index);
 	} else {
 		// If nothing else, check for literal
+		printf ("reqtype: %d\n", reqtype);
 		switch (reqtype) {
 		case TYPE_VOID:
 			ParserError ("unknown identifier `%s` (expected keyword, function or variable)", token.chars());
@@ -964,10 +982,10 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			MustNumber (true);
 			
 			// All values are written unsigned - thus we need to write the value's
-			// absolute value, followed by an unary minus if it was negative.
+			// absolute value, followed by an unary minus for negatives.
 			b->Write<word> (DH_PUSHNUMBER);
 			
-			long v = atoi (token.chars ());
+			long v = atol (token);
 			b->Write<word> (static_cast<word> (abs (v)));
 			if (v < 0)
 				b->Write<word> (DH_UNARYMINUS);
@@ -988,7 +1006,7 @@ DataBuffer* ScriptReader::ParseExprValue (int reqtype) {
 			floatstring += token;
 			
 			// Go after the decimal point
-			if (!PeekNext ().compare(".")) {
+			if (PeekNext () == ".") {
 				MustNext (".");
 				MustNumber (false);
 				floatstring += ".";
@@ -1030,6 +1048,7 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	// Get an operator
 	MustNext ();
 	int oper = ParseOperator ();
+	printf ("got operator %d\n", oper);
 	if (!IsAssignmentOperator (oper))
 		ParserError ("expected assignment operator");
 	
@@ -1039,7 +1058,7 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	// Parse the right operand
 	MustNext ();
 	DataBuffer* retbuf = new DataBuffer;
-	DataBuffer* expr = ParseExpression (TYPE_INT);
+	DataBuffer* expr = ParseExpression (var->type);
 	
 	// <<= and >>= do not have data headers. Solution: expand them.
 	// a <<= b -> a = a << b
@@ -1086,7 +1105,6 @@ DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {
 		return b;
 	}
 	
-	ParserError ("bad statement");
 	return NULL;
 }
 

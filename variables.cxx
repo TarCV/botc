@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
+#include "array.h"
 #include "bots.h"
 #include "botcommands.h"
 #include "objwriter.h"
@@ -50,70 +51,48 @@
 #include "variables.h"
 #include "scriptreader.h"
 
-ScriptVar* g_GlobalVariables[MAX_SCRIPT_VARIABLES];
-ScriptVar* g_LocalVariable;
-
-void InitVariables () {
-	unsigned int u;
-	ITERATE_GLOBAL_VARS (u)
-		g_GlobalVariables[u] = NULL;
-}
+array<ScriptVar> g_GlobalVariables;
+array<ScriptVar> g_LocalVariables;
 
 // ============================================================================
 // Tries to declare a new global-scope variable. Returns pointer
 // to new global variable, NULL if declaration failed.
-ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name) {
-	// Check that the name is valid
+ScriptVar* DeclareGlobalVariable (ScriptReader* r, type_e type, str name) {
+	// Unfortunately the VM does not support string variables so yeah.
+	if (type == TYPE_STRING)
+		r->ParserError ("variables cannot be string\n");
+	
+	// Check that the variable is valid
 	if (FindCommand (name))
 		r->ParserError ("name of variable-to-be `%s` conflicts with that of a command", name.chars());
 	
 	if (IsKeyword (name))
 		r->ParserError ("name of variable-to-be `%s` is a keyword", name.chars());
 	
-	// Find a NULL pointer to a global variable
-	ScriptVar* g;
-	unsigned int u = 0;
-	ITERATE_GLOBAL_VARS (u) {
-		// Check that it doesn't exist already
-		if (!g_GlobalVariables[u])
-			break;
-		
-		if (!g_GlobalVariables[u]->name.icompare (name))
-			r->ParserError ("attempted redeclaration of variable `%s`", name.chars());
-	}
-	
-	if (u == MAX_SCRIPT_VARIABLES)
+	if (g_GlobalVariables.size() >= MAX_SCRIPT_VARIABLES)
 		r->ParserError ("too many global variables!");
 	
-	g = new ScriptVar;
-	g->index = u;
-	g->name = name;
-	g->statename = "";
-	g->next = NULL;
-	g->value = 0;
+	for (uint i = 0; i < g_GlobalVariables.size(); i++)
+		if (g_GlobalVariables[i].name == name)
+			r->ParserError ("attempted redeclaration of global variable `%s`", name.chars());
 	
-	g_GlobalVariables[u] = g;
-	return g;
+	ScriptVar g;
+	g.index = g_GlobalVariables.size();
+	g.name = name;
+	g.statename = "";
+	g.value = 0;
+	g.type = type;
+	
+	g_GlobalVariables << g;
+	return &g_GlobalVariables[g.index];
 }
-
-/*
-void AssignScriptVariable (ScriptReader* r, str name, str value) {
-	ScriptVar* g = FindScriptVariable (name);
-	if (!g)
-		r->ParserError ("global variable %s not declared", name.chars());
-}
-*/
 
 // ============================================================================
 // Find a global variable by name
 ScriptVar* FindGlobalVariable (str name) {
-	unsigned int u = 0;
-	ITERATE_GLOBAL_VARS (u) {
-		ScriptVar* g = g_GlobalVariables[u];
-		if (!g)
-			return NULL;
-		
-		if (!g->name.compare (name))
+	for (uint i = 0; i < g_GlobalVariables.size(); i++) {
+		ScriptVar* g = &g_GlobalVariables[i];
+		if (g->name == name)
 			return g;
 	}
 	
@@ -122,12 +101,6 @@ ScriptVar* FindGlobalVariable (str name) {
 
 // ============================================================================
 // Count all declared global variables
-unsigned int CountGlobalVars () {
-	unsigned int count = 0;
-	unsigned int u = 0;
-	ITERATE_GLOBAL_VARS (u) {
-		if (g_GlobalVariables[u] != NULL)
-			count++;
-	}
-	return count;
+uint CountGlobalVars () {
+	return g_GlobalVariables.size();
 }
