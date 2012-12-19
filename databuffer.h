@@ -54,7 +54,7 @@ extern int g_NextMark;
 class DataBuffer {
 public:
 	// The actual buffer
-	unsigned char* buffer;
+	byte* buffer;
 	
 	// Allocated size of the buffer
 	unsigned int allocsize;
@@ -100,7 +100,8 @@ public:
 	
 	// ====================================================================
 	// Write stuff to the buffer
-	template<class T> void Write (T stuff) {
+	template<class T> void DoWrite (const char* func, T stuff) {
+		// printf ("DoWrite: called from %s\n", func);
 		if (writesize + sizeof (T) >= allocsize) {
 			// We don't have enough space in the buffer to write
 			// the stuff - thus resize. First, store the old
@@ -112,6 +113,7 @@ public:
 			// for the stuff we're going to write, as well as a bit
 			// of leeway so we don't have to resize immediately again.
 			size_t newsize = allocsize + sizeof (T) + 128;
+			
 			delete buffer;
 			buffer = new unsigned char[newsize];
 			allocsize = newsize;
@@ -142,7 +144,7 @@ public:
 		int oldsize = writesize;
 		
 		for (unsigned int x = 0; x < other->writesize; x++)
-			Write<byte> (*(other->buffer+x));
+			Write (*(other->buffer+x));
 		
 		// Merge its marks and references
 		unsigned int u = 0;
@@ -177,7 +179,7 @@ public:
 	DataBuffer* Clone () {
 		DataBuffer* other = new DataBuffer;
 		for (unsigned int x = 0; x < writesize; x++)
-			other->Write<unsigned char> (*(buffer+x));
+			other->Write (*(buffer+x));
 		return other;
 	}
 	
@@ -223,7 +225,7 @@ public:
 		
 		// Write a dummy placeholder for the reference
 		if (placeholder)
-			Write<word> (1234);
+			Write (1234);
 		
 		return u;
 	}
@@ -286,15 +288,15 @@ public:
 		// TODO: Casting float to word causes the decimal to be lost.
 		// Find a way to store the number without such loss.
 		float val = atof (floatstring);
-		Write<word> (DH_PUSHNUMBER);
-		Write<word> (static_cast<word> ((val > 0) ? val : -val));
+		Write (DH_PUSHNUMBER);
+		Write (static_cast<word> ((val > 0) ? val : -val));
 		if (val < 0)
-			Write<word> (DH_UNARYMINUS);
+			Write (DH_UNARYMINUS);
 	}
 	
 	void WriteString (str string) {
-		Write<word> (DH_PUSHSTRINGINDEX);
-		Write<word> (PushToStringTable (string));
+		Write (DH_PUSHSTRINGINDEX);
+		Write (PushToStringTable (string));
 	}
 };
 

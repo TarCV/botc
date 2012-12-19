@@ -99,13 +99,17 @@ public:
 	void MoveMark (unsigned int mark);
 	void OffsetMark (unsigned int mark, int offset);
 	void DeleteMark (unsigned int mark);
-	template <class T> void Write (T stuff) {
-		GetCurrentBuffer ()->Write<T> (stuff);
+	template <class T> void DoWrite (const char* func, T stuff) {
+		GetCurrentBuffer ()->DoWrite (func, stuff);
 	}
 	
 	// Default to word
-	void Write (word stuff) {
-		Write<word> (stuff);
+	void DoWrite (const char* func, word stuff) {
+		DoWrite<word> (func, stuff);
+	}
+	
+	void DoWrite (const char* func, byte stuff) {
+		DoWrite<byte> (func, stuff);
 	}
 	
 private:

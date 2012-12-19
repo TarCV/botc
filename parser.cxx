@@ -105,7 +105,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			
 			// stateSpawn is special - it *must* be defined. If we
 			// encountered it, then mark down that we have it.
-			if (!token.icompare ("statespawn"))
+			if (-token == "statespawn")
 				g_stateSpawnDefined = true;
 			
 			// Must end in a colon
@@ -143,7 +143,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			g_CurMode = MODE_EVENT;
 			
 			w->Write (DH_EVENT);
-			w->Write<word> (e->number);
+			w->Write (e->number);
 			g_NumEvents++;
 			continue;
 		}
@@ -173,14 +173,13 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (token == "int" || token == "str" || token == "float" || token == "bool") {
+		if (token == "int" || token == "str" || token == "bool") {
 			// For now, only globals are supported
 			if (g_CurMode != MODE_TOPLEVEL || g_CurState.len())
 				ParserError ("variables must only be global for now");
 			
 			type_e type =	(token == "int") ? TYPE_INT :
 							(token == "str") ? TYPE_STRING :
-							(token == "float") ? TYPE_FLOAT :
 							TYPE_BOOL;
 			
 			MustNext ();
@@ -218,7 +217,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			}
 			
 			// Add a reference to the mark.
-			w->Write<word> (DH_GOTO);
+			w->Write (DH_GOTO);
 			w->AddReference (m);
 			MustNext (";");
 			continue;
@@ -247,7 +246,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			
 			// Use DH_IFNOTGOTO - if the expression is not true, we goto the mark
 			// we just defined - and this mark will be at the end of the scope block.
-			w->Write<word> (DH_IFNOTGOTO);
+			w->Write (DH_IFNOTGOTO);
 			w->AddReference (marknum);
 			
 			// Store it
@@ -306,7 +305,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			w->WriteBuffer (expr);
 			
 			// Instruction to go to the end if it fails
-			w->Write<word> (DH_IFNOTGOTO);
+			w->Write (DH_IFNOTGOTO);
 			w->AddReference (mark2);
 			
 			// Store the needed stuff
@@ -357,7 +356,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			
 			// Add the condition
 			w->WriteBuffer (cond);
-			w->Write<word> (DH_IFNOTGOTO);
+			w->Write (DH_IFNOTGOTO);
 			w->AddReference (mark2);
 			
 			// Store the marks and incrementor
@@ -432,8 +431,8 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			//	NULL the switch buffer for the case-go-to statement,
 			// we want it all under the switch, not into the case-buffers.
 			w->SwitchBuffer = NULL;
-			w->Write<word> (DH_CASEGOTO);
-			w->Write<word> (num);
+			w->Write (DH_CASEGOTO);
+			w->Write (num);
 			AddSwitchCase (w, NULL);
 			SCOPE(0).casenumbers[SCOPE(0).casecursor] = num;
 			continue;
@@ -457,8 +456,8 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// a default.
 			DataBuffer* b = new DataBuffer;
 			SCOPE(0).buffer1 = b;
-			b->Write<word> (DH_DROP);
-			b->Write<word> (DH_GOTO);
+			b->Write (DH_DROP);
+			b->Write (DH_GOTO);
 			AddSwitchCase (w, b);
 			continue;
 		}
@@ -469,7 +468,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			if (!g_ScopeCursor)
 				ParserError ("unexpected `break`");
 			
-			w->Write<word> (DH_GOTO);
+			w->Write (DH_GOTO);
 			
 			// switch and if use mark1 for the closing point,
 			// for and while use mark2.
@@ -505,7 +504,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 				case SCOPETYPE_FOR:
 				case SCOPETYPE_WHILE:
 				case SCOPETYPE_DO:
-					w->Write<word> (DH_GOTO);
+					w->Write (DH_GOTO);
 					w->AddReference (scopestack[curs].mark1);
 					found = true;
 					break;
@@ -581,10 +580,6 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 				MustString ();
 				info.val = token;
 				break;
-			case TYPE_FLOAT:
-				MustNext ();
-				info.val = ParseFloat ();
-				break;
 			case TYPE_UNKNOWN:
 			case TYPE_VOID:
 				break;
@@ -637,7 +632,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					
 					// If the condition runs true, go back to the start.
 					w->WriteBuffer (expr);
-					w->Write<long> (DH_IFGOTO);
+					w->Write (DH_IFGOTO);
 					w->AddReference (SCOPE(0).mark1);
 					break;
 				}
@@ -655,8 +650,8 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					if (SCOPE(0).buffer1)
 						w->WriteBuffer (SCOPE(0).buffer1);
 					else {
-						w->Write<word> (DH_DROP);
-						w->Write<word> (DH_GOTO);
+						w->Write (DH_DROP);
+						w->Write (DH_GOTO);
 						w->AddReference (SCOPE(0).mark1);
 					}
 					
@@ -786,14 +781,14 @@ DataBuffer* ScriptReader::ParseCommand (CommandDef* comm) {
 	
 	// If the script skipped any optional arguments, fill in defaults.
 	while (curarg < comm->maxargs) {
-		r->Write<word> (DH_PUSHNUMBER);
-		r->Write<word> (comm->defvals[curarg]);
+		r->Write (DH_PUSHNUMBER);
+		r->Write (comm->defvals[curarg]);
 		curarg++;
 	}
 	
-	r->Write<word> (DH_COMMAND);
-	r->Write<word> (comm->number);
-	r->Write<word> (comm->maxargs);
+	r->Write (DH_COMMAND);
+	r->Write (comm->number);
+	r->Write (comm->maxargs);
 	
 	return r;
 }
@@ -895,10 +890,10 @@ DataBuffer* ScriptReader::ParseExpression (type_e reqtype) {
 			// Behold, big block of writing madness! :P
 			int mark1 = retbuf->AddMark (""); // start of "else" case
 			int mark2 = retbuf->AddMark (""); // end of expression
-			retbuf->Write<word> (DH_IFNOTGOTO); // if the first operand (condition)
+			retbuf->Write (DH_IFNOTGOTO); // if the first operand (condition)
 			retbuf->AddMarkReference (mark1); // didn't eval true, jump into mark1
 			retbuf->Merge (rb); // otherwise, perform second operand (true case)
-			retbuf->Write<word> (DH_GOTO); // afterwards, jump to the end, which is
+			retbuf->Write (DH_GOTO); // afterwards, jump to the end, which is
 			retbuf->AddMarkReference (mark2); // marked by mark2.
 			retbuf->MoveMark (mark1); // move mark1 at the end of the true case
 			retbuf->Merge (tb); // perform third operand (false case)
@@ -906,7 +901,7 @@ DataBuffer* ScriptReader::ParseExpression (type_e reqtype) {
 		} else {
 			// Write to buffer
 			retbuf->Merge (rb);
-			retbuf->Write<word> (DataHeaderByOperator (NULL, oper));
+			retbuf->Write (DataHeaderByOperator (NULL, oper));
 		}
 	}
 	
@@ -1028,8 +1023,8 @@ DataBuffer* ScriptReader::ParseExprValue (type_e reqtype) {
 		if (reqtype != TYPE_INT)
 			ParserError ("strlen returns int but %s is expected\n", (char*)GetTypeName (reqtype));
 		
-		b->Write<word> (DH_PUSHNUMBER);
-		b->Write<word> (constant->val.len ());
+		b->Write (DH_PUSHNUMBER);
+		b->Write (constant->val.len ());
 		
 		MustNext (")");
 	} else if (token == "(") {
@@ -1055,11 +1050,8 @@ DataBuffer* ScriptReader::ParseExprValue (type_e reqtype) {
 		switch (constant->type) {
 		case TYPE_BOOL:
 		case TYPE_INT:
-			b->Write<word> (DH_PUSHNUMBER);
-			b->Write<word> (atoi (constant->val));
-			break;
-		case TYPE_FLOAT:
-			b->WriteFloat (constant->val);
+			b->Write (DH_PUSHNUMBER);
+			b->Write (atoi (constant->val));
 			break;
 		case TYPE_STRING:
 			b->WriteString (constant->val);
@@ -1070,8 +1062,8 @@ DataBuffer* ScriptReader::ParseExprValue (type_e reqtype) {
 		}
 	} else if ((g = FindGlobalVariable (token))) {
 		// Global variable
-		b->Write<word> (DH_PUSHGLOBALVAR);
-		b->Write<word> (g->index);
+		b->Write (DH_PUSHGLOBALVAR);
+		b->Write (g->index);
 	} else {
 		// If nothing else, check for literal
 		switch (reqtype) {
@@ -1085,12 +1077,12 @@ DataBuffer* ScriptReader::ParseExprValue (type_e reqtype) {
 			
 			// All values are written unsigned - thus we need to write the value's
 			// absolute value, followed by an unary minus for negatives.
-			b->Write<word> (DH_PUSHNUMBER);
+			b->Write (DH_PUSHNUMBER);
 			
 			long v = atol (token);
-			b->Write<word> (static_cast<word> (abs (v)));
+			b->Write (static_cast<word> (abs (v)));
 			if (v < 0)
-				b->Write<word> (DH_UNARYMINUS);
+				b->Write (DH_UNARYMINUS);
 			break;
 		}
 		case TYPE_STRING:
@@ -1100,26 +1092,12 @@ DataBuffer* ScriptReader::ParseExprValue (type_e reqtype) {
 			MustString (true);
 			b->WriteString (token);
 			break;
-		case TYPE_FLOAT: {
-			str floatstring = ParseFloat ();
-			
-			// TODO: Keep this check after decimal loss is fixed, but make
-			// it a real precision loss check. 55.5123 -> 55.512299, this
-			// should probably be warned of.
-			float check = static_cast<float> (static_cast<word> (atof (floatstring)));
-			if (atof (floatstring) != check)
-				ParserWarning ("floating point number %f loses precision (-> %f)",
-					atof (floatstring), check);
-			
-			b->WriteFloat (floatstring);
-			break;
-		}
 		}
 	}
 	
 	// Negate it now if desired
 	if (negate)
-		b->Write<word> (DH_NEGATELOGICAL);
+		b->Write (DH_NEGATELOGICAL);
 	
 	return b;
 }
@@ -1149,17 +1127,17 @@ DataBuffer* ScriptReader::ParseAssignment (ScriptVar* var) {
 	// a <<= b -> a = a << b
 	// a >>= b -> a = a >> b
 	if (oper == OPER_ASSIGNLEFTSHIFT || oper == OPER_ASSIGNRIGHTSHIFT) {
-		retbuf->Write<word> (global ? DH_PUSHGLOBALVAR : DH_PUSHLOCALVAR);
-		retbuf->Write<word> (var->index);
+		retbuf->Write (global ? DH_PUSHGLOBALVAR : DH_PUSHLOCALVAR);
+		retbuf->Write (var->index);
 		retbuf->Merge (expr);
-		retbuf->Write<word> ((oper == OPER_ASSIGNLEFTSHIFT) ? DH_LSHIFT : DH_RSHIFT);
-		retbuf->Write<word> (global ? DH_ASSIGNGLOBALVAR : DH_ASSIGNLOCALVAR);
-		retbuf->Write<word> (var->index);
+		retbuf->Write ((oper == OPER_ASSIGNLEFTSHIFT) ? DH_LSHIFT : DH_RSHIFT);
+		retbuf->Write (global ? DH_ASSIGNGLOBALVAR : DH_ASSIGNLOCALVAR);
+		retbuf->Write (var->index);
 	} else {
 		retbuf->Merge (expr);
 		long dh = DataHeaderByOperator (var, oper);
-		retbuf->Write<word> (dh);
-		retbuf->Write<word> (var->index);
+		retbuf->Write (dh);
+		retbuf->Write (var->index);
 	}
 	
 	return retbuf;

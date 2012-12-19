@@ -130,7 +130,6 @@ void ReadCommands () {
 					r->MustString();
 					break;
 				case TYPE_UNKNOWN:
-				case TYPE_FLOAT:
 				case TYPE_VOID:
 					break;
 				}

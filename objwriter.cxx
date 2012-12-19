@@ -63,9 +63,9 @@ ObjWriter::ObjWriter (str path) {
 }
 
 void ObjWriter::WriteString (char* s) {
-	Write<long> (strlen (s));
+	Write (strlen (s));
 	for (unsigned int u = 0; u < strlen (s); u++)
-		Write<char> (s[u]);
+		Write ((s)[u]);
 }
 
 void ObjWriter::WriteString (const char* s) {
@@ -83,17 +83,17 @@ void ObjWriter::WriteBuffer (DataBuffer* buf) {
 void ObjWriter::WriteBuffers () {
 	// If there was no mainloop defined, write a dummy one now.
 	if (!g_GotMainLoop) {
-		MainLoopBuffer->Write<long> (DH_MAINLOOP);
-		MainLoopBuffer->Write<long> (DH_ENDMAINLOOP);
+		MainLoopBuffer->Write (DH_MAINLOOP);
+		MainLoopBuffer->Write (DH_ENDMAINLOOP);
 	}
 	
 	// Write the onenter and mainloop buffers, IN THAT ORDER
 	for (int i = 0; i < 2; i++) {
-		DataBuffer* buf = (!i) ? OnEnterBuffer : MainLoopBuffer;
-		WriteBuffer (buf);
+		DataBuffer** buf = (!i) ? &OnEnterBuffer : &MainLoopBuffer;
+		WriteBuffer (*buf);
 		
 		// Clear the buffer afterwards for potential next state
-		buf = new DataBuffer;
+		*buf = new DataBuffer;
 	}
 	
 	// Next state definitely has no mainloop yet
@@ -107,8 +107,8 @@ void ObjWriter::WriteStringTable () {
 		return;
 	
 	// Write header
-	Write<long> (DH_STRINGLIST);
-	Write<long> (stringcount);
+	Write (DH_STRINGLIST);
+	Write (stringcount);
 	
 	// Write all strings
 	for (unsigned int a = 0; a < stringcount; a++)
