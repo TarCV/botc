@@ -67,6 +67,16 @@ enum parsermode_e {
 	MODE_ONEXIT,	// inside onexit
 };
 
+enum type_e {
+	TYPE_UNKNOWN = 0,
+	TYPE_VOID,
+	TYPE_INT,
+	TYPE_STRING,
+	TYPE_FLOAT,
+	TYPE_BOOL,
+	
+};
+
 #define CHECK_FILE(pointer,path,action) \
 	if (!pointer) { \
 		error ("couldn't open %s for %s!\n", (char*)path, action); \
@@ -89,6 +99,8 @@ enum parsermode_e {
 void error (const char* text, ...);
 char* ObjectFileName (str s);
 bool fexists (char* path);
+type_e GetTypeByName (str token);
+str GetTypeName (type_e type);
 
 // Make the parser's variables globally available
 extern int g_NumStates;

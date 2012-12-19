@@ -43,22 +43,14 @@
 
 #include <stdio.h>
 #include "str.h"
-#include "objwriter.h"
 #include "commands.h"
+#include "objwriter.h"
 
 #define MAX_FILESTACK 8
 #define MAX_SCOPE 32
 #define MAX_CASE 64
 
 class ScriptVar;
-
-enum type_e {
-	TYPE_VOID = 0,
-	TYPE_INT,
-	TYPE_STRING,
-	TYPE_FLOAT,
-	TYPE_BOOL
-};
 
 // Operators
 enum operator_e {
@@ -89,6 +81,7 @@ enum operator_e {
 	OPER_BITWISEAND,
 	OPER_BITWISEEOR,
 	OPER_TERNARY,
+	OPER_STRLEN,
 };
 
 // Mark types
@@ -133,6 +126,13 @@ struct ScopeInfo {
 	// What is the current buffer of the block?
 	DataBuffer* recordbuffer;
 };
+
+// ============================================================================
+typedef struct {
+	str name;
+	type_e type;
+	str val;
+} constinfo_t;
 
 // ============================================================================
 // The script reader reads the script, parses it and tells the object writer
@@ -181,10 +181,11 @@ public:
 	// parser.cxx:
 	void ParseBotScript (ObjWriter* w);
 	DataBuffer* ParseCommand (CommandDef* comm);
-	DataBuffer* ParseExpression (int reqtype);
+	DataBuffer* ParseExpression (type_e reqtype);
 	DataBuffer* ParseAssignment (ScriptVar* var);
 	int ParseOperator (bool peek = false);
-	DataBuffer* ParseExprValue (int reqtype);
+	DataBuffer* ParseExprValue (type_e reqtype);
+	str ParseFloat ();
 	void PushScope ();
 	
 	// preprocessor.cxx:
@@ -204,6 +205,7 @@ private:
 	str PPReadWord (char &term);
 };
 
+constinfo_t* FindConstant (str token);
 extern bool g_Neurosphere;
 
 #endif // __SCRIPTREADER_H__

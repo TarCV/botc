@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "common.h"
+#include "stringtable.h"
 
 #define MAX_MARKS 512
 
@@ -278,6 +279,22 @@ public:
 		for (unsigned int u = 0; u < MAX_MARKS; u++)
 			count += !!refs[u];
 		return count;
+	}
+	
+	// Write a float into the buffer
+	void WriteFloat (str floatstring) {
+		// TODO: Casting float to word causes the decimal to be lost.
+		// Find a way to store the number without such loss.
+		float val = atof (floatstring);
+		Write<word> (DH_PUSHNUMBER);
+		Write<word> (static_cast<word> ((val > 0) ? val : -val));
+		if (val < 0)
+			Write<word> (DH_UNARYMINUS);
+	}
+	
+	void WriteString (str string) {
+		Write<word> (DH_PUSHSTRINGINDEX);
+		Write<word> (PushToStringTable (string));
 	}
 };
 

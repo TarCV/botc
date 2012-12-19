@@ -75,7 +75,7 @@ void ReadCommands () {
 		
 		// Return value
 		r->MustNext ();
-		comm->returnvalue = GetCommandType (r->token);
+		comm->returnvalue = GetTypeByName (r->token);
 		if (comm->returnvalue == -1)
 			r->ParserError ("bad return value type `%s` for command %s", r->token.chars(), comm->name.chars());
 		
@@ -100,10 +100,10 @@ void ReadCommands () {
 			r->MustNext (":");
 			r->MustNext ();
 			
-			int type = GetCommandType (r->token);
+			type_e type = GetTypeByName (r->token);
 			if (type == -1)
 				r->ParserError ("bad argument %d type `%s`", curarg, r->token.chars());
-			if (type == RETURNVAL_VOID)
+			if (type == TYPE_VOID)
 				r->ParserError ("void is not a valid argument type!");
 			comm->argtypes[curarg] = type;
 			
@@ -122,10 +122,17 @@ void ReadCommands () {
 			if (curarg >= comm->numargs) {
 				r->MustNext ("=");
 				switch (type) {
-				case RETURNVAL_INT:
-				case RETURNVAL_BOOLEAN:
-					r->MustNumber(); break;
-				case RETURNVAL_STRING: r->MustString(); break;
+				case TYPE_INT:
+				case TYPE_BOOL:
+					r->MustNumber();
+					break;
+				case TYPE_STRING:
+					r->MustString();
+					break;
+				case TYPE_UNKNOWN:
+				case TYPE_FLOAT:
+				case TYPE_VOID:
+					break;
 				}
 				
 				comm->defvals[curarg] = r->token;
@@ -153,43 +160,6 @@ void ReadCommands () {
 	r->CloseFile ();
 	delete r;
 	printf ("%d command definitions read.\n", numCommDefs);
-}
-
-// ============================================================================
-// Get command type by name
-int GetCommandType (str t) {
-	t = t.tolower();
-	return	(t == "int") ? TYPE_INT :
-			(t == "float") ? TYPE_FLOAT :
-			(t == "str") ? TYPE_STRING :
-			(t == "void") ? TYPE_VOID :
-			(t == "bool") ? TYPE_BOOL : -1;
-}
-
-// ============================================================================
-// Inverse operation - type name by value
-str GetTypeName (int r) {
-	switch (r) {
-	case TYPE_INT: return "int"; break;
-	case TYPE_STRING: return "str"; break;
-	case TYPE_VOID: return "void"; break;
-	case TYPE_FLOAT: return "float"; break;
-	case TYPE_BOOL: return "bool"; break;
-	}
-	
-	return "";
-}
-
-// ============================================================================
-str GetReturnTypeName (int r) {
-	switch (r) {
-	case RETURNVAL_INT: return "int"; break;
-	case RETURNVAL_STRING: return "str"; break;
-	case RETURNVAL_VOID: return "void"; break;
-	case RETURNVAL_BOOLEAN: return "bool"; break;
-	}
-	
-	return "";
 }
 
 // ============================================================================
@@ -230,7 +200,7 @@ str GetCommandPrototype (CommandDef* comm) {
 		if (i >= comm->numargs) {
 			text += '=';
 			
-			bool isString = comm->argtypes[i] == RETURNVAL_STRING;
+			bool isString = comm->argtypes[i] == TYPE_STRING;
 			if (isString) text += '"';
 			
 			char defvalstring[8];

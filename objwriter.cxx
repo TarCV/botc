@@ -45,6 +45,7 @@
 #include "common.h"
 #include "str.h"
 #include "objwriter.h"
+#include "databuffer.h"
 #include "stringtable.h"
 
 #include "bots.h"

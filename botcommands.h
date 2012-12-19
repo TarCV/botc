@@ -170,14 +170,4 @@ typedef enum
 
 } BOTCMD_e;
 
-//*****************************************************************************
-typedef enum
-{
-	RETURNVAL_VOID,
-	RETURNVAL_INT,
-	RETURNVAL_BOOLEAN,
-	RETURNVAL_STRING,
-
-} RETURNVAL_e;
-
 #endif	// __BOTCOMMANDS_H__
