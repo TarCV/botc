@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include "array.h"
 #include "str.h"
 #include "common.h"
 
@@ -400,60 +401,26 @@ unsigned int str::count (char* c) {
 }
 
 // ============================================================================
-#if 0
-str** str::split (char* del) {
-	unsigned int arrcount = count (del) + 1;
-	str** arr = new str* [arrcount];
-	
+array<str> str::split (str del) {
+	array<str> res;
 	unsigned int a = 0;
-	unsigned int index = 0;
+	
+	// Find all separators and store the text left to them.
 	while (1) {
-		unsigned int b = first (del, a+1);
-		printf ("next: %u (<-> %u)\n", b, len());
+		unsigned int b = first (del, a);
 		
 		if (b == len())
 			break;
 		
-		str* x = new str;
-		x->append (substr (a, b));
-		arr[index] = x;
-		index++;
-		a = b;
+		res.push (substr (a, b));
+		a = b + strlen (del);
 	}
 	
-	return arr;
-}
-#endif
-
-// ============================================================================
-// OPERATORS
-str str::operator + (str& c) {
-	append (c);
-	return *this;
+	// Add the string at the right of the last separator
+	res.push (substr (a, len()));
+	return res;
 }
 
-str& str::operator += (char c) {
-	append (c);
-	return *this;
-}
-
-str& str::operator += (const char* c) {
-	append (c);
-	return *this;
-}
-
-str& str::operator += (const str c) {
-	append (c);
-	return *this;
-}
-
-char str::operator [] (unsigned int pos) {
-	return text[pos];
-}
-
-str::operator char* () const {
-	return text;
-}
-
-str::operator int () const {return atoi(text);}
-str::operator unsigned int () const {return atoi(text);}
+array<str> str::operator/ (str splitstring) {return split(splitstring);}
+array<str> str::operator/ (char* splitstring) {return split(splitstring);}
+array<str> str::operator/ (const char* splitstring) {return split(splitstring);}

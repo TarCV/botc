@@ -91,11 +91,16 @@ char* ObjectFileName (str s);
 bool fexists (char* path);
 
 // Make the parser's variables globally available
-#ifndef __PARSER_CXX__
 extern int g_NumStates;
 extern int g_NumEvents;
 extern int g_CurMode;
 extern str g_CurState;
+
+#define neurosphere if (g_Neurosphere)
+#define twice for (int repeat_token = 0; repeat_token < 2; repeat_token++)
+
+#ifndef __GNUC__
+#define __attribute__(X)
 #endif
 
 // Power function

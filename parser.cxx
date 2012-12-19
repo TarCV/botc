@@ -69,6 +69,7 @@ unsigned int g_ScopeCursor = 0;
 DataBuffer* g_IfExpression = NULL;
 bool g_CanElse = false;
 str* g_UndefinedLabels[MAX_MARKS];
+bool g_Neurosphere = false; // neurosphere-compat
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
@@ -84,13 +85,13 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 	
 	while (Next()) {
 		// Check if else is potentically valid
-		if (!token.compare ("else") && !g_CanElse)
+		if (token == "else" && !g_CanElse)
 			ParserError ("else without preceding if");
-		if (token.compare ("else") != 0)
+		if (token != "else")
 			g_CanElse = false;
 		
 		// ============================================================
-		if (!token.compare ("state")) {
+		if (token == "state") {
 			MUST_TOPLEVEL
 			
 			MustString ();
@@ -125,7 +126,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.compare ("event")) {
+		if (token == "event") {
 			MUST_TOPLEVEL
 			
 			// Event definition
@@ -146,7 +147,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.compare ("mainloop")) {
+		if (token == "mainloop") {
 			MUST_TOPLEVEL
 			MustNext ("{");
 			
@@ -157,9 +158,9 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.compare ("onenter") || !token.compare ("onexit")) {
+		if (token == "onenter" || token == "onexit") {
 			MUST_TOPLEVEL
-			bool onenter = !token.compare ("onenter");
+			bool onenter = token == "onenter";
 			MustNext ("{");
 			
 			// Mode must be set before dataheader is written here,
@@ -170,7 +171,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.compare ("var")) {
+		if (token == "var") {
 			// For now, only globals are supported
 			if (g_CurMode != MODE_TOPLEVEL || g_CurState.len())
 				ParserError ("variables must only be global for now");
@@ -194,7 +195,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// Goto
-		if (!token.compare ("goto")) {
+		if (token == "goto") {
 			MUST_NOT_TOPLEVEL
 			
 			// Get the name of the label
@@ -218,7 +219,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// If
-		if (!token.compare ("if")) {
+		if (token == "if") {
 			MUST_NOT_TOPLEVEL
 			PushScope ();
 			
@@ -248,7 +249,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			continue;
 		}
 		
-		if (!token.compare ("else")) {
+		if (token == "else") {
 			MUST_NOT_TOPLEVEL
 			MustNext ("{");
 			
@@ -276,7 +277,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// While
-		if (!token.compare ("while")) {
+		if (token == "while") {
 			MUST_NOT_TOPLEVEL
 			PushScope ();
 			
@@ -310,7 +311,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// For loop
-		if (!token.compare ("for")) {
+		if (token == "for") {
 			MUST_NOT_TOPLEVEL
 			PushScope ();
 			
@@ -353,7 +354,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// Do/while loop
-		if (!token.compare ("do")) {
+		if (token == "do") {
 			MUST_NOT_TOPLEVEL
 			PushScope ();
 			MustNext ("{");
@@ -364,7 +365,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// Switch
-		if (!token.compare ("switch")) {
+		if (token == "switch") {
 			/* This goes a bit tricky. switch is structured in the
 			 * bytecode followingly:
 			 * (expression)
@@ -392,7 +393,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		}
 		
 		// ============================================================
-		if (!token.compare ("case")) {
+		if (token == "case") {
 			// case is only allowed inside switch
 			if (SCOPE(0).type != SCOPETYPE_SWITCH)
 				ParserError ("case label outside switch");
@@ -422,7 +423,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			continue;
 		}
 		
-		if (!token.compare ("default")) {
+		if (token == "default") {
 			if (SCOPE(0).type != SCOPETYPE_SWITCH)
 				ParserError ("default label outside switch");
 			
@@ -448,7 +449,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// Break statement.
-		if (!token.compare ("break")) {
+		if (token == "break") {
 			if (!g_ScopeCursor)
 				ParserError ("unexpected `break`");
 			
@@ -476,7 +477,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		
 		// ============================================================
 		// Continue
-		if (!token.compare ("continue")) {
+		if (token == "continue") {
 			MustNext (";");
 			
 			int curs;
@@ -491,6 +492,8 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					w->Write<word> (DH_GOTO);
 					w->AddReference (scopestack[curs].mark1);
 					found = true;
+					break;
+				default:
 					break;
 				}
 			}
@@ -612,7 +615,10 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					
 					// Move the closing mark here
 					w->MoveMark (SCOPE(0).mark1);
+					break;
 				}
+				case SCOPETYPE_UNKNOWN:
+					break;
 				}
 				
 				// Descend down the stack
@@ -639,14 +645,23 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			continue;
 		}
 		
+		// Check if it's a command
+		CommandDef* comm = FindCommand (token);
+		if (comm) {
+			w->GetCurrentBuffer()->Merge (ParseCommand (comm));
+			MustNext (";");
+			continue;
+		}
+		
 		// ============================================================
-		// If nothing else, parse it as a statement (which is either
-		// assignment or expression)
+		// If nothing else, parse it as a statement
 		DataBuffer* b = ParseStatement (w);
 		w->WriteBuffer (b);
 		MustNext (";");
 	}
 	
+	// ===============================================================================
+	// Script file ended. Do some last checks and write the last things to main buffer
 	if (g_CurMode != MODE_TOPLEVEL)
 		ParserError ("script did not end at top level; did you forget a `}`?");
 	
@@ -817,18 +832,17 @@ DataBuffer* ScriptReader::ParseExpression (int reqtype) {
 			
 			// It also is handled differently: there isn't a dataheader for ternary
 			// operator. Instead, we abuse PUSHNUMBER and IFNOTGOTO for this.
+			// Behold, big block of writing madness! :P
 			int mark1 = retbuf->AddMark (""); // start of "else" case
 			int mark2 = retbuf->AddMark (""); // end of expression
-			retbuf->Write<word> (DH_IFNOTGOTO);
-			retbuf->AddMarkReference (mark1);
-			retbuf->Merge (rb);
-			retbuf->Write<word> (DH_GOTO);
-			retbuf->AddMarkReference (mark2);
-			retbuf->MoveMark (mark1); // start of "else" case
-			retbuf->Merge (tb);
-			retbuf->Write<word> (DH_GOTO);
-			retbuf->AddMarkReference (mark2);
-			retbuf->MoveMark (mark2); // move endmark to end
+			retbuf->Write<word> (DH_IFNOTGOTO); // if the first operand (condition)
+			retbuf->AddMarkReference (mark1); // didn't eval true, jump into mark1
+			retbuf->Merge (rb); // otherwise, perform second operand (true case)
+			retbuf->Write<word> (DH_GOTO); // afterwards, jump to the end, which is
+			retbuf->AddMarkReference (mark2); // marked by mark2.
+			retbuf->MoveMark (mark1); // move mark1 at the end of the true case
+			retbuf->Merge (tb); // perform third operand (false case)
+			retbuf->MoveMark (mark2); // move the ending mark2 here
 		} else {
 			// Write to buffer
 			retbuf->Merge (rb);
@@ -1053,7 +1067,7 @@ void ScriptReader::PushScope () {
 		ParserError ("too deep scope");
 	
 	ScopeInfo* info = &SCOPE(0);
-	info->type = 0;
+	info->type = SCOPETYPE_UNKNOWN;
 	info->mark1 = 0;
 	info->mark2 = 0;
 	info->buffer1 = NULL;
