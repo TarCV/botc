@@ -90,6 +90,7 @@ int g_NextMark = 0;
 int main (int argc, char** argv) {
 	// Intepret command-line parameters:
 	// -l: list commands
+	// I guess there should be a better way to do this.
 	if (argc == 2 && !strcmp (argv[1], "-l")) {
 		ReadCommands ();
 		printf ("Begin list of commands:\n");
@@ -113,7 +114,7 @@ int main (int argc, char** argv) {
 	if (VERSION_REVISION)
 		header.appendformat (".%d", VERSION_REVISION);
 	
-	headerline.repeat ((header.len()/2)-1);
+	headerline *= (header.len() / 2) - 1;
 	headerline += '-';
 	printf ("%s\n%s\n", header.chars(), headerline.chars());
 	
@@ -227,7 +228,7 @@ char* ObjectFileName (str s) {
 	// Locate the extension and chop it out
 	unsigned int extdot = s.last (".");
 	if (extdot >= s.len()-4)
-		s.trim (s.len() - extdot);
+		s -= (s.len() - extdot);
 	
 	s += ".o";
 	return s.chars();

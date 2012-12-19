@@ -52,12 +52,69 @@
 
 class ScriptVar;
 
+enum type_e {
+	TYPE_VOID = 0,
+	TYPE_INT,
+	TYPE_STRING,
+	TYPE_FLOAT,
+	TYPE_BOOL
+};
+
+// Operators
+enum operator_e {
+	OPER_ADD,
+	OPER_SUBTRACT,
+	OPER_MULTIPLY,
+	OPER_DIVIDE,
+	OPER_MODULUS,
+	OPER_ASSIGN,
+	OPER_ASSIGNADD,
+	OPER_ASSIGNSUB,
+	OPER_ASSIGNMUL,
+	OPER_ASSIGNDIV,
+	OPER_ASSIGNMOD, // -- 10
+	OPER_EQUALS,
+	OPER_NOTEQUALS,
+	OPER_LESSTHAN,
+	OPER_GREATERTHAN,
+	OPER_LESSTHANEQUALS,
+	OPER_GREATERTHANEQUALS,
+	OPER_LEFTSHIFT,
+	OPER_RIGHTSHIFT,
+	OPER_ASSIGNLEFTSHIFT,
+	OPER_ASSIGNRIGHTSHIFT, // -- 20
+	OPER_OR,
+	OPER_AND,
+	OPER_BITWISEOR,
+	OPER_BITWISEAND,
+	OPER_BITWISEEOR,
+	OPER_TERNARY,
+};
+
+// Mark types
+enum marktype_e {
+	MARKTYPE_LABEL,
+	MARKTYPE_IF,
+	MARKTYPE_INTERNAL, // internal structures
+};
+
+// Block types
+enum scopetype_e {
+	SCOPETYPE_UNKNOWN,
+	SCOPETYPE_IF,
+	SCOPETYPE_WHILE,
+	SCOPETYPE_FOR,
+	SCOPETYPE_DO,
+	SCOPETYPE_SWITCH,
+	SCOPETYPE_ELSE,
+};
+
 // ============================================================================
 // Meta-data about blocks
 struct ScopeInfo {
 	unsigned int mark1;
 	unsigned int mark2;
-	unsigned int type;
+	scopetype_e type;
 	DataBuffer* buffer1;
 	
 	// switch-related stuff
@@ -147,61 +204,6 @@ private:
 	str PPReadWord (char &term);
 };
 
-enum {
-	TYPE_VOID = 0,
-	TYPE_INT,
-	TYPE_STRING,
-	TYPE_FLOAT,
-	TYPE_BOOL
-};
-
-// Operators
-enum {
-	OPER_ADD,
-	OPER_SUBTRACT,
-	OPER_MULTIPLY,
-	OPER_DIVIDE,
-	OPER_MODULUS,
-	OPER_ASSIGN,
-	OPER_ASSIGNADD,
-	OPER_ASSIGNSUB,
-	OPER_ASSIGNMUL,
-	OPER_ASSIGNDIV,
-	OPER_ASSIGNMOD, // -- 10
-	OPER_EQUALS,
-	OPER_NOTEQUALS,
-	OPER_LESSTHAN,
-	OPER_GREATERTHAN,
-	OPER_LESSTHANEQUALS,
-	OPER_GREATERTHANEQUALS,
-	OPER_LEFTSHIFT,
-	OPER_RIGHTSHIFT,
-	OPER_ASSIGNLEFTSHIFT,
-	OPER_ASSIGNRIGHTSHIFT, // -- 20
-	OPER_OR,
-	OPER_AND,
-	OPER_BITWISEOR,
-	OPER_BITWISEAND,
-	OPER_BITWISEEOR,
-	OPER_TERNARY,
-};
-
-// Mark types
-enum {
-	MARKTYPE_LABEL,
-	MARKTYPE_IF,
-	MARKTYPE_INTERNAL, // internal structures
-};
-
-// Block types
-enum {
-	SCOPETYPE_UNSET = 0,
-	SCOPETYPE_IF,
-	SCOPETYPE_WHILE,
-	SCOPETYPE_FOR,
-	SCOPETYPE_DO,
-	SCOPETYPE_SWITCH,
-	SCOPETYPE_ELSE,
-};
+extern bool g_Neurosphere;
 
 #endif // __SCRIPTREADER_H__

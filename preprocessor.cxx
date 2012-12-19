@@ -104,7 +104,7 @@ bool ScriptReader::DoDirectivePreprocessing () {
 	str directive = PPReadWord (trash);
 	
 	// Now check the directive name against known names
-	if (!directive.icompare ("include")) {
+	if (directive == "include") {
 		// #include-directive
 		char terminator;
 		str file = PPReadWord (terminator);
@@ -112,6 +112,12 @@ bool ScriptReader::DoDirectivePreprocessing () {
 		if (!file.len())
 			ParserError ("expected file name for #include, got nothing instead");
 		OpenFile (file);
+		return true;
+	} else if (directive == "neurosphere") {
+		// #neurosphere - activates neurosphere compatibility, aka stuff
+		// that is still WIP and what main zandronum does not yet support.
+		// Most end users should never need this.
+		g_Neurosphere = true;
 		return true;
 	}
 	

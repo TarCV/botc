@@ -41,6 +41,8 @@
 #ifndef __STR_H__
 #define __STR_H__
 
+template<class T> class array;
+
 char* vdynformat (const char* c, va_list v, unsigned int size);
 
 #define SCCF_NUMBER	1<<0
@@ -141,20 +143,91 @@ public:
 	// Counts the amount of substrings in the string
 	unsigned int count (char* s);
 	
-#if 0
-	str** split (char* del);
-#endif
+	array<str> split (str del);
 	
 	// ======================================================================
 	// OPERATORS
-	str operator + (str& c);
-	str& operator += (char c);
-	str& operator += (const char* c);
-	str& operator += (const str c);
-	char operator [] (unsigned int pos);
-	operator char* () const;
-	operator int () const;
-	operator unsigned int () const;
+	str operator+ (str& c) {
+		append (c);
+		return *this;
+	}
+	
+	str& operator+= (char c) {
+		append (c);
+		return *this;
+	}
+	
+	str& operator+= (const char* c) {
+		append (c);
+		return *this;
+	}
+	
+	str& operator+= (const str c) {
+		append (c);
+		return *this;
+	}
+	
+	str operator* (const int repcount) {
+		repeat (repcount);
+		return *this;
+	}
+	
+	str& operator*= (const int repcount) {
+		repeat (repcount);
+		return *this;
+	}
+	
+	str operator- (const int trimcount) {
+		trim (trimcount);
+		return *this;
+	}
+	
+	str& operator-= (const int trimcount) {
+		trim (trimcount);
+		return *this;
+	}
+	
+	array<str> operator/ (str splitstring);
+	array<str> operator/ (char* splitstring);
+	array<str> operator/ (const char* splitstring);
+	
+	str operator+ () {
+		return toupper ();
+	}
+	
+	str operator- () {
+		return tolower ();
+	}
+	
+	str operator! () {
+		reverse ();
+		return *this;
+	}
+	
+#define DEFINE_OPERATOR_TYPE(OPER, TYPE) \
+	bool operator OPER (TYPE other) {return compare(other) OPER 0;}
+#define DEFINE_OPERATOR(OPER) \
+	DEFINE_OPERATOR_TYPE (OPER, str) \
+	DEFINE_OPERATOR_TYPE (OPER, char*) \
+	DEFINE_OPERATOR_TYPE (OPER, const char*)
+	
+	DEFINE_OPERATOR (==)
+	DEFINE_OPERATOR (!=)
+	DEFINE_OPERATOR (>)
+	DEFINE_OPERATOR (<)
+	DEFINE_OPERATOR (>=)
+	DEFINE_OPERATOR (<=)
+	
+	char operator [] (unsigned int pos) {
+		return text[pos];
+	}
+	
+	operator char* () const {
+		return text;
+	}
+	
+	operator int () const {return atoi(text);}
+	operator unsigned int () const {return atoi(text);}
 };
 
 #endif // __STR_H__
