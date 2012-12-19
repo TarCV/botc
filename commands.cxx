@@ -159,11 +159,11 @@ void ReadCommands () {
 // Get command type by name
 int GetCommandType (str t) {
 	t = t.tolower();
-	return	!t.compare ("int") ? TYPE_INT :
-		!t.compare ("float") ? TYPE_FLOAT :
-		!t.compare ("str") ? TYPE_STRING :
-		!t.compare ("void") ? TYPE_VOID :
-		!t.compare ("bool") ? TYPE_BOOL : -1;
+	return	(t == "int") ? TYPE_INT :
+			(t == "float") ? TYPE_FLOAT :
+			(t == "str") ? TYPE_STRING :
+			(t == "void") ? TYPE_VOID :
+			(t == "bool") ? TYPE_BOOL : -1;
 }
 
 // ============================================================================

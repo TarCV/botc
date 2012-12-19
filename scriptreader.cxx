@@ -331,7 +331,7 @@ void ScriptReader::MustNext (const char* c) {
 
 // ============================================================================
 void ScriptReader::MustThis (const char* c) {
-	if (token.compare (c) != 0)
+	if (token != c)
 		ParserError ("expected `%s`, got `%s` instead", c, token.chars());
 }
 
@@ -388,7 +388,7 @@ void ScriptReader::MustNumber (bool fromthis) {
 		MustNext ();
 	
 	str num = token;
-	if (!num.compare ("-")) {
+	if (num == "-") {
 		MustNext ();
 		num += token;
 	}
@@ -404,7 +404,7 @@ void ScriptReader::MustNumber (bool fromthis) {
 		
 		str check;
 		check.appendformat ("%d", atoi (num));
-		if (token.compare (check) != 0)
+		if (token != check)
 			ParserWarning ("integer too large: %s -> %s", num.chars(), check.chars());
 		
 		token = num;

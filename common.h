@@ -59,7 +59,7 @@
 #endif
 
 // Parser mode: where is the parser at?
-enum parsermode {
+enum parsermode_e {
 	MODE_TOPLEVEL,	// at top level
 	MODE_EVENT,		// inside event definition
 	MODE_MAINLOOP,	// inside mainloop
@@ -93,7 +93,7 @@ bool fexists (char* path);
 // Make the parser's variables globally available
 extern int g_NumStates;
 extern int g_NumEvents;
-extern int g_CurMode;
+extern parsermode_e g_CurMode;
 extern str g_CurState;
 
 #define neurosphere if (g_Neurosphere)
@@ -102,6 +102,7 @@ extern str g_CurState;
 #ifndef __GNUC__
 #define __attribute__(X)
 #endif
+#define deprecated __attribute__ ((deprecated))
 
 // Power function
 template<class T> T pow (T a, unsigned int b) {

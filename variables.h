@@ -46,24 +46,21 @@
 struct ScriptVar {
 	str name;
 	str statename;
+	type_e type;
 	int value;
 	unsigned int index;
-	ScriptVar* next;
 };
 
-#ifndef __VARIABLES_CXX__
-extern ScriptVar* g_GlobalVariables[MAX_SCRIPT_VARIABLES];
-extern ScriptVar* g_LocalVariable;
-#endif // __VARIABLES_CXX__
+extern array<ScriptVar> g_GlobalVariables;
+extern array<ScriptVar> g_LocalVariables;
 
 #define ITERATE_GLOBAL_VARS(u) \
 	for (u = 0; u < MAX_SCRIPT_VARIABLES; u++)
 #define ITERATE_SCRIPT_VARS(g) \
 	for (g = g_ScriptVariable; g != NULL; g = g->next)
 
-ScriptVar* DeclareGlobalVariable (ScriptReader* r, str name);
-unsigned int CountGlobalVars ();
-void InitVariables ();
+ScriptVar* DeclareGlobalVariable (ScriptReader* r, type_e type, str name);
+deprecated unsigned int CountGlobalVars ();
 ScriptVar* FindGlobalVariable (str name);
 
 #endif // __VARIABLES_H__

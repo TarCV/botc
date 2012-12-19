@@ -48,8 +48,6 @@
 #include "databuffer.h"
 #include "str.h"
 
-extern int g_CurMode;
-
 class ObjWriter {
 public:
 	// ====================================================================
