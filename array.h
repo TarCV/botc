@@ -46,6 +46,13 @@
 #define ITERATE_SUBSCRIPTS(link) \
 	for (link = data; link; link = link->next)
 
+#define foreach_counter(NAME) \
+	(int)(reinterpret_cast<int> (foreach_counter##NAME) / sizeof (foreach_counter##NAME))
+#define foreach(T,NAME,ARRAY) \
+	if (ARRAY.size() > 0) for (T NAME = ARRAY[0], *foreach_counter##NAME = 0; \
+		foreach_counter(NAME) < (int)(ARRAY.size()); \
+		NAME = ARRAY[reinterpret_cast<int> (++foreach_counter##NAME) / sizeof (foreach_counter##NAME)])
+
 // Single element of an array
 template <class T> class arrayElement {
 public:
