@@ -1,56 +1,10 @@
-/*
- *	botc source code
- *	Copyright (C) 2012 Santeri `Dusk` Piippo
- *	All rights reserved.
- *	
- *	Redistribution and use in source and binary forms, with or without
- *	modification, are permitted provided that the following conditions are met:
- *	
- *	1. Redistributions of source code must retain the above copyright notice,
- *	   this list of conditions and the following disclaimer.
- *	2. Redistributions in binary form must reproduce the above copyright notice,
- *	   this list of conditions and the following disclaimer in the documentation
- *	   and/or other materials provided with the distribution.
- *	3. Neither the name of the developer nor the names of its contributors may
- *	   be used to endorse or promote products derived from this software without
- *	   specific prior written permission.
- *	4. Redistributions in any form must be accompanied by information on how to
- *	   obtain complete source code for the software and any accompanying
- *	   software that uses the software. The source code must either be included
- *	   in the distribution or be available for no more than the cost of
- *	   distribution plus a nominal fee, and must be freely redistributable
- *	   under reasonable conditions. For an executable file, complete source
- *	   code means the source code for all modules it contains. It does not
- *	   include source code for modules or files that typically accompany the
- *	   major components of the operating system on which the executable file
- *	   runs.
- *	
- *	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *	ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- *	LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *	CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *	ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *	POSSIBILITY OF SUCH DAMAGE.
- */
-
-#define __PARSER_CXX__
-
-#include <stdio.h>
-#include <stdlib.h>
-#include "common.h"
-#include "str.h"
 #include "objwriter.h"
 #include "scriptreader.h"
 #include "events.h"
 #include "commands.h"
 #include "stringtable.h"
 #include "variables.h"
-#include "array.h"
+#include "containers.h"
 
 #define MUST_TOPLEVEL if (g_CurMode != MODE_TOPLEVEL) \
 	ParserError ("%s-statements may only be defined at top level!", token.chars());
@@ -63,15 +17,15 @@
 int g_NumStates = 0;
 int g_NumEvents = 0;
 parsermode_e g_CurMode = MODE_TOPLEVEL;
-str g_CurState = "";
+string g_CurState = "";
 bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
 unsigned int g_ScopeCursor = 0;
-DataBuffer* g_IfExpression = NULL;
+DataBuffer* g_IfExpression = null;
 bool g_CanElse = false;
-str* g_UndefinedLabels[MAX_MARKS];
+string* g_UndefinedLabels[MAX_MARKS];
 bool g_Neurosphere = false; // neurosphere-compat
-array<constinfo_t> g_ConstInfo;
+list<constinfo_t> g_ConstInfo;
 
 // ============================================================================
 // Main parser code. Begins read of the script file, checks the syntax of it
@@ -83,7 +37,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 		ZERO(scopestack[i]);
 	
 	for (int i = 0; i < MAX_MARKS; i++)
-		g_UndefinedLabels[i] = NULL;
+		g_UndefinedLabels[i] = null;
 	
 	while (Next()) {
 		// Check if else is potentically valid
@@ -101,7 +55,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// State name must be a word.
 			if (token.first (" ") != token.len())
 				ParserError ("state name must be a single word, got `%s`", token.chars());
-			str statename = token;
+			string statename = token;
 			
 			// stateSpawn is special - it *must* be defined. If we
 			// encountered it, then mark down that we have it.
@@ -185,10 +139,10 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MustNext ();
 			
 			// Var name must not be a number
-			if (token.isnumber())
+			if (token.is_numeric())
 				ParserError ("variable name must not be a number");
 			
-			str varname = token;
+			string varname = token;
 			ScriptVar* var = DeclareGlobalVariable (this, type, varname);
 			
 			if (!var)
@@ -213,7 +167,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			// If not set, define it
 			if (m == MAX_MARKS) {
 				m = w->AddMark (token);
-				g_UndefinedLabels[m] = new str (token);
+				g_UndefinedLabels[m] = new string (token);
 			}
 			
 			// Add a reference to the mark.
@@ -403,7 +357,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			MustNext ("{");
 			SCOPE(0).type = SCOPETYPE_SWITCH;
 			SCOPE(0).mark1 = w->AddMark (""); // end mark
-			SCOPE(0).buffer1 = NULL; // default header
+			SCOPE(0).buffer1 = null; // default header
 			continue;
 		}
 		
@@ -428,12 +382,12 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			//	AddSwitchCase will add the reference to the mark
 			// for the case block that this heralds, and takes care
 			// of buffering setup and stuff like that.
-			//	NULL the switch buffer for the case-go-to statement,
+			//	null the switch buffer for the case-go-to statement,
 			// we want it all under the switch, not into the case-buffers.
-			w->SwitchBuffer = NULL;
+			w->SwitchBuffer = null;
 			w->Write (DH_CASEGOTO);
 			w->Write (num);
-			AddSwitchCase (w, NULL);
+			AddSwitchCase (w, null);
 			SCOPE(0).casenumbers[SCOPE(0).casecursor] = num;
 			continue;
 		}
@@ -542,7 +496,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					
 					// No longer undefinde
 					delete g_UndefinedLabels[i];
-					g_UndefinedLabels[i] = NULL;
+					g_UndefinedLabels[i] = null;
 				}
 			}
 			
@@ -563,7 +517,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 			info.type = GetTypeByName (token);
 			
 			if (info.type == TYPE_UNKNOWN || info.type == TYPE_VOID)
-				ParserError ("unknown type `%s` for constant", (char*)token);
+				ParserError ("unknown type `%s` for constant", token.c_str());
 			
 			MustNext ();
 			info.name = token;
@@ -642,7 +596,7 @@ void ScriptReader::ParseBotScript (ObjWriter* w) {
 					if (SCOPE(1).casecursor != -1)
 						w->SwitchBuffer = SCOPE(1).casebuffers[SCOPE(1).casecursor];
 					else
-						w->SwitchBuffer = NULL;
+						w->SwitchBuffer = null;
 					
 					// If there was a default in the switch, write its header down now.
 					// If not, write instruction to jump to the end of switch after
@@ -901,7 +855,7 @@ DataBuffer* ScriptReader::ParseExpression (type_e reqtype) {
 		} else {
 			// Write to buffer
 			retbuf->Merge (rb);
-			retbuf->Write (DataHeaderByOperator (NULL, oper));
+			retbuf->Write (DataHeaderByOperator (null, oper));
 		}
 	}
 	
@@ -910,9 +864,9 @@ DataBuffer* ScriptReader::ParseExpression (type_e reqtype) {
 
 // ============================================================================
 // Parses an operator string. Returns the operator number code.
-#define ISNEXT(char) (!PeekNext (peek ? 1 : 0) == char)
+#define ISNEXT(C) (PeekNext (peek ? 1 : 0) == C)
 int ScriptReader::ParseOperator (bool peek) {
-	str oper;
+	string oper;
 	if (peek)
 		oper += PeekNext ();
 	else
@@ -981,9 +935,9 @@ int ScriptReader::ParseOperator (bool peek) {
 }
 
 // ============================================================================
-str ScriptReader::ParseFloat () {
+string ScriptReader::ParseFloat () {
 	MustNumber (true);
-	str floatstring = token;
+	string floatstring = token;
 	
 	// Go after the decimal point
 	if (PeekNext () == ".") {
@@ -1021,7 +975,7 @@ DataBuffer* ScriptReader::ParseExprValue (type_e reqtype) {
 			ParserError ("strlen only works with const str");
 		
 		if (reqtype != TYPE_INT)
-			ParserError ("strlen returns int but %s is expected\n", (char*)GetTypeName (reqtype));
+			ParserError ("strlen returns int but %s is expected\n", GetTypeName (reqtype).c_str());
 		
 		b->Write (DH_PUSHNUMBER);
 		b->Write (constant->val.len ());
@@ -1044,8 +998,8 @@ DataBuffer* ScriptReader::ParseExprValue (type_e reqtype) {
 		// Type check
 		if (reqtype != constant->type)
 			ParserError ("constant `%s` is %s, expression requires %s\n",
-				(char*)constant->name, (char*)GetTypeName (constant->type),
-				(char*)GetTypeName (reqtype));
+				constant->name.c_str(), GetTypeName (constant->type).c_str(),
+				GetTypeName (reqtype).c_str());
 		
 		switch (constant->type) {
 		case TYPE_BOOL:
@@ -1152,11 +1106,11 @@ void ScriptReader::PushScope () {
 	info->type = SCOPETYPE_UNKNOWN;
 	info->mark1 = 0;
 	info->mark2 = 0;
-	info->buffer1 = NULL;
+	info->buffer1 = null;
 	info->casecursor = -1;
 	for (int i = 0; i < MAX_CASE; i++) {
 		info->casemarks[i] = MAX_MARKS;
-		info->casebuffers[i] = NULL;
+		info->casebuffers[i] = null;
 		info->casenumbers[i] = -1;
 	}
 }
@@ -1169,7 +1123,7 @@ DataBuffer* ScriptReader::ParseStatement (ObjWriter* w) {
 	if (ScriptVar* var = FindGlobalVariable (token))
 		return ParseAssignment (var);
 	
-	return NULL;
+	return null;
 }
 
 void ScriptReader::AddSwitchCase (ObjWriter* w, DataBuffer* b) {
@@ -1195,9 +1149,9 @@ void ScriptReader::AddSwitchCase (ObjWriter* w, DataBuffer* b) {
 	info->casebuffers[info->casecursor] = w->SwitchBuffer = new DataBuffer;
 }
 
-constinfo_t* FindConstant (str token) {
+constinfo_t* FindConstant (string token) {
 	for (uint i = 0; i < g_ConstInfo.size(); i++)
 		if (g_ConstInfo[i].name == token)
 			return &g_ConstInfo[i];
-	return NULL;
+	return null;
 }

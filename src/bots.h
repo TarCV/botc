@@ -48,8 +48,8 @@
 //
 //-----------------------------------------------------------------------------
 
-#ifndef __BOTS_H__
-#define __BOTS_H__
+#ifndef BOTC_BOTS_H
+#define BOTC_BOTS_H
 
 //*****************************************************************************
 //  DEFINES
@@ -269,4 +269,4 @@ typedef enum
 
 } BOTEVENT_e;
 
-#endif	// __BOTS_H__
+#endif	// BOTC_BOTS_H

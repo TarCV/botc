@@ -1,48 +1,8 @@
-/*
- *	botc source code
- *	Copyright (C) 2012 Santeri `Dusk` Piippo
- *	All rights reserved.
- *	
- *	Redistribution and use in source and binary forms, with or without
- *	modification, are permitted provided that the following conditions are met:
- *	
- *	1. Redistributions of source code must retain the above copyright notice,
- *	   this list of conditions and the following disclaimer.
- *	2. Redistributions in binary form must reproduce the above copyright notice,
- *	   this list of conditions and the following disclaimer in the documentation
- *	   and/or other materials provided with the distribution.
- *	3. Neither the name of the developer nor the names of its contributors may
- *	   be used to endorse or promote products derived from this software without
- *	   specific prior written permission.
- *	4. Redistributions in any form must be accompanied by information on how to
- *	   obtain complete source code for the software and any accompanying
- *	   software that uses the software. The source code must either be included
- *	   in the distribution or be available for no more than the cost of
- *	   distribution plus a nominal fee, and must be freely redistributable
- *	   under reasonable conditions. For an executable file, complete source
- *	   code means the source code for all modules it contains. It does not
- *	   include source code for modules or files that typically accompany the
- *	   major components of the operating system on which the executable file
- *	   runs.
- *	
- *	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *	ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- *	LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *	CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *	ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *	POSSIBILITY OF SUCH DAMAGE.
- */
-
-#ifndef  __DATABUFFER_H__
-#define __DATABUFFER_H__
+#ifndef  BOTC_DATABUFFER_H
+#define BOTC_DATABUFFER_H
 #include <stdio.h>
 #include <string.h>
-#include "common.h"
+#include "main.h"
 #include "stringtable.h"
 
 #define MAX_MARKS 512
@@ -79,8 +39,8 @@ public:
 		
 		// Clear the marks table out
 		for (unsigned int u = 0; u < MAX_MARKS; u++) {
-			marks[u] = NULL;
-			refs[u] = NULL;
+			marks[u] = null;
+			refs[u] = null;
 		}
 	}
 	
@@ -100,8 +60,7 @@ public:
 	
 	// ====================================================================
 	// Write stuff to the buffer
-	template<class T> void DoWrite (const char* func, T stuff) {
-		// printf ("DoWrite: called from %s\n", func);
+	template<class T> void Write (T stuff) {
 		if (writesize + sizeof (T) >= allocsize) {
 			// We don't have enough space in the buffer to write
 			// the stuff - thus resize. First, store the old
@@ -157,11 +116,11 @@ public:
 				marks[u] = other->marks[u];
 				marks[u]->pos += oldsize;
 				
-				// The original mark becomes NULL so that the deconstructor
+				// The original mark becomes null so that the deconstructor
 				// will not delete it prematurely. (should it delete any
 				// marks in the first place since there is no such thing
 				// as at temporary mark?)
-				other->marks[u] = NULL;
+				other->marks[u] = null;
 			}
 			
 			if (other->refs[u]) {
@@ -188,7 +147,7 @@ public:
 	// position in the bytecode. The actual permanent position cannot
 	// be predicted in any way or form, thus these things will be used
 	// to "mark" a position like that for future use.
-	unsigned int AddMark (str name) {
+	unsigned int AddMark (string name) {
 		// Find a free slot for the mark
 		unsigned int u = g_NextMark++;
 		
@@ -237,27 +196,29 @@ public:
 		
 		// Delete the mark
 		delete marks[marknum];
-		marks[marknum] = NULL;
+		marks[marknum] = null;
 		
 		// Delete its references
 		for (unsigned int u = 0; u < MAX_MARKS; u++) {
 			if (refs[u]->num == marknum) {
 				delete refs[u];
-				refs[u] = NULL;
+				refs[u] = null;
 			}
 		}
 	}
 	
 	// Adjusts a mark to the current position
-	void MoveMark (unsigned int mark, int offset = -1) {
+	void MoveMark (unsigned int mark) {
 		if (!marks[mark])
 			return;
+
 		marks[mark]->pos = writesize;
 	}
 	
-	void OffsetMark (unsigned int mark, size_t offset) {
+	void OffsetMark (unsigned int mark, int offset) {
 		if (!marks[mark])
 			return;
+
 		marks[mark]->pos += offset;
 	}
 	
@@ -284,7 +245,7 @@ public:
 	}
 	
 	// Write a float into the buffer
-	void WriteFloat (str floatstring) {
+	void WriteFloat (string floatstring) {
 		// TODO: Casting float to word causes the decimal to be lost.
 		// Find a way to store the number without such loss.
 		float val = atof (floatstring);
@@ -294,10 +255,10 @@ public:
 			Write (DH_UNARYMINUS);
 	}
 	
-	void WriteString (str string) {
+	void WriteString (string a) {
 		Write (DH_PUSHSTRINGINDEX);
-		Write (PushToStringTable (string));
+		Write (get_string_table_index (a));
 	}
 };
 
-#endif // __DATABUFFER_H__
+#endif // BOTC_DATABUFFER_H

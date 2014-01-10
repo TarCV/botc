@@ -38,12 +38,11 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define __MAIN_CXX__
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common.h"
+#include "main.h"
 
 #include "str.h"
 #include "scriptreader.h"
@@ -52,14 +51,14 @@
 #include "commands.h"
 #include "stringtable.h"
 #include "variables.h"
-#include "array.h"
+#include "containers.h"
 #include "databuffer.h"
 
 #include "bots.h"
 #include "botcommands.h"
 
 // List of keywords
-const char* g_Keywords[] = {
+const string_list g_Keywords = {
 	"bool",
 	"break",
 	"case",
@@ -103,7 +102,7 @@ int main (int argc, char** argv) {
 		
 		CommandDef* comm;
 		ITERATE_COMMANDS (comm)
-			printf ("%s\n", GetCommandPrototype (comm).chars());
+			print ("%1\n", GetCommandPrototype (comm));
 		
 		printf ("------------------------------------------------------\n");
 		printf ("End of command list\n");
@@ -111,13 +110,15 @@ int main (int argc, char** argv) {
 	}
 	
 	// Print header
-	str header;
-	str headerline = "-=";
-	header.appendformat ("%s version %d.%d", APPNAME, VERSION_MAJOR, VERSION_MINOR);
-	
-	headerline *= (header.len() / 2) - 1;
+	string header;
+	string headerline;
+	header = format ("%1 version %2.%3", APPNAME, VERSION_MAJOR, VERSION_MINOR);
+
+	for (int i = 0; i < (header.len() / 2) - 1; ++i)
+		headerline += "-=";
+
 	headerline += '-';
-	printf ("%s\n%s\n", header.chars(), headerline.chars());
+	print ("%1\n%2\n", header, headerline);
 	
 	if (argc < 2) {
 		fprintf (stderr, "usage: %s <infile> [outfile] # compiles botscript\n", argv[0]);
@@ -131,7 +132,7 @@ int main (int argc, char** argv) {
 		error ("%s expects a word (uint32_t) to be 4 bytes in size, is %d\n",
 			APPNAME, sizeof (word));
 	
-	str outfile;
+	string outfile;
 	if (argc < 3)
 		outfile = ObjectFileName (argv[1]);
 	else
@@ -141,7 +142,7 @@ int main (int argc, char** argv) {
 	// ask the user if we want to overwrite it
 	if (fexists (outfile)) {
 		// Additional warning if the paths are the same
-		str warning;
+		string warning;
 #ifdef FILE_CASEINSENSITIVE
 		if (!outfile.icompare (argv[1]))
 #else
@@ -167,9 +168,6 @@ int main (int argc, char** argv) {
 	ReadEvents ();
 	ReadCommands ();
 	
-	// Init stuff
-	InitStringTable ();
-	
 	// Prepare reader and writer
 	ScriptReader* r = new ScriptReader (argv[1]);
 	ObjWriter* w = new ObjWriter (outfile);
@@ -181,7 +179,7 @@ int main (int argc, char** argv) {
 	
 	// Parse done, print statistics and write to file
 	unsigned int globalcount = g_GlobalVariables.size();
-	unsigned int stringcount = CountStringTable ();
+	unsigned int stringcount = num_strings_in_table ();
 	int NumMarks = w->MainBuffer->CountMarks ();
 	int NumRefs = w->MainBuffer->CountReferences ();
 	printf ("%u / %u strings written\n", stringcount, MAX_LIST_STRINGS);
@@ -206,39 +204,44 @@ int main (int argc, char** argv) {
 
 // ============================================================================
 // Does the given file exist?
-bool fexists (char* path) {
+bool fexists (string path) {
 	if (FILE* test = fopen (path, "r")) {
 		fclose (test);
 		return true;
 	}
+
 	return false;
 }
 
 // ============================================================================
 // Generic error
 void error (const char* text, ...) {
-	PERFORM_FORMAT (text, c);
-	fprintf (stderr, "error: %s", c);
+	va_list va;
+	va_start (va, text);
+	fprintf (stderr, "error: ");
+	vfprintf (stderr, text, va);
+	va_end (va);
 	exit (1);
 }
 
 // ============================================================================
 // Mutates given filename to an object filename
-char* ObjectFileName (str s) {
+string ObjectFileName (string s) {
 	// Locate the extension and chop it out
-	unsigned int extdot = s.last (".");
-	if (extdot >= s.len()-4)
+	int extdot = s.last (".");
+
+	if (extdot >= s.len() - 4)
 		s -= (s.len() - extdot);
 	
 	s += ".o";
-	return s.chars();
+	return s;
 }
 
 // ============================================================================
 // Is the given argument a reserved keyword?
-bool IsKeyword (str s) {
+bool IsKeyword (string s) {
 	for (unsigned int u = 0; u < NumKeywords (); u++)
-		if (!s.icompare (g_Keywords[u]))
+		if (s.to_uppercase() == g_Keywords[u].to_uppercase())
 			return true;
 	return false;
 }
@@ -248,8 +251,8 @@ unsigned int NumKeywords () {
 }
 
 // ============================================================================
-type_e GetTypeByName (str t) {
-	t = t.tolower();
+type_e GetTypeByName (string t) {
+	t = t.to_lowercase();
 	return	(t == "int") ? TYPE_INT :
 			(t == "str") ? TYPE_STRING :
 			(t == "void") ? TYPE_VOID :
@@ -260,7 +263,7 @@ type_e GetTypeByName (str t) {
 
 // ============================================================================
 // Inverse operation - type name by value
-str GetTypeName (type_e type) {
+string GetTypeName (type_e type) {
 	switch (type) {
 	case TYPE_INT: return "int"; break;
 	case TYPE_STRING: return "str"; break;

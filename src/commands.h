@@ -38,21 +38,21 @@
  *	POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __COMMANDS_H__
-#define __COMMANDS_H__
+#ifndef BOTC_COMMANDS_H
+#define BOTC_COMMANDS_H
 
 #define MAX_MAXARGS 8
 #define MAX_ARGNAMELEN 16
 
-#include "common.h"
+#include "main.h"
 #include "str.h"
 #include "botcommands.h"
 
 #define ITERATE_COMMANDS(comm) \
-	for (comm = g_CommDef; comm->next != NULL; comm = comm->next)
+	for (comm = g_CommDef; comm->next != null; comm = comm->next)
 
 struct CommandDef {
-	str name;
+	string name;
 	int number;
 	int numargs;
 	int maxargs;
@@ -64,12 +64,9 @@ struct CommandDef {
 };
 
 void ReadCommands ();
-CommandDef* FindCommand (str a);
-str GetCommandPrototype (CommandDef* comm);
+CommandDef* FindCommand (string a);
+string GetCommandPrototype (CommandDef* comm);
 
-#ifndef __COMMANDS_CXX__
-extern
-#endif
-CommandDef* g_CommDef;
+extern CommandDef* g_CommDef;
 
-#endif // __COMMANDS_H__
+#endif // BOTC_COMMANDS_H

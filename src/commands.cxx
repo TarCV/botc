@@ -38,30 +38,31 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define __COMMANDS_CXX__
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "common.h"
+#include "main.h"
 #include "scriptreader.h"
 #include "str.h"
 #include "commands.h"
+
+CommandDef* g_CommDef;
 
 // ============================================================================
 // Reads command definitions from commands.def and stores them to memory.
 void ReadCommands () {
 	ScriptReader* r = new ScriptReader ("commands.def");
-	g_CommDef = NULL;
+	g_CommDef = null;
 	CommandDef* curdef = g_CommDef;
 	unsigned int numCommDefs = 0;
 	
 	while (r->PeekNext().len()) {
 		CommandDef* comm = new CommandDef;
-		comm->next = NULL;
+		comm->next = null;
 		
 		// Number
 		r->MustNumber ();
-		comm->number = r->token;
+		comm->number = r->token.to_long();
 		
 		r->MustNext (":");
 		
@@ -83,13 +84,13 @@ void ReadCommands () {
 		
 		// Num args
 		r->MustNumber ();
-		comm->numargs = r->token;
+		comm->numargs = r->token.to_long();
 		
 		r->MustNext (":");
 		
 		// Max args
 		r->MustNumber ();
-		comm->maxargs = r->token;
+		comm->maxargs = r->token.to_long();
 		
 		if (comm->maxargs > MAX_MAXARGS)
 			r->ParserError ("maxargs (%d) greater than %d!", comm->maxargs, MAX_MAXARGS);
@@ -134,7 +135,7 @@ void ReadCommands () {
 					break;
 				}
 				
-				comm->defvals[curarg] = r->token;
+				comm->defvals[curarg] = r->token.to_long();
 			}
 			
 			r->MustNext (")");
@@ -163,20 +164,20 @@ void ReadCommands () {
 
 // ============================================================================
 // Finds a command by name
-CommandDef* FindCommand (str fname) {
+CommandDef* FindCommand (string fname) {
 	CommandDef* comm;
 	ITERATE_COMMANDS (comm) {
-		if (!fname.icompare (comm->name))
+		if (fname.to_uppercase() == comm->name.to_uppercase())
 			return comm;
 	}
 	
-	return NULL;
+	return null;
 }
 
 // ============================================================================
 // Returns the prototype of the command
-str GetCommandPrototype (CommandDef* comm) {
-	str text;
+string GetCommandPrototype (CommandDef* comm) {
+	string text;
 	text += GetTypeName (comm->returnvalue);
 	text += ' ';
 	text += comm->name;

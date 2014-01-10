@@ -1,6 +1,7 @@
 add_executable (botc
 	src/commands.cxx
 	src/events.cxx
+	src/format.cc
 	src/main.cxx
 	src/objwriter.cxx
 	src/parser.cxx
@@ -10,3 +11,5 @@ add_executable (botc
 	src/stringtable.cxx
 	src/variables.cxx
 )
+
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -W -Wall")
