@@ -38,10 +38,9 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define __EVENTS_CXX__
 #include <stdlib.h>
 #include <stdio.h>
-#include "common.h"
+#include "main.h"
 #include "scriptreader.h"
 #include "str.h"
 #include "events.h"
@@ -52,14 +51,14 @@ EventDef* g_EventDef;
 // Read event definitions from file
 void ReadEvents () {
 	ScriptReader* r = new ScriptReader ("events.def");
-	g_EventDef = NULL;
+	g_EventDef = null;
 	EventDef* curdef = g_EventDef;
 	unsigned int numEventDefs = 0;
 	while (r->Next()) {
 		EventDef* e = new EventDef;
 		e->name = r->token;
 		e->number = numEventDefs;
-		e->next = NULL;
+		e->next = null;
 		
 		// g_EventDef becomes the first eventdef
 		if (!g_EventDef)
@@ -92,7 +91,7 @@ EventDef* FindEventByIdx (unsigned int idx) {
 	EventDef* e = g_EventDef;
 	while (idx > 0) {
 		if (!e->next)
-			return NULL;
+			return null;
 		e = e->next;
 		idx--;
 	}
@@ -101,12 +100,12 @@ EventDef* FindEventByIdx (unsigned int idx) {
 
 // ============================================================================
 // Finds an event definition by name
-EventDef* FindEventByName (str a) {
+EventDef* FindEventByName (string a) {
 	EventDef* e;
-	for (e = g_EventDef; e->next != NULL; e = e->next) {
-		if (!a.icompare (e->name))
+	for (e = g_EventDef; e->next != null; e = e->next) {
+		if (a.to_uppercase() == e->name.to_uppercase())
 			return e;
 	}
 	
-	return NULL;
+	return null;
 }

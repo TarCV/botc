@@ -1,69 +1,25 @@
-/*
- *	botc source code
- *	Copyright (C) 2012 Santeri `Dusk` Piippo
- *	All rights reserved.
- *	
- *	Redistribution and use in source and binary forms, with or without
- *	modification, are permitted provided that the following conditions are met:
- *	
- *	1. Redistributions of source code must retain the above copyright notice,
- *	   this list of conditions and the following disclaimer.
- *	2. Redistributions in binary form must reproduce the above copyright notice,
- *	   this list of conditions and the following disclaimer in the documentation
- *	   and/or other materials provided with the distribution.
- *	3. Neither the name of the developer nor the names of its contributors may
- *	   be used to endorse or promote products derived from this software without
- *	   specific prior written permission.
- *	4. Redistributions in any form must be accompanied by information on how to
- *	   obtain complete source code for the software and any accompanying
- *	   software that uses the software. The source code must either be included
- *	   in the distribution or be available for no more than the cost of
- *	   distribution plus a nominal fee, and must be freely redistributable
- *	   under reasonable conditions. For an executable file, complete source
- *	   code means the source code for all modules it contains. It does not
- *	   include source code for modules or files that typically accompany the
- *	   major components of the operating system on which the executable file
- *	   runs.
- *	
- *	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *	ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- *	LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *	CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *	ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *	POSSIBILITY OF SUCH DAMAGE.
- */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include "string.h"
-#include "str.h"
-#include "common.h"
+#include "main.h"
 #include "scriptreader.h"
 
 #define STORE_POSITION \
-	bool _atnewline = atnewline; \
-	unsigned int _curline = curline[fc]; \
-	unsigned int _curchar = curchar[fc];
+	bool stored_atnewline = atnewline; \
+	unsigned int stored_curline = curline[fc]; \
+	unsigned int stored_curchar = curchar[fc];
 
 #define RESTORE_POSITION \
-	atnewline = _atnewline; \
-	curline[fc] = _curline; \
-	curchar[fc] = _curchar;
+	atnewline = stored_atnewline; \
+	curline[fc] = stored_curline; \
+	curchar[fc] = stored_curchar;
 
 // ============================================================================
-ScriptReader::ScriptReader (str path) {
+ScriptReader::ScriptReader (string path) {
 	token = "";
 	prevtoken = "";
 	prevpos = 0;
 	fc = -1;
 	
 	for (unsigned int u = 0; u < MAX_FILESTACK; u++)
-		fp[u] = NULL;
+		fp[u] = null;
 	
 	OpenFile (path);
 	commentmode = 0;
@@ -87,7 +43,7 @@ ScriptReader::~ScriptReader () {
 
 // ============================================================================
 // Opens a file and pushes its pointer to stack
-void ScriptReader::OpenFile (str path) {
+void ScriptReader::OpenFile (string path) {
 	if (fc+1 >= MAX_FILESTACK) 
 		ParserError ("supposed to open file `%s` but file stack is full! do you have recursive `#include` directives?",
 			path.chars());
@@ -123,7 +79,7 @@ void ScriptReader::CloseFile (unsigned int u) {
 		return;
 	
 	fclose (fp[u]);
-	fp[u] = NULL;
+	fp[u] = null;
 	fc--;
 	
 	if (fc != -1)
@@ -186,7 +142,7 @@ char ScriptReader::PeekChar (int offset) {
 // Read a token from the file buffer. Returns true if token was found, false if not.
 bool ScriptReader::Next (bool peek) {
 	prevpos = ftell (fp[fc]);
-	str tmp = "";
+	string tmp = "";
 	
 	while (1) {
 		// Check end-of-file
@@ -251,7 +207,7 @@ bool ScriptReader::Next (bool peek) {
 			break;
 		}
 		
-		if (IsCharWhitespace (c)) {
+		if (isspace (c)) {
 			// Don't break if we haven't gathered anything yet.
 			if (tmp.len())
 				break;
@@ -275,9 +231,9 @@ bool ScriptReader::Next (bool peek) {
 
 // ============================================================================
 // Returns the next token without advancing the cursor.
-str ScriptReader::PeekNext (int offset) {
+string ScriptReader::PeekNext (int offset) {
 	// Store current information
-	str storedtoken = token;
+	string storedtoken = token;
 	int cpos = ftell (fp[fc]);
 	STORE_POSITION
 	
@@ -288,7 +244,7 @@ str ScriptReader::PeekNext (int offset) {
 		offset--;
 	}
 	
-	str tmp = token;
+	string tmp = token;
 	
 	// Restore position
 	fseek (fp[fc], cpos, SEEK_SET);
@@ -337,24 +293,32 @@ void ScriptReader::MustThis (const char* c) {
 
 // ============================================================================
 void ScriptReader::ParserError (const char* message, ...) {
-	PERFORM_FORMAT (message, outmessage);
-	ParserMessage ("\nError: ", outmessage);
+	char buf[512];
+	va_list va;
+	va_start (va, message);
+	sprintf (buf, message, va);
+	va_end (va);
+	ParserMessage ("\nError: ", buf);
 	exit (1);
 }
 
 // ============================================================================
 void ScriptReader::ParserWarning (const char* message, ...) {
-	PERFORM_FORMAT (message, outmessage);
-	ParserMessage ("Warning: ", outmessage);
+	char buf[512];
+	va_list va;
+	va_start (va, message);
+	sprintf (buf, message, va);
+	va_end (va);
+	ParserMessage ("Warning: ", buf);
 }
 
 // ============================================================================
-void ScriptReader::ParserMessage (const char* header, char* message) {
+void ScriptReader::ParserMessage (const char* header, string message) {
 	if (fc >= 0 && fc < MAX_FILESTACK)
 		fprintf (stderr, "%s%s:%u:%u: %s\n",
-			header, filepath[fc], curline[fc], curchar[fc], message);
+			header, filepath[fc].c_str(), curline[fc], curchar[fc], message.c_str());
 	else
-		fprintf (stderr, "%s%s\n", header, message);
+		fprintf (stderr, "%s%s\n", header, message.c_str());
 }
 
 // ============================================================================
@@ -365,7 +329,7 @@ void ScriptReader::MustString (bool gotquote) {
 	else
 		MustNext ("\"");
 	
-	str string;
+	string string;
 	// Keep reading characters until we find a terminating quote.
 	while (1) {
 		// can't end here!
@@ -387,26 +351,24 @@ void ScriptReader::MustNumber (bool fromthis) {
 	if (!fromthis)
 		MustNext ();
 	
-	str num = token;
+	string num = token;
 	if (num == "-") {
 		MustNext ();
 		num += token;
 	}
 	
 	// "true" and "false" are valid numbers
-	if (!token.icompare ("true"))
+	if (-token == "true")
 		token = "1";
-	else if (!token.icompare ("false"))
+	else if (-token == "false")
 		token = "0";
 	else {
-		if (!token.isnumber())
-			ParserError ("expected a number, got `%s`", num.chars());
-		
-		str check;
-		check.appendformat ("%d", atoi (num));
-		if (token != check)
-			ParserWarning ("integer too large: %s -> %s", num.chars(), check.chars());
-		
+		bool ok;
+		int num = token.to_long (&ok);
+
+		if (!ok)
+			ParserError ("expected a number, got `%s`", token.chars());
+
 		token = num;
 	}
 }

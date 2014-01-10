@@ -49,22 +49,13 @@
 //
 //-----------------------------------------------------------------------------
 
-#ifndef __BOTCOMMANDS_H__
-#define __BOTCOMMANDS_H__
+#ifndef BOTC_BOTCOMMANDS_H
+#define BOTC_BOTCOMMANDS_H
 
 #include "bots.h"
 
 //*****************************************************************************
 //  DEFINES
-
-#define	SETENEMY_LASTSEEN		0
-#define	SETENEMY_LASTSHOTBY		1
-
-// Different results for pathing commands.
-#define	PATH_UNREACHABLE			-1
-#define	PATH_INCOMPLETE				0
-#define	PATH_COMPLETE				1
-#define	PATH_REACHEDGOAL			2
 
 // This is the size of the return string for the bot command functions.
 #define	BOTCMD_RETURNSTRING_SIZE	256
@@ -170,4 +161,4 @@ typedef enum
 
 } BOTCMD_e;
 
-#endif	// __BOTCOMMANDS_H__
+#endif	// BOTC_BOTCOMMANDS_H

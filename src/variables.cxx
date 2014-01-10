@@ -38,12 +38,11 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define __VARIABLES_CXX__
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common.h"
-#include "array.h"
+#include "main.h"
+#include "containers.h"
 #include "bots.h"
 #include "botcommands.h"
 #include "objwriter.h"
@@ -51,13 +50,13 @@
 #include "variables.h"
 #include "scriptreader.h"
 
-array<ScriptVar> g_GlobalVariables;
-array<ScriptVar> g_LocalVariables;
+list<ScriptVar> g_GlobalVariables;
+list<ScriptVar> g_LocalVariables;
 
 // ============================================================================
 // Tries to declare a new global-scope variable. Returns pointer
-// to new global variable, NULL if declaration failed.
-ScriptVar* DeclareGlobalVariable (ScriptReader* r, type_e type, str name) {
+// to new global variable, null if declaration failed.
+ScriptVar* DeclareGlobalVariable (ScriptReader* r, type_e type, string name) {
 	// Unfortunately the VM does not support string variables so yeah.
 	if (type == TYPE_STRING)
 		r->ParserError ("variables cannot be string\n");
@@ -89,14 +88,14 @@ ScriptVar* DeclareGlobalVariable (ScriptReader* r, type_e type, str name) {
 
 // ============================================================================
 // Find a global variable by name
-ScriptVar* FindGlobalVariable (str name) {
+ScriptVar* FindGlobalVariable (string name) {
 	for (uint i = 0; i < g_GlobalVariables.size(); i++) {
 		ScriptVar* g = &g_GlobalVariables[i];
 		if (g->name == name)
 			return g;
 	}
 	
-	return NULL;
+	return null;
 }
 
 // ============================================================================

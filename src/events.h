@@ -38,13 +38,13 @@
  *	POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __EVENT_H__
-#define __EVENT_H__
+#ifndef BOTC_EVENTS_H
+#define BOTC_EVENTS_H
 
 #include "str.h"
 
 struct EventDef {
-	str name;
+	string name;
 	int number;
 	EventDef* next;
 };
@@ -52,6 +52,6 @@ struct EventDef {
 void ReadEvents ();
 void UnlinkEvents (EventDef* e);
 EventDef* FindEventByIdx (unsigned int idx);
-EventDef* FindEventByName (str a);
+EventDef* FindEventByName (string a);
 
-#endif // __EVENT_H__
+#endif // BOTC_EVENTS_H

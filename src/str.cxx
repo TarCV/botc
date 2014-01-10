@@ -1,426 +1,434 @@
-/*
- *	botc source code
- *	Copyright (C) 2012 Santeri `Dusk` Piippo
- *	All rights reserved.
- *	
- *	Redistribution and use in source and binary forms, with or without
- *	modification, are permitted provided that the following conditions are met:
- *	
- *	1. Redistributions of source code must retain the above copyright notice,
- *	   this list of conditions and the following disclaimer.
- *	2. Redistributions in binary form must reproduce the above copyright notice,
- *	   this list of conditions and the following disclaimer in the documentation
- *	   and/or other materials provided with the distribution.
- *	3. Neither the name of the developer nor the names of its contributors may
- *	   be used to endorse or promote products derived from this software without
- *	   specific prior written permission.
- *	4. Redistributions in any form must be accompanied by information on how to
- *	   obtain complete source code for the software and any accompanying
- *	   software that uses the software. The source code must either be included
- *	   in the distribution or be available for no more than the cost of
- *	   distribution plus a nominal fee, and must be freely redistributable
- *	   under reasonable conditions. For an executable file, complete source
- *	   code means the source code for all modules it contains. It does not
- *	   include source code for modules or files that typically accompany the
- *	   major components of the operating system on which the executable file
- *	   runs.
- *	
- *	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *	ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- *	LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *	CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *	ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *	POSSIBILITY OF SUCH DAMAGE.
- */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include "array.h"
+#include <cstring>
+#include "main.h"
 #include "str.h"
-#include "common.h"
 
-#define ITERATE_STRING(u) \
-	for (unsigned int u = 0; u < strlen (text); u++)
-
-// ============================================================================
-// vdynformat: Try to write to a formatted string with size bytes first, if
-// that fails, double the size and keep recursing until it works.
-char* vdynformat (const char* c, va_list v, unsigned int size) {
-	char* buffer = new char[size];
-	int r = vsnprintf (buffer, size-1, c, v);
-	if (r > (int)size-1 || r < 0) {
-		delete buffer;
-		buffer = vdynformat (c, v, size*2);
-	}
-	return buffer;
+// =============================================================================
+//
+int string::compare (const string& other) const
+{
+    return m_string.compare (other.std_string());
 }
 
-// ============================================================================
-str::str () {
-	text = new char[1];
-	clear();
-	alloclen = strlen (text);
+// =============================================================================
+//
+void string::trim (string::length_type n)
+{
+    if (n > 0)
+        m_string = substring (0, length() - n).std_string();
+    else
+        m_string = substring (n, -1).std_string();
 }
 
-str::str (const char* c) {
-	text = new char[1];
-	clear ();
-	alloclen = strlen (text);
-	append (c);
+// =============================================================================
+//
+string string::strip (list<char> unwanted)
+{
+    string copy (m_string);
+
+    for (char c : unwanted)
+        for (int i = 0; i < copy.length(); ++i)
+            if (copy[i] == c)
+                copy.erase (i);
+
+    /*
+    while(( pos = copy.first( c )) != -1 )
+    	copy.erase( pos );
+    */
+
+    return copy;
 }
 
-str::str (char c) {
-	text = new char[1];
-	clear ();
-	alloclen = strlen (text);
-	append (c);
+// =============================================================================
+//
+string string::to_uppercase() const
+{
+    string newstr = m_string;
+
+    for (char& c : newstr)
+        if (c >= 'a' && c <= 'z')
+            c -= 'a' - 'A';
+
+    return newstr;
 }
 
-// ============================================================================
-void str::clear () {
-	delete text;
-	text = new char[1];
-	text[0] = '\0';
-	curs = 0;
+// =============================================================================
+//
+string string::to_lowercase() const
+{
+    string newstr = m_string;
+
+    for (char & c : newstr)
+        if (c >= 'A' && c <= 'Z')
+            c += 'a' - 'A';
+
+    return newstr;
 }
 
-unsigned int str::len () {return strlen(text);}
-
-// ============================================================================
-void str::resize (unsigned int len) {
-	unsigned int oldlen = strlen (text);
-	char* oldtext = new char[oldlen];
-	strncpy (oldtext, text, oldlen);
-	
-	delete text;
-	text = new char[len+1];
-	for (unsigned int u = 0; u < len+1; u++)
-		text[u] = 0;
-	strncpy (text, oldtext, len);
-	
-	alloclen = len;
+// =============================================================================
+//
+string_list string::split (char del) const
+{
+    string delimstr;
+    delimstr += del;
+    return split (delimstr);
 }
 
-// ============================================================================
-void str::dump () {
-	for (unsigned int u = 0; u <= alloclen; u++)
-		printf ("\t%u. %u (%c)\n", u, text[u], text[u]);
+// =============================================================================
+//
+string_list string::split (string del) const
+{
+    string_list res;
+    long a = 0;
+
+    // Find all separators and store the text left to them.
+    for (;;)
+    {
+        long b = first (del, a);
+
+        if (b == -1)
+            break;
+
+        string sub = substring (a, b);
+
+        if (sub.length() > 0)
+            res.push_back (substring (a, b));
+
+        a = b + strlen (del);
+    }
+
+    // Add the string at the right of the last separator
+    if (a < (int) length())
+        res.push_back (substring (a, length()));
+
+    return res;
 }
 
-// ============================================================================
-// Adds a new character at the end of the string.
-void str::append (char c) {
-	// Out of space, thus resize
-	if (curs == alloclen)
-		resize (alloclen+1);
-	text[curs] = c;
-	curs++;
+// =============================================================================
+//
+void string::replace (const char* a, const char* b)
+{
+    long pos;
+
+    while ( (pos = first (a)) != -1)
+        m_string = m_string.replace (pos, strlen (a), b);
 }
 
-void str::append (const char* c) {
-	resize (alloclen + strlen (c));
-	
-	for (unsigned int u = 0; u < strlen (c); u++) {
-		if (c[u] != 0)
-			append (c[u]);
-	}
+// =============================================================================
+//
+int string::count (const char needle) const
+{
+    int numNeedles = 0;
+
+    for (const char & c : m_string)
+        if (c == needle)
+            numNeedles++;
+
+    return numNeedles;
 }
 
-void str::append (str c) {
-	append (c.chars());
+// =============================================================================
+//
+string string::substring (long a, long b) const
+{
+    if (b == -1)
+        b = length();
+
+    if (b == a)
+        return "";
+
+    if (b < a)
+    {
+        // Swap the variables
+        int c = a;
+        a = b;
+        b = c;
+    }
+
+    char* newString = new char[b - a + 1];
+    strncpy (newString, m_string.c_str() + a, b - a);
+    newString[b - a] = '\0';
+
+    string other (newString);
+    delete[] newString;
+    return other;
 }
 
-// ============================================================================
-void str::appendformat (const char* c, ...) {
-	va_list v;
-	
-	va_start (v, c);
-	char* buf = vdynformat (c, v, 256);
-	va_end (v);
-	
-	append (buf);
+// =============================================================================
+//
+string::length_type string::posof (int n) const
+{
+    int count = 0;
+
+    for (int i = 0; i < length(); ++i)
+    {
+        if (m_string[i] != ' ')
+            continue;
+
+        if (++count < n)
+            continue;
+
+        return i;
+    }
+
+    return -1;
 }
 
-void str::appendformat (str c, ...) {
-	va_list v;
-	
-	va_start (v, c);
-	char* buf = vdynformat (c.chars(), v, 256);
-	va_end (v);
-	
-	append (buf);
+// =============================================================================
+//
+int string::first (const char* c, string::length_type a) const
+{
+    for (; a < length(); a++)
+        if (m_string[a] == c[0] && strncmp (m_string.c_str() + a, c, strlen (c)) == 0)
+            return a;
+
+    return -1;
 }
 
-// ============================================================================
-char* str::chars () {
-	return text;
+// =============================================================================
+//
+int string::last (const char* c, string::length_type a) const
+{
+    if (a == -1 || a >= length())
+        a = length() - 1;
+
+    for (; a > 0; a--)
+        if (m_string[a] == c[0] && strncmp (m_string.c_str() + a, c, strlen (c)) == 0)
+            return a;
+
+    return -1;
 }
 
-// ============================================================================
-unsigned int str::first (const char* c, unsigned int a) {
-	unsigned int r = 0;
-	unsigned int index = 0;
-	for (; a < alloclen; a++) {
-		if (text[a] == c[r]) {
-			if (r == 0)
-				index = a;
-			
-			r++;
-			if (r == strlen (c))
-				return index;
-		} else {
-			if (r != 0) {
-				// If the string sequence broke at this point, we need to
-				// check this character again, for a new sequence just
-				// might start right here.
-				a--;
-			}
-			
-			r = 0;
-		}
-	}
-	
-	return len ();
+// =============================================================================
+//
+void string::dump() const
+{
+    print ("`%1`:\n", chars());
+    int i = 0;
+
+    for (char u : m_string)
+        print ("\t%1. [%d2] `%3`\n", i++, u, string (u));
 }
 
-// ============================================================================
-unsigned int str::last (const char* c, int a) {
-	if (a == -1)
-		a = len();
-	
-	int max = strlen (c)-1;
-	
-	int r = max;
-	for (; a >= 0; a--) {
-		if (text[a] == c[r]) {
-			r--;
-			if (r == -1)
-				return a;
-		} else {
-			if (r != max)
-				a++;
-			
-			r = max;
-		}
-	}
-	
-	return len ();
+// =============================================================================
+//
+long string::to_long (bool* ok, int base) const
+{
+    errno = 0;
+    char* endptr;
+    long i = strtol (m_string.c_str(), &endptr, base);
+    *ok = (errno == 0 && *endptr == '\0');
+    return i;
 }
 
-// ============================================================================
-str str::substr (unsigned int a, unsigned int b) {
-	if (a > len()) a = len();
-	if (b > len()) b = len();
-	
-	if (b == a)
-		return "";
-	
-	if (b < a) {
-		printf ("str::substr: indices %u and %u given, should be the other way around, swapping..\n", a, b);
-		
-		// Swap the variables
-		unsigned int c = a;
-		a = b;
-		b = c;
-	}
-	
-	char* s = new char[b-a];
-	strncpy (s, text+a, b-a);
-	return str(s);
+// =============================================================================
+//
+float string::to_float (bool* ok) const
+{
+    errno = 0;
+    char* endptr;
+    float i = strtof (m_string.c_str(), &endptr);
+    *ok = (errno == 0 && *endptr == '\0');
+    return i;
 }
 
-// ============================================================================
-void str::remove (unsigned int idx, unsigned int dellen) {
-	str s1 = substr (0, idx);
-	str s2 = substr (idx + dellen, len());
-	
-	clear();
-	
-	append (s1);
-	append (s2);
+// =============================================================================
+//
+double string::to_double (bool* ok) const
+{
+    errno = 0;
+    char* endptr;
+    double i = strtod (m_string.c_str(), &endptr);
+    *ok = (errno == 0 && *endptr == '\0');
+    return i;
 }
 
-// ============================================================================
-void str::trim (int dellen) {
-	if (!dellen)
-		return;
-	
-	unsigned int delpos;
-	if (dellen > 0) {
-		delpos = len()-dellen;
-		text[delpos] = 0;
-		curs -= dellen;
-	} else {
-		str s = substr (-dellen, len());
-		clear();
-		append (s);
-	}
+// =============================================================================
+//
+bool operator== (const char* a, const string& b)
+{
+    return b == a;
 }
 
-// ============================================================================
-void str::replace (const char* o, const char* n, unsigned int a) {
-	unsigned int idx;
-	
-	while ((idx = first (o, a)) != len()) {
-		str s1 = substr (0, idx);
-		str s2 = substr (idx + strlen (o), len());
-		
-		clear();
-		
-		append (s1);
-		append (n);
-		append (s2);
-	}
+// =============================================================================
+//
+string operator+ (const char* a, const string& b)
+{
+    return string (a) + b;
 }
 
-void str::insert (char* c, unsigned int pos) {
-	str s1 = substr (0, pos);
-	str s2 = substr (pos, len());
-	
-	clear();
-	append (s1);
-	append (c);
-	append (s2);
+// =============================================================================
+//
+string string::operator+ (const string data) const
+{
+    string newString = *this;
+    newString += data;
+    return newString;
 }
 
-void str::reverse () {
-	char* tmp = new char[alloclen];
-	strcpy (tmp, text);
-	
-	clear();
-	curs = 0;
-	resize (alloclen);
-	for (int i = alloclen-1; i >= 0; i--)
-		append (tmp[i]);
+// =============================================================================
+//
+string string::operator+ (const char* data) const
+{
+    string newString = *this;
+    newString += data;
+    return newString;
 }
 
-void str::repeat (unsigned int n) {
-	char* tmp = new char[alloclen];
-	strcpy (tmp, text);
-	
-	for (; n > 0; n--)
-		append (tmp);
+// =============================================================================
+//
+string& string::operator+= (const string data)
+{
+    append (data);
+    return *this;
 }
 
-// ============================================================================
-bool str::isnumber () {
-	ITERATE_STRING (u) {
-		// Minus sign as the first character is allowed for negatives
-		if (!u && text[u] == '-')
-			continue;
-		
-		if (text[u] < '0' || text[u] > '9')
-			return false;
-	}
-	return true;
+// =============================================================================
+//
+string& string::operator+= (const char* data)
+{
+    append (data);
+    return *this;
 }
 
-// ============================================================================
-bool str::isword () {
-	ITERATE_STRING (u) {
-		// lowercase letters
-		if (text[u] >= 'a' || text[u] <= 'z')
-			continue;
-		
-		// uppercase letters
-		if (text[u] >= 'A' || text[u] <= 'Z')
-			continue;
-		
-		return false;
-	}
-	return true;
+// =============================================================================
+//
+bool string::is_numeric() const
+{
+    bool gotDot = false;
+
+    for (const char & c : m_string)
+    {
+        // Allow leading hyphen for negatives
+        if (&c == &m_string[0] && c == '-')
+            continue;
+
+        // Check for decimal point
+        if (!gotDot && c == '.')
+        {
+            gotDot = true;
+            continue;
+        }
+
+        if (c >= '0' && c <= '9')
+            continue; // Digit
+
+        // If the above cases didn't catch this character, it was
+        // illegal and this is therefore not a number.
+        return false;
+    }
+
+    return true;
 }
 
-// ============================================================================
-int str::compare (const char* c) {
-	return strcmp (text, c);
+// =============================================================================
+//
+bool string::ends_with (const string& other)
+{
+    if (length() < other.length())
+        return false;
+
+    const int ofs = length() - other.length();
+    return strncmp (chars() + ofs, other.chars(), other.length()) == 0;
 }
 
-int str::compare (str c) {
-	return compare (c.chars());
+// =============================================================================
+//
+bool string::starts_with (const string& other)
+{
+    if (length() < other.length())
+        return false;
+
+    return strncmp (chars(), other.chars(), other.length()) == 0;
 }
 
-int str::icompare (const char* c) {
-	return icompare (str ((char*)c));
+// =============================================================================
+//
+void string::sprintf (const char* fmtstr, ...)
+{
+    char* buf;
+    int bufsize = 256;
+    va_list va;
+    va_start (va, fmtstr);
+
+    do
+        buf = new char[bufsize];
+
+    while (vsnprintf (buf, bufsize, fmtstr, va) >= bufsize);
+
+    va_end (va);
+    m_string = buf;
+    delete[] buf;
 }
 
-int str::icompare (str b) {
-	return strcmp (tolower().chars(), b.tolower().chars());
+// =============================================================================
+//
+void string::prepend (string a)
+{
+    m_string = (a + m_string).std_string();
 }
 
-// ============================================================================
-str str::tolower () {
-	str n = text;
-	
-	for (uint u = 0; u < len(); u++) {
-		if (n[u] > 'A' && n[u] < 'Z')
-			n.text[u] += ('a' - 'A');
-	}
-	
-	return n;
+// =============================================================================
+//
+string string_list::join (const string& delim)
+{
+    string result;
+
+    for (const string & it : std_deque())
+    {
+        if (!result.is_empty())
+            result += delim;
+
+        result += it;
+    }
+
+    return result;
 }
 
-// ============================================================================
-str str::toupper () {
-	str n = text;
-	
-	for (uint u = 0; u < len(); u++) {
-		if (n[u] > 'a' && n[u] < 'z')
-			n.text[u] -= ('A' - 'a');
-	}
-	
-	return n;
-}
+// =============================================================================
+//
+bool string::mask (const string& pattern) const
+{
+    // Elevate to uppercase for case-insensitive matching
+    string pattern_upper = pattern.to_uppercase();
+    string this_upper = to_uppercase();
+    const char* maskstring = pattern_upper.chars();
+    const char* mptr = &maskstring[0];
 
-// ============================================================================
-unsigned int str::count (char* c) {
-	unsigned int r = 0;
-	unsigned int tmp = 0;
-	ITERATE_STRING (u) {
-		if (text[u] == c[r]) {
-			r++;
-			if (r == strlen (c)) {
-				r = 0;
-				tmp++;
-			}
-		} else {
-			if (r != 0)
-				u--;
-			r = 0;
-		}
-	}
-	
-	return tmp;
-}
+    for (const char* sptr = this_upper.chars(); *sptr != '\0'; sptr++)
+    {
+        if (*mptr == '?')
+        {
+            if (* (sptr + 1) == '\0')
+            {
+                // ? demands that there's a character here and there wasn't.
+                // Therefore, mask matching fails
+                return false;
+            }
+        }
 
-// ============================================================================
-array<str> str::split (str del) {
-	array<str> res;
-	unsigned int a = 0;
-	
-	// Find all separators and store the text left to them.
-	while (1) {
-		unsigned int b = first (del, a);
-		
-		if (b == len())
-			break;
-		
-		res.push (substr (a, b));
-		a = b + strlen (del);
-	}
-	
-	// Add the string at the right of the last separator
-	res.push (substr (a, len()));
-	return res;
-}
+        elif (*mptr == '*')
+        {
+            char end = * (++mptr);
 
-array<str> str::operator/ (str splitstring) {return split(splitstring);}
-array<str> str::operator/ (char* splitstring) {return split(splitstring);}
-array<str> str::operator/ (const char* splitstring) {return split(splitstring);}
+            // If '*' is the final character of the message, all of the remaining
+            // string matches against the '*'. We don't need to bother checking
+            // the string any further.
+            if (end == '\0')
+                return true;
+
+            // Skip to the end character
+            while (*sptr != end && *sptr != '\0')
+                sptr++;
+
+            // String ended while the mask still had stuff
+            if (*sptr == '\0')
+                return false;
+        }
+        elif (*sptr != *mptr)
+        return false;
+
+        mptr++;
+    }
+
+    return true;
+}
