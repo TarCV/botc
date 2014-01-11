@@ -28,19 +28,77 @@
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_EVENTS_H
-#define BOTC_EVENTS_H
+#ifndef LEXER_H
+#define LEXER_H
 
-#include "str.h"
+#include "main.h"
+#include "lexer_scanner.h"
 
-struct event_info
+class lexer
 {
-	string name;
-	int number;
+types:
+	struct token
+	{
+		e_token	type;
+		string		text;
+		string		file;
+		int		line;
+		int		column;
+	};
+
+	using token_list = list<token>;
+	using iterator = token_list::iterator;
+
+public:
+	lexer();
+	~lexer();
+
+	void process_file (string file_name);
+	bool get_next (e_token req = tk_any);
+	void must_get_next (e_token tok);
+	void must_get_any_of (const list<e_token>& toks);
+	int get_one_symbol (const string_list& syms);
+	void must_be (e_token tok);
+	bool peek_next (token* tk = null);
+
+	inline token* get_token() const
+	{
+		assert (is_at_end() == false);
+		return & (*m_token_position);
+	}
+
+	inline bool is_at_end() const
+	{
+		return m_token_position == m_tokens.end();
+	}
+
+	inline token get_token_type() const
+	{
+		return get_token()->type;
+	}
+
+	// If @tok is given, describes the token. If not, describes @tok_type.
+	static inline string describe_token_type (e_token tok_type)
+	{
+		return describe_token_private (tok_type, null);
+	}
+
+	static inline string describe_token (token* tok)
+	{
+		return describe_token_private (tok->type, tok);
+	}
+
+	static lexer* get_main_lexer();
+		void skip();
+
+private:
+	token_list		m_tokens;
+	iterator		m_token_position;
+
+	// read a mandatory token from scanner
+	void must_get_next_from_scanner (lexer_scanner& sc, e_token tok = tk_any);
+
+	static string describe_token_private (e_token tok_type, token* tok);
 };
 
-void init_events();
-event_info* find_event_by_index (int idx);
-event_info* find_event_by_name (string a);
-
-#endif // BOTC_EVENTS_H
+#endif // LEXER_H

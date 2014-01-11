@@ -28,19 +28,80 @@
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_EVENTS_H
-#define BOTC_EVENTS_H
+#ifndef IRIS_SCANNER_H
+#define IRIS_SCANNER_H
 
-#include "str.h"
+#include <climits>
+#include "main.h"
 
-struct event_info
+class lexer_scanner
 {
-	string name;
-	int number;
+	types:
+		struct position_info
+		{
+			char*	pos;
+			char*	line_break_pos;
+			int		line;
+		};
+
+		// Flags for check_string()
+		enum
+		{
+			f_check_word = (1 << 0),   // must be followed by whitespace
+			f_check_peek = (1 << 1),   // don't advance cursor
+		};
+
+	public:
+		static inline bool is_symbol_char (char c)
+		{
+			return (c >= 'a' && c <= 'z') ||
+				   (c >= 'A' && c <= 'Z') ||
+				   (c == '_');
+		}
+
+		lexer_scanner (FILE* fp);
+		~lexer_scanner();
+		bool get_next_token();
+
+		inline const string& get_token_text() const
+		{
+			return m_token_text;
+		}
+
+		inline int get_line() const
+		{
+			return m_line;
+		}
+
+		inline int get_column() const
+		{
+			return m_ptr - m_line_break_pos;
+		}
+
+		inline e_token get_e_token() const
+		{
+			return m_e_token;
+		}
+
+		static string get_token_string (e_token a);
+
+	private:
+		char*			m_data,
+			*			m_ptr,
+			*			m_line_break_pos;
+		string			m_token_text,
+						m_last_token;
+		e_token			m_e_token;
+		int				m_line;
+
+		bool			check_string (const char* c, int flags = 0);
+
+		// Yields a copy of the current position information.
+		position_info	get_position() const;
+
+		// Sets the current position based on given data.
+		void			set_position (const position_info& a);
 };
 
-void init_events();
-event_info* find_event_by_index (int idx);
-event_info* find_event_by_name (string a);
+#endif // IRIS_SCANNER_H
 
-#endif // BOTC_EVENTS_H
