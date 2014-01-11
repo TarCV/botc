@@ -1,3 +1,33 @@
+/*
+	Copyright (c) 2013-2014, Santeri Piippo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without
+	modification, are permitted provided that the following conditions are met:
+
+		* Redistributions of source code must retain the above copyright
+		  notice, this list of conditions and the following disclaimer.
+
+		* Redistributions in binary form must reproduce the above copyright
+		  notice, this list of conditions and the following disclaimer in the
+		  documentation and/or other materials provided with the distribution.
+
+		* Neither the name of the <organization> nor the
+		  names of its contributors may be used to endorse or promote products
+		  derived from this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+	ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+	WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+	DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+	DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+	(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+	LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+	ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #ifndef BOTC_COMMON_H
 #define BOTC_COMMON_H
 
@@ -13,6 +43,7 @@
 #include "str.h"
 #include "containers.h"
 #include "format.h"
+#include "tokens.h"
 
 // Application name and version
 #define APPNAME "botc"
@@ -49,13 +80,14 @@ enum type_e {
 		exit (1); \
 	}
 
-// Plural expression
-#define PLURAL(n) (n != 1) ? "s" : ""
+#define types public
+#define countof(A) ((int) (sizeof A / sizeof *A))
+#define autocast(A) (decltype(A))
+#define assign_autocast(A,B) a = autocast(A) b
 
 // Shortcut for zeroing something
 #define ZERO(obj) memset (&obj, 0, sizeof (obj));
 
-void error (const char* text, ...);
 string ObjectFileName (string s);
 bool fexists (string path);
 type_e GetTypeByName (string token);
@@ -76,7 +108,7 @@ extern string g_CurState;
 #define deprecated __attribute__ ((deprecated))
 
 // Power function
-template<class T> T pow (T a, unsigned int b) {
+template<class T> T pow (T a, int b) {
 	if (!b)
 		return 1;
 	
@@ -97,7 +129,7 @@ typedef unsigned char byte;
 extern const char** g_Keywords;
 
 bool IsKeyword (string s);
-unsigned int NumKeywords ();
+int NumKeywords ();
 
 // Script mark and reference
 struct ScriptMark {
@@ -106,25 +138,25 @@ struct ScriptMark {
 };
 
 struct ScriptMarkReference {
-	unsigned int num;
+	int num;
 	size_t pos;
 };
 
 // ====================================================================
 // Generic union
-template <class T> union union_t {
-	T val;
-	byte b[sizeof (T)];
-	char c[sizeof (T)];
-	double d;
-	float f;
-	int i;
-	word w;
+template <class T> union generic_union {
+	T as_t;
+	byte as_bytes[sizeof (T)];
+	char as_chars[sizeof (T)];
+	double as_double;
+	float as_float;
+	int as_int;
+	word as_word;
 };
 
 // ====================================================================
 // Finds a byte in the given value.
-template <class T> inline unsigned char GetByteIndex (T a, unsigned int b) {
+template <class T> inline unsigned char GetByteIndex (T a, int b) {
 	union_t<T> uni;
 	uni.val = a;
 	return uni.b[b];

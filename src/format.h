@@ -1,3 +1,33 @@
+/*
+	Copyright (c) 2013-2014, Santeri Piippo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without
+	modification, are permitted provided that the following conditions are met:
+
+		* Redistributions of source code must retain the above copyright
+		  notice, this list of conditions and the following disclaimer.
+
+		* Redistributions in binary form must reproduce the above copyright
+		  notice, this list of conditions and the following disclaimer in the
+		  documentation and/or other materials provided with the distribution.
+
+		* Neither the name of the <organization> nor the
+		  names of its contributors may be used to endorse or promote products
+		  derived from this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+	ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+	WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+	DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+	DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+	(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+	LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+	ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #ifndef BOTC_FORMAT_H
 #define BOTC_FORMAT_H
 
@@ -7,35 +37,10 @@
 class format_arg
 {
 	public:
-		format_arg (const string& a)
-		{
-			m_string = a;
-		}
-
-		format_arg (int a)
-		{
-			m_string.sprintf ("%d", a);
-		}
-
-		format_arg (long a)
-		{
-			m_string.sprintf ("%ld", a);
-		}
-
-		format_arg (uint a)
-		{
-			m_string.sprintf ("%u", a);
-		}
-
-		format_arg (ulong a)
-		{
-			m_string.sprintf ("%lu", a);
-		}
-
-		format_arg (const char* a)
-		{
-			m_string = a;
-		}
+		format_arg (const string& a) : m_string (a) {}
+		format_arg (int a) : m_string (a) {}
+		format_arg (long a) : m_string (a) {}
+		format_arg (const char* a) : m_string (a) {}
 
 		format_arg (void* a)
 		{
@@ -68,30 +73,6 @@ class format_arg
 			m_string += " }";
 		}
 
-/*
-		template<class T, class R> format_arg (const std::map<T, R>& a)
-		{
-			if (a.size() == 0)
-			{
-				m_string = "{}";
-				return;
-			}
-
-			m_string = "{ ";
-
-			for (std::pair<T, R> it : a)
-			{
-				if (m_string != "{ ")
-					m_string += ", ";
-
-				m_string += format_arg (it.first).as_string() + "=" +
-							format_arg (it.second).as_string();
-			}
-
-			m_string += " }";
-		}
-*/
-
 		inline const string& as_string() const
 		{
 			return m_string;
@@ -123,27 +104,28 @@ void print_args (FILE* fp, const list<format_arg>& args);
 void do_fatal (const list<format_arg>& args);
 
 #ifndef IN_IDE_PARSER
-#define format(...) format_args({ __VA_ARGS__ })
-#define fprint(A, ...) print_args( A, { __VA_ARGS__ })
-#define print(...) print_args( stdout, { __VA_ARGS__ })
-#define fatal(...) do_fatal({ __VA_ARGS__ })
+# define format(...) format_args({ __VA_ARGS__ })
+# define fprint(A, ...) print_args( A, { __VA_ARGS__ })
+# define print(...) print_args( stdout, { __VA_ARGS__ })
 #else
 string format (void, ...);
 void fprint (FILE* fp, ...);
 void print (void, ...);
-void fatal (void, ...);
 #endif
 
 #ifndef IN_IDE_PARSER
 # ifdef DEBUG
-#  define devf(...) fprint( stderr, __VA_ARGS__ )
-#  define dvalof( A ) fprint( stderr, "value of '%1' = %2\n", #A, A )
+#  define devf(...) fprint (stderr, __VA_ARGS__)
+#  define dvalof( A ) fprint (stderr, "value of '%1' = %2\n", #A, A)
 # else
 #  define devf(...)
 #  define dvalof( A )
 # endif // DEBUG
 #else
+// print something in debug builds
 void devf (void, ...);
+
+// print the value of @a
 void dvalof (void a);
 #endif // IN_IDE_PARSER
 

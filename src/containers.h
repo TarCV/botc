@@ -1,5 +1,35 @@
-#ifndef LIBCOBALT_CONTAINERS_H
-#define LIBCOBALT_CONTAINERS_H
+/*
+	Copyright (c) 2013-2014, Santeri Piippo
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without
+	modification, are permitted provided that the following conditions are met:
+
+		* Redistributions of source code must retain the above copyright
+		  notice, this list of conditions and the following disclaimer.
+
+		* Redistributions in binary form must reproduce the above copyright
+		  notice, this list of conditions and the following disclaimer in the
+		  documentation and/or other materials provided with the distribution.
+
+		* Neither the name of the <organization> nor the
+		  names of its contributors may be used to endorse or promote products
+		  derived from this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+	ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+	WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+	DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+	DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+	(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+	LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+	ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#ifndef BOTC_CONTAINERS_H
+#define BOTC_CONTAINERS_H
 
 #include <cassert>
 #include <algorithm>
@@ -8,220 +38,311 @@
 
 template<class T> class list
 {
-    public:
-        typedef typename ::std::deque<T> list_type;
-        typedef typename list_type::iterator it;
-        typedef typename list_type::const_iterator c_it;
-        typedef typename list_type::reverse_iterator r_it;
-        typedef typename list_type::const_reverse_iterator cr_it;
-        typedef T element_type;
-        typedef list<T> self_type;
+	public:
+		typedef typename ::std::deque<T> list_type;
+		typedef typename list_type::iterator it;
+		typedef typename list_type::const_iterator c_it;
+		typedef typename list_type::reverse_iterator r_it;
+		typedef typename list_type::const_reverse_iterator cr_it;
+		typedef T element_type;
+		typedef list<T> self_type;
 
-        list() {}
-        list (std::initializer_list<element_type> vals)
-        {
-            m_data = vals;
-        }
+		// =====================================================================
+		//
+		list() {}
 
-        list (const list_type& a) : m_data (a) {}
+		// =====================================================================
+		//
+		list (std::initializer_list<element_type> vals)
+		{
+			m_data = vals;
+		}
 
-        it begin()
-        {
-            return m_data.begin();
-        }
+		// =====================================================================
+		//
+		list (const list_type& a) :
+			m_data (a) {}
 
-        c_it begin() const
-        {
-            return m_data.cbegin();
-        }
+		// =====================================================================
+		//
+		it begin()
+		{
+			return m_data.begin();
+		}
 
-        it end()
-        {
-            return m_data.end();
-        }
+		// =====================================================================
+		//
+		c_it begin() const
+		{
+			return m_data.cbegin();
+		}
 
-        c_it end() const
-        {
-            return m_data.cend();
-        }
+		// =====================================================================
+		//
+		it end()
+		{
+			return m_data.end();
+		}
 
-        r_it rbegin()
-        {
-            return m_data.rbegin();
-        }
+		// =====================================================================
+		//
+		c_it end() const
+		{
+			return m_data.cend();
+		}
 
-        cr_it crbegin() const
-        {
-            return m_data.crbegin();
-        }
+		// =====================================================================
+		//
+		r_it rbegin()
+		{
+			return m_data.rbegin();
+		}
 
-        r_it rend()
-        {
-            return m_data.rend();
-        }
+		// =====================================================================
+		//
+		cr_it crbegin() const
+		{
+			return m_data.crbegin();
+		}
 
-        cr_it crend() const
-        {
-            return m_data.crend();
-        }
+		// =====================================================================
+		//
+		r_it rend()
+		{
+			return m_data.rend();
+		}
 
-        void erase (int pos)
-        {
-            assert (pos < size());
-            m_data.erase (m_data.begin() + pos);
-        }
+		// =====================================================================
+		//
+		cr_it crend() const
+		{
+			return m_data.crend();
+		}
 
-        element_type& push_front (const element_type& value)
-        {
-            m_data.push_front (value);
-            return m_data[0];
-        }
+		// =====================================================================
+		//
+		inline void erase (int pos)
+		{
+			assert (pos < size());
+			m_data.erase (m_data.begin() + pos);
+		}
 
-        element_type& push_back (const element_type& value)
-        {
-            m_data.push_back (value);
-            return m_data[m_data.size() - 1];
-        }
+		// =====================================================================
+		//
+		element_type& push_front (const element_type& value)
+		{
+			m_data.push_front (value);
+			return m_data[0];
+		}
 
-        void push_back (const self_type& vals)
-        {
-            for (const T & val : vals)
-                push_back (val);
-        }
+		// =====================================================================
+		//
+		element_type& push_back (const element_type& value)
+		{
+			m_data.push_back (value);
+			return m_data[m_data.size() - 1];
+		}
 
-        bool pop (T& val)
-        {
-            if (size() == 0)
-                return false;
+		// =====================================================================
+		//
+		void push_back (const self_type& vals)
+		{
+			for (const T & val : vals)
+				push_back (val);
+		}
 
-            val = m_data[size() - 1];
-            erase (size() - 1);
-            return true;
-        }
+		// =====================================================================
+		//
+		bool pop (T& val)
+		{
+			if (is_empty())
+				return false;
 
-        T& operator<< (const T& value)
-        {
-            return push_back (value);
-        }
+			val = m_data[size() - 1];
+			m_data.erase (m_data.end() - 1);
+			return true;
+		}
 
-        void operator<< (const self_type& vals)
-        {
-            push_back (vals);
-        }
+		// =====================================================================
+		//
+		T& operator<< (const T& value)
+		{
+			return push_back (value);
+		}
 
-        bool operator>> (T& value)
-        {
-            return pop (value);
-        }
+		// =====================================================================
+		//
+		void operator<< (const self_type& vals)
+		{
+			push_back (vals);
+		}
 
-        self_type reverse() const
-        {
-            self_type rev;
+		// =====================================================================
+		//
+		bool operator>> (T& value)
+		{
+			return pop (value);
+		}
 
-            for (const T & val : *this)
-                val >> rev;
+		// =====================================================================
+		//
+		self_type reverse() const
+		{
+			self_type rev;
 
-            return rev;
-        }
+			for (const T & val : *this)
+				val >> rev;
 
-        void clear()
-        {
-            m_data.clear();
-        }
+			return rev;
+		}
 
-        void insert (int pos, const element_type& value)
-        {
-            m_data.insert (m_data.begin() + pos, value);
-        }
+		// =====================================================================
+		//
+		void clear()
+		{
+			m_data.clear();
+		}
 
-        void makeUnique()
-        {
-            // Remove duplicate entries. For this to be effective, the vector must be
-            // sorted first.
-            sort();
-            it pos = std::unique (begin(), end());
-            resize (std::distance (begin(), pos));
-        }
+		// =====================================================================
+		//
+		void insert (int pos, const element_type& value)
+		{
+			m_data.insert (m_data.begin() + pos, value);
+		}
 
-        int size() const
-        {
-            return m_data.size();
-        }
+		// =====================================================================
+		//
+		void makeUnique()
+		{
+			// Remove duplicate entries. For this to be effective, the vector must be
+			// sorted first.
+			sort();
+			it pos = std::unique (begin(), end());
+			resize (std::distance (begin(), pos));
+		}
 
-        element_type& operator[] (int n)
-        {
-            assert (n < size());
-            return m_data[n];
-        }
+		// =====================================================================
+		//
+		int size() const
+		{
+			return m_data.size();
+		}
 
-        const element_type& operator[] (int n) const
-        {
-            assert (n < size());
-            return m_data[n];
-        }
+		// =====================================================================
+		//
+		element_type& operator[] (int n)
+		{
+			assert (n < size());
+			return m_data[n];
+		}
 
-        void resize (std::ptrdiff_t size)
-        {
-            m_data.resize (size);
-        }
+		// =====================================================================
+		//
+		const element_type& operator[] (int n) const
+		{
+			assert (n < size());
+			return m_data[n];
+		}
 
-        void sort()
-        {
-            std::sort (begin(), end());
-        }
+		// =====================================================================
+		//
+		void resize (int size)
+		{
+			m_data.resize (size);
+		}
 
-        int find (const element_type& needle)
-        {
-            int i = 0;
+		// =====================================================================
+		//
+		void sort()
+		{
+			std::sort (begin(), end());
+		}
 
-            for (const element_type & hay : *this)
-            {
-                if (hay == needle)
-                    return i;
+		// =====================================================================
+		//
+		int find (const element_type& needle)
+		{
+			int i = 0;
 
-                i++;
-            }
+			for (const element_type & hay : *this)
+			{
+				if (hay == needle)
+					return i;
 
-            return -1;
-        }
+				i++;
+			}
 
-        void remove (const element_type& it)
-        {
-            int idx;
+			return -1;
+		}
 
-            if ( (idx = find (it)) != -1)
-                erase (idx);
-        }
+		// =====================================================================
+		//
+		void remove (const element_type& it)
+		{
+			int idx;
 
-        inline bool is_empty() const
-        {
-            return size() == 0;
-        }
+			if ((idx = find (it)) != -1)
+				erase (idx);
+		}
 
-        self_type mid (int a, int b) const
-        {
-            assert (a >= 0 && b >= 0 && a < size() && b < size() && a <= b);
-            self_type result;
+		// =====================================================================
+		//
+		inline bool is_empty() const
+		{
+			return size() == 0;
+		}
 
-            for (int i = a; i <= b; ++i)
-                result << operator[] (i);
+		// =====================================================================
+		//
+		self_type mid (int a, int b) const
+		{
+			assert (a >= 0 && b >= 0 && a < size() && b < size() && a <= b);
+			self_type result;
 
-            return result;
-        }
+			for (int i = a; i <= b; ++i)
+				result << operator[] (i);
 
-        inline const list_type& std_deque() const
-        {
-            return m_data;
-        }
+			return result;
+		}
 
-    private:
-        list_type m_data;
+		// =====================================================================
+		//
+		inline const list_type& std_deque() const
+		{
+			return m_data;
+		}
+
+		// =====================================================================
+		//
+		const element_type& first() const
+		{
+			return *(m_data.begin());
+		}
+
+		// =====================================================================
+		//
+		const element_type& last() const
+		{
+			return *(m_data.end());
+		}
+
+		// =====================================================================
+		//
+		bool contains (const element_type& a) const
+		{
+			return find (a) != -1;
+		}
+
+	private:
+		list_type m_data;
 };
 
+// =============================================================================
+//
 template<class T> list<T>& operator>> (const T& value, list<T>& haystack)
 {
-    haystack.push_front (value);
-    return haystack;
+	haystack.push_front (value);
+	return haystack;
 }
 
-#endif // LIBCOBALT_CONTAINERS_H
+#endif // BOTC_CONTAINERS_H

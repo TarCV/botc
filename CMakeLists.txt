@@ -3,7 +3,7 @@ add_executable (botc
 	src/events.cxx
 	src/format.cc
 	src/main.cxx
-	src/objwriter.cxx
+	src/object_writer.cxx
 	src/parser.cxx
 	src/preprocessor.cxx
 	src/scriptreader.cxx
