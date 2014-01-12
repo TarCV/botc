@@ -131,12 +131,12 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 
 				// write the previous state's onenter and
 				// mainloop buffers to file now
-				if (g_CurState.len())
-					w->write (Buffers();
+				if (g_CurState.is_empty() == false)
+					w->write_member_buffers();
 
-				w->write (DH_STATENAME);
+				w->write (dh_state_name);
 				w->write_string (statename);
-				w->write (DH_STATEIDX);
+				w->write (dh_state_index);
 				w->write (g_NumStates);
 
 				g_NumStates++;
@@ -161,7 +161,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 
 				m_lx->must_get_next (tk_brace_start);
 				g_CurMode = MODE_EVENT;
-				w->write (DH_EVENT);
+				w->write (dh_event);
 				w->write (e->number);
 				g_NumEvents++;
 				continue;
@@ -176,7 +176,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 
 				// Mode must be set before dataheader is written here!
 				g_CurMode = MODE_MAINLOOP;
-				w->write (DH_MAINLOOP);
+				w->write (dh_main_loop);
 			}
 			break;
 
@@ -192,7 +192,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				// Mode must be set before dataheader is written here,
 				// because onenter goes to a separate buffer.
 				g_CurMode = onenter ? MODE_ONENTER : MODE_ONEXIT;
-				w->write (onenter ? DH_ONENTER : DH_ONEXIT);
+				w->write (onenter ? dh_on_enter : dh_on_exit);
 			}
 			break;
 
@@ -206,8 +206,8 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				if (g_CurMode != MODE_TOPLEVEL || g_CurState.len())
 					error ("variables must only be global for now");
 
-				type_e type =	(TOKEN == "int") ? TYPE_INT :
-								(TOKEN == "str") ? TYPE_STRING :
+				type_e type =	(token_is (tk_int)) ? TYPE_INT :
+								(token_is (tk_str)) ? TYPE_STRING :
 								TYPE_BOOL;
 
 				m_lx->must_get_next();
@@ -217,7 +217,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 					error ("variable name must not be a number");
 
 				string varname = TOKEN;
-				script_variable* var = DeclareGlobalVariable (this, type, varname);
+				script_variable* var = declare_global_variable (this, type, varname);
 				m_lx->must_get_next (tk_semicolon);
 			}
 			break;
@@ -242,7 +242,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				}
 
 				// Add a reference to the mark.
-				w->write (DH_GOTO);
+				w->write (dh_goto);
 				w->add_reference (m);
 				m_lx->must_get_next (tk_semicolon);
 				continue;
@@ -270,14 +270,14 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				// Upon a closing brace, the mark will be adjusted.
 				int marknum = w->add_mark ("");
 
-				// Use DH_IFNOTGOTO - if the expression is not true, we goto the mark
+				// Use dh_if_not_goto - if the expression is not true, we goto the mark
 				// we just defined - and this mark will be at the end of the scope block.
-				w->write (DH_IFNOTGOTO);
+				w->write (dh_if_not_goto);
 				w->add_reference (marknum);
 
 				// Store it
 				SCOPE (0).mark1 = marknum;
-				SCOPE (0).type = SCOPETYPE_IF;
+				SCOPE (0).type = e_if_scope;
 			} break;
 
 			// ============================================================
@@ -293,7 +293,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				if (g_ScopeCursor >= MAX_SCOPE)
 					error ("too deep scope");
 
-				if (SCOPE (0).type != SCOPETYPE_IF)
+				if (SCOPE (0).type != e_if_scope)
 					error ("else without preceding if");
 
 				// write down to jump to the end of the else statement
@@ -301,12 +301,12 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				SCOPE (0).mark2 = w->add_mark ("");
 
 				// Instruction to jump to the end after if block is complete
-				w->write (DH_GOTO);
+				w->write (dh_goto);
 				w->add_reference (SCOPE (0).mark2);
 
 				// Move the ifnot mark here and set type to else
 				w->move_mark (SCOPE (0).mark1);
-				SCOPE (0).type = SCOPETYPE_ELSE;
+				SCOPE (0).type = e_else_scope;
 			}
 			break;
 
@@ -335,13 +335,13 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				w->write_buffer (expr);
 
 				// Instruction to go to the end if it fails
-				w->write (DH_IFNOTGOTO);
+				w->write (dh_if_not_goto);
 				w->add_reference (mark2);
 
 				// Store the needed stuff
 				SCOPE (0).mark1 = mark1;
 				SCOPE (0).mark2 = mark2;
-				SCOPE (0).type = SCOPETYPE_WHILE;
+				SCOPE (0).type = e_while_scope;
 			}
 			break;
 
@@ -390,14 +390,14 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 
 				// Add the condition
 				w->write_buffer (cond);
-				w->write (DH_IFNOTGOTO);
+				w->write (dh_if_not_goto);
 				w->add_reference (mark2);
 
 				// Store the marks and incrementor
 				SCOPE (0).mark1 = mark1;
 				SCOPE (0).mark2 = mark2;
 				SCOPE (0).buffer1 = incr;
-				SCOPE (0).type = SCOPETYPE_FOR;
+				SCOPE (0).type = e_for_scope;
 			}
 			break;
 
@@ -409,7 +409,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				push_scope();
 				m_lx->must_get_next (tk_brace_start);
 				SCOPE (0).mark1 = w->add_mark ("");
-				SCOPE (0).type = SCOPETYPE_DO;
+				SCOPE (0).type = e_do_scope;
 			}
 			break;
 
@@ -437,7 +437,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				w->write_buffer (parse_expression (TYPE_INT));
 				m_lx->must_get_next (tk_paren_end);
 				m_lx->must_get_next (tk_brace_start);
-				SCOPE (0).type = SCOPETYPE_SWITCH;
+				SCOPE (0).type = e_switch_scope;
 				SCOPE (0).mark1 = w->add_mark (""); // end mark
 				SCOPE (0).buffer1 = null; // default header
 			}
@@ -448,7 +448,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 			case tk_case:
 			{
 				// case is only allowed inside switch
-				if (SCOPE (0).type != SCOPETYPE_SWITCH)
+				if (SCOPE (0).type != e_switch_scope)
 					error ("case label outside switch");
 
 				// Get the literal (Zandronum does not support expressions here)
@@ -469,7 +469,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				//	 null the switch buffer for the case-go-to statement,
 				// we want it all under the switch, not into the case-buffers.
 				w->SwitchBuffer = null;
-				w->write (DH_CASEGOTO);
+				w->write (dh_case_goto);
 				w->write (num);
 				add_switch_case (w, null);
 				SCOPE (0).casenumbers[SCOPE (0).casecursor] = num;
@@ -480,7 +480,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 			//
 			case tk_default:
 			{
-				if (SCOPE (0).type != SCOPETYPE_SWITCH)
+				if (SCOPE (0).type != e_switch_scope)
 					error ("default label outside switch");
 
 				if (SCOPE (0).buffer1)
@@ -493,12 +493,12 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				//
 				// Since the expression is pushed into the switch
 				// and is only popped when case succeeds, we have
-				// to pop it with DH_DROP manually if we end up in
+				// to pop it with dh_drop manually if we end up in
 				// a default.
 				data_buffer* b = new data_buffer;
 				SCOPE (0).buffer1 = b;
-				b->write (DH_DROP);
-				b->write (DH_GOTO);
+				b->write (dh_drop);
+				b->write (dh_goto);
 				add_switch_case (w, b);
 			}
 			break;
@@ -510,20 +510,20 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				if (!g_ScopeCursor)
 					error ("unexpected `break`");
 
-				w->write (DH_GOTO);
+				w->write (dh_goto);
 
 				// switch and if use mark1 for the closing point,
 				// for and while use mark2.
 				switch (SCOPE (0).type)
 				{
-					case SCOPETYPE_IF:
-					case SCOPETYPE_SWITCH:
+					case e_if_scope:
+					case e_switch_scope:
 					{
 						w->add_reference (SCOPE (0).mark1);
 					} break;
 
-					case SCOPETYPE_FOR:
-					case SCOPETYPE_WHILE:
+					case e_for_scope:
+					case e_while_scope:
 					{
 						w->add_reference (SCOPE (0).mark2);
 					} break;
@@ -552,11 +552,11 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				{
 					switch (scopestack[curs].type)
 					{
-						case SCOPETYPE_FOR:
-						case SCOPETYPE_WHILE:
-						case SCOPETYPE_DO:
+						case e_for_scope:
+						case e_while_scope:
+						case e_do_scope:
 						{
-							w->write (DH_GOTO);
+							w->write (dh_goto);
 							w->add_reference (scopestack[curs].mark1);
 							found = true;
 						} break;
@@ -580,7 +580,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				{
 					switch (SCOPE (0).type)
 					{
-						case SCOPETYPE_IF:
+						case e_if_scope:
 							// Adjust the closing mark.
 							w->move_mark (SCOPE (0).mark1);
 
@@ -588,29 +588,29 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 							g_CanElse = true;
 							break;
 
-						case SCOPETYPE_ELSE:
+						case e_else_scope:
 							// else instead uses mark1 for itself (so if expression
 							// fails, jump to else), mark2 means end of else
 							w->move_mark (SCOPE (0).mark2);
 							break;
 
-						case SCOPETYPE_FOR:
+						case e_for_scope:
 							// write the incrementor at the end of the loop block
 							w->write_buffer (SCOPE (0).buffer1);
 
 							// fall-thru
-						case SCOPETYPE_WHILE:
+						case e_while_scope:
 							// write down the instruction to go back to the start of the loop
-							w->write (DH_GOTO);
+							w->write (dh_goto);
 							w->add_reference (SCOPE (0).mark1);
 
 							// Move the closing mark here since we're at the end of the while loop
 							w->move_mark (SCOPE (0).mark2);
 							break;
 
-						case SCOPETYPE_DO:
+						case e_do_scope:
 						{
-							must_get_next (tk_while);
+							m_lx->must_get_next (tk_while);
 							m_lx->must_get_next (tk_paren_start);
 							m_lx->must_get_next();
 							data_buffer* expr = parse_expression (TYPE_INT);
@@ -619,12 +619,12 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 
 							// If the condition runs true, go back to the start.
 							w->write_buffer (expr);
-							w->write (DH_IFGOTO);
+							w->write (dh_if_goto);
 							w->add_reference (SCOPE (0).mark1);
 							break;
 						}
 
-						case SCOPETYPE_SWITCH:
+						case e_switch_scope:
 						{
 							// Switch closes. Move down to the record buffer of
 							// the lower block.
@@ -640,8 +640,8 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 								w->write_buffer (SCOPE (0).buffer1);
 										else
 								{
-									w->write (DH_DROP);
-									w->write (DH_GOTO);
+									w->write (dh_drop);
+									w->write (dh_goto);
 									w->add_reference (SCOPE (0).mark1);
 								}
 
@@ -661,7 +661,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 							break;
 						}
 
-						case SCOPETYPE_UNKNOWN:
+						case e_unknown_scope:
 							break;
 					}
 
@@ -670,10 +670,10 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 					continue;
 				}
 
-				int dataheader =	(g_CurMode == MODE_EVENT) ? DH_ENDEVENT :
-									(g_CurMode == MODE_MAINLOOP) ? DH_ENDMAINLOOP :
-									(g_CurMode == MODE_ONENTER) ? DH_ENDONENTER :
-									(g_CurMode == MODE_ONEXIT) ? DH_ENDONEXIT : -1;
+				int dataheader =	(g_CurMode == MODE_EVENT) ? dh_end_event :
+									(g_CurMode == MODE_MAINLOOP) ? dh_end_main_loop :
+									(g_CurMode == MODE_ONENTER) ? dh_end_on_enter :
+									(g_CurMode == MODE_ONEXIT) ? dh_end_on_exit : -1;
 
 				if (dataheader == -1)
 					error ("unexpected `}`");
@@ -683,9 +683,8 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				// the closing data headers into said buffers too.
 				w->write (dataheader);
 				g_CurMode = MODE_TOPLEVEL;
-
-				if (PeekNext() == ";")
-					m_lx->must_get_next (tk_semicolon);
+				lexer::token* tok;
+				m_lx->get_next (tk_semicolon);
 			}
 			break;
 
@@ -748,7 +747,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 					if (FindCommand (label_name))
 						error ("label name `%s` conflicts with command name\n", label_name);
 
-					if (FindGlobalVariable (label_name))
+					if (find_global_variable (label_name))
 						error ("label name `%s` conflicts with variable\n", label_name);
 
 					// See if a mark already exists for this label
@@ -878,12 +877,12 @@ data_buffer* botscript_parser::ParseCommand (CommandDef* comm)
 	// If the script skipped any optional arguments, fill in defaults.
 	while (curarg < comm->maxargs)
 	{
-		r->write (DH_PUSHNUMBER);
+		r->write (dh_push_number);
 		r->write (comm->defvals[curarg]);
 		curarg++;
 	}
 
-	r->write (DH_COMMAND);
+	r->write (dh_command);
 	r->write (comm->number);
 	r->write (comm->maxargs);
 
@@ -925,12 +924,12 @@ static word get_data_header_by_operator (script_variable* var, int oper)
 		// the operator parser
 		switch (oper)
 		{
-			case OPER_ASSIGNADD: return DH_ADDGLOBALVAR;
-			case OPER_ASSIGNSUB: return DH_SUBGLOBALVAR;
-			case OPER_ASSIGNMUL: return DH_MULGLOBALVAR;
-			case OPER_ASSIGNDIV: return DH_DIVGLOBALVAR;
-			case OPER_ASSIGNMOD: return DH_MODGLOBALVAR;
-			case OPER_ASSIGN: return DH_ASSIGNGLOBALVAR;
+			case OPER_ASSIGNADD: return dh_add_global_var;
+			case OPER_ASSIGNSUB: return dh_subtract_global_var;
+			case OPER_ASSIGNMUL: return dh_multiply_global_var;
+			case OPER_ASSIGNDIV: return dh_divide_global_var;
+			case OPER_ASSIGNMOD: return dh_mod_global_var;
+			case OPER_ASSIGN: return dh_assign_global_var;
 
 			default: error ("bad assignment operator!!\n");
 		}
@@ -938,24 +937,24 @@ static word get_data_header_by_operator (script_variable* var, int oper)
 
 	switch (oper)
 	{
-	case OPER_ADD: return DH_ADD;
-	case OPER_SUBTRACT: return DH_SUBTRACT;
-	case OPER_MULTIPLY: return DH_MULTIPLY;
-	case OPER_DIVIDE: return DH_DIVIDE;
-	case OPER_MODULUS: return DH_MODULUS;
-	case OPER_EQUALS: return DH_EQUALS;
-	case OPER_NOTEQUALS: return DH_NOTEQUALS;
-	case OPER_LESSTHAN: return DH_LESSTHAN;
-	case OPER_GREATERTHAN: return DH_GREATERTHAN;
-	case OPER_LESSTHANEQUALS: return DH_LESSTHANEQUALS;
-	case OPER_GREATERTHANEQUALS: return DH_GREATERTHANEQUALS;
-	case OPER_LEFTSHIFT: return DH_LSHIFT;
-	case OPER_RIGHTSHIFT: return DH_RSHIFT;
-	case OPER_OR: return DH_ORLOGICAL;
-	case OPER_AND: return DH_ANDLOGICAL;
-	case OPER_BITWISEOR: return DH_ORBITWISE;
-	case OPER_BITWISEEOR: return DH_EORBITWISE;
-	case OPER_BITWISEAND: return DH_ANDBITWISE;
+	case OPER_ADD: return dh_add;
+	case OPER_SUBTRACT: return dh_subtract;
+	case OPER_MULTIPLY: return dh_multiply;
+	case OPER_DIVIDE: return dh_divide;
+	case OPER_MODULUS: return dh_modulus;
+	case OPER_EQUALS: return dh_equals;
+	case OPER_NOTEQUALS: return dh_not_equals;
+	case OPER_LESSTHAN: return dh_less_than;
+	case OPER_GREATERTHAN: return dh_greater_than;
+	case OPER_LESSTHANEQUALS: return dh_at_most;
+	case OPER_GREATERTHANEQUALS: return dh_at_least;
+	case OPER_LEFTSHIFT: return dh_left_shift;
+	case OPER_RIGHTSHIFT: return dh_right_shift;
+	case OPER_OR: return dh_or_logical;
+	case OPER_AND: return dh_and_logical;
+	case OPER_BITWISEOR: return dh_or_bitwise;
+	case OPER_BITWISEEOR: return dh_eor_bitwise;
+	case OPER_BITWISEAND: return dh_and_bitwise;
 	}
 
 	error ("DataHeaderByOperator: couldn't find dataheader for operator %d!\n", oper);
@@ -977,7 +976,7 @@ data_buffer* botscript_parser::parse_expression (type_e reqtype)
 	while ( (oper = parse_operator (true)) != -1)
 	{
 		// We peeked the operator, move forward now
-		Next();
+		m_lx->skip();
 
 		// Can't be an assignement operator, those belong in assignments.
 		if (is_assignment_operator (oper))
@@ -999,10 +998,10 @@ data_buffer* botscript_parser::parse_expression (type_e reqtype)
 			// Behold, big block of writing madness! :P
 			int mark1 = retbuf->add_mark (""); // start of "else" case
 			int mark2 = retbuf->add_mark (""); // end of expression
-			retbuf->write (DH_IFNOTGOTO); // if the first operand (condition)
+			retbuf->write (dh_if_not_goto); // if the first operand (condition)
 			retbuf->add_reference (mark1); // didn't eval true, jump into mark1
 			retbuf->merge (rb); // otherwise, perform second operand (true case)
-			retbuf->write (DH_GOTO); // afterwards, jump to the end, which is
+			retbuf->write (dh_goto); // afterwards, jump to the end, which is
 			retbuf->add_reference (mark2); // marked by mark2.
 			retbuf->move_mark (mark1); // move mark1 at the end of the true case
 			retbuf->merge (tb); // perform third operand (false case)
@@ -1027,7 +1026,7 @@ int botscript_parser::parse_operator (bool peek)
 	string oper;
 
 	if (peek)
-		oper += PeekNext();
+		oper += m_lx->peek_next_string();
 	else
 		oper += TOKEN;
 
@@ -1057,8 +1056,8 @@ int botscript_parser::parse_operator (bool peek)
 	}
 
 	// Two-char operators
-	oper += PeekNext (peek ? 1 : 0);
-	equalsnext = PeekNext (peek ? 2 : 1) == ("=");
+	oper += m_lx->peek_next_string ( (peek ? 1 : 0);
+	equalsnext = m_lx->peek_next_string (peek ? 2 : 1) == ("=");
 
 	o =	(oper == "+=") ? OPER_ASSIGNADD :
 		(oper == "-=") ? OPER_ASSIGNSUB :
@@ -1082,7 +1081,7 @@ int botscript_parser::parse_operator (bool peek)
 	}
 
 	// Three-char opers
-	oper += PeekNext (peek ? 2 : 1);
+	oper += m_lx->peek_next_string (peek ? 2 : 1);
 	o =	oper == "<<=" ? OPER_ASSIGNLEFTSHIFT :
 		oper == ">>=" ? OPER_ASSIGNRIGHTSHIFT :
 		-1;
@@ -1146,7 +1145,7 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 		if (reqtype != TYPE_INT)
 			error ("strlen returns int but %s is expected\n", GetTypeName (reqtype).c_str());
 
-		b->write (DH_PUSHNUMBER);
+		b->write (dh_push_number);
 		b->write (constant->val.len());
 
 		m_lx->must_get_next (tk_paren_end);
@@ -1181,7 +1180,7 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 		{
 			case TYPE_BOOL:
 			case TYPE_INT:
-				b->write (DH_PUSHNUMBER);
+				b->write (dh_push_number);
 				b->write (atoi (constant->val));
 				break;
 
@@ -1194,10 +1193,10 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 				break;
 		}
 	}
-	else if ((g = FindGlobalVariable (TOKEN)))
+	else if ((g = find_global_variable (TOKEN)))
 	{
 		// Global variable
-		b->write (DH_PUSHGLOBALVAR);
+		b->write (dh_push_global_var);
 		b->write (g->index);
 	}
 	else
@@ -1217,13 +1216,13 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 
 			// All values are written unsigned - thus we need to write the value's
 			// absolute value, followed by an unary minus for negatives.
-			b->write (DH_PUSHNUMBER);
+			b->write (dh_push_number);
 
 			long v = atol (TOKEN);
 			b->write (static_cast<word> (abs (v)));
 
 			if (v < 0)
-				b->write (DH_UNARYMINUS);
+				b->write (dh_unary_minus);
 
 			break;
 		}
@@ -1232,7 +1231,7 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 			// PushToStringTable either returns the string index of the
 			// string if it finds it in the table, or writes it to the
 			// table and returns it index if it doesn't find it there.
-			MustString (true);
+			m_lx->must_be (tk_string);
 			b->write_string (TOKEN);
 			break;
 		}
@@ -1240,7 +1239,7 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 
 	// Negate it now if desired
 	if (negate)
-		b->write (DH_NEGATELOGICAL);
+		b->write (dh_negate_logical);
 
 	return b;
 }
@@ -1260,7 +1259,7 @@ data_buffer* botscript_parser::ParseAssignment (script_variable* var)
 	if (!is_assignment_operator (oper))
 		error ("expected assignment operator");
 
-	if (g_CurMode == MODE_TOPLEVEL) // TODO: lift this restriction
+	if (g_CurMode == MODE_TOPLEVEL)
 		error ("can't alter variables at top level");
 
 	// Parse the right operand
@@ -1273,11 +1272,11 @@ data_buffer* botscript_parser::ParseAssignment (script_variable* var)
 	// a >>= b -> a = a >> b
 	if (oper == OPER_ASSIGNLEFTSHIFT || oper == OPER_ASSIGNRIGHTSHIFT)
 	{
-		retbuf->write (global ? DH_PUSHGLOBALVAR : DH_PUSHLOCALVAR);
+		retbuf->write (global ? dh_push_global_var : dh_push_local_var);
 		retbuf->write (var->index);
 		retbuf->merge (expr);
-		retbuf->write ( (oper == OPER_ASSIGNLEFTSHIFT) ? DH_LSHIFT : DH_RSHIFT);
-		retbuf->write (global ? DH_ASSIGNGLOBALVAR : DH_ASSIGNLOCALVAR);
+		retbuf->write ((oper == OPER_ASSIGNLEFTSHIFT) ? dh_left_shift : dh_right_shift);
+		retbuf->write (global ? dh_assign_global_var : dh_assign_local_var);
 		retbuf->write (var->index);
 	}
 	else
@@ -1299,7 +1298,7 @@ void botscript_parser::push_scope()
 		error ("too deep scope");
 
 	ScopeInfo* info = &SCOPE (0);
-	info->type = SCOPETYPE_UNKNOWN;
+	info->type = e_unknown_scope;
 	info->mark1 = 0;
 	info->mark2 = 0;
 	info->buffer1 = null;
@@ -1319,7 +1318,7 @@ data_buffer* botscript_parser::parse_statement (object_writer* w)
 		error ("invalid use for constant\n");
 
 	// If it's a variable, expect assignment.
-	if (script_variable* var = FindGlobalVariable (TOKEN))
+	if (script_variable* var = find_global_variable (TOKEN))
 		return ParseAssignment (var);
 
 	return null;
@@ -1350,10 +1349,10 @@ void botscript_parser::add_switch_case (object_writer* w, data_buffer* b)
 	info->casebuffers[info->casecursor] = w->SwitchBuffer = new data_buffer;
 }
 
-constant_info* find_constant (string TOKEN)
+constant_info* find_constant (string tok)
 {
 	for (int i = 0; i < g_ConstInfo.size(); i++)
-		if (g_ConstInfo[i].name == TOKEN)
+		if (g_ConstInfo[i].name == tok)
 			return &g_ConstInfo[i];
 
 	return null;

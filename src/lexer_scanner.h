@@ -78,9 +78,9 @@ class lexer_scanner
 			return m_ptr - m_line_break_pos;
 		}
 
-		inline e_token get_e_token() const
+		inline e_token get_token_type() const
 		{
-			return m_e_token;
+			return m_token_type;
 		}
 
 		static string get_token_string (e_token a);
@@ -91,7 +91,7 @@ class lexer_scanner
 			*			m_line_break_pos;
 		string			m_token_text,
 						m_last_token;
-		e_token			m_e_token;
+		e_token			m_token_type;
 		int				m_line;
 
 		bool			check_string (const char* c, int flags = 0);

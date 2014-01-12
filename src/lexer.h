@@ -89,7 +89,13 @@ public:
 	}
 
 	static lexer* get_main_lexer();
-		void skip();
+
+	inline void skip (int a = 1)
+	{
+		m_token_position += a;
+	}
+
+	string peek_next_string (int a);
 
 private:
 	token_list		m_tokens;

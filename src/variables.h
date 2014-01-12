@@ -52,8 +52,7 @@ extern list<script_variable> g_LocalVariables;
 #define ITERATE_SCRIPT_VARS(g) \
 	for (g = g_ScriptVariable; g != null; g = g->next)
 
-script_variable* DeclareGlobalVariable (botscript_parser* r, type_e type, string name);
-deprecated int CountGlobalVars ();
-script_variable* FindGlobalVariable (string name);
+script_variable* declare_global_variable (type_e type, string name);
+script_variable* find_global_variable (string name);
 
 #endif // BOTC_VARIABLES_H

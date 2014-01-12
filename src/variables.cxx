@@ -45,7 +45,7 @@ list<script_variable> g_LocalVariables;
 // ============================================================================
 // Tries to declare a new global-scope variable. Returns pointer
 // to new global variable, null if declaration failed.
-script_variable* DeclareGlobalVariable (botscript_parser* r, type_e type, string name)
+script_variable* declare_global_variable (type_e type, string name)
 {
 	// Unfortunately the VM does not support string variables so yeah.
 	if (type == TYPE_STRING)
@@ -58,7 +58,7 @@ script_variable* DeclareGlobalVariable (botscript_parser* r, type_e type, string
 	if (IsKeyword (name))
 		error ("name of variable-to-be `%s` is a keyword", name.chars());
 
-	if (g_GlobalVariables.size() >= MAX_SCRIPT_VARIABLES)
+	if (g_GlobalVariables.size() >= g_max_global_vars)
 		error ("too many global variables!");
 
 	for (int i = 0; i < g_GlobalVariables.size(); i++)
@@ -78,7 +78,7 @@ script_variable* DeclareGlobalVariable (botscript_parser* r, type_e type, string
 
 // ============================================================================
 // Find a global variable by name
-script_variable* FindGlobalVariable (string name)
+script_variable* find_global_variable (string name)
 {
 	for (int i = 0; i < g_GlobalVariables.size(); i++)
 	{
@@ -89,11 +89,4 @@ script_variable* FindGlobalVariable (string name)
 	}
 
 	return null;
-}
-
-// ============================================================================
-// Count all declared global variables
-int CountGlobalVars ()
-{
-	return g_GlobalVariables.size();
 }
