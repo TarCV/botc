@@ -54,6 +54,8 @@ class script_error : public std::exception
 #ifndef IN_IDE_PARSER
 # define error(...) throw script_error (format (__VA_ARGS__))
 #else
+// kdevelop stuff
+using FILE = void; // blargh
 void error (void, ...);
 #endif
 

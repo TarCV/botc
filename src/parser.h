@@ -88,21 +88,21 @@ struct operator_info
 // Mark types
 enum marktype_e
 {
-	MARKTYPE_LABEL,
-	MARKTYPE_IF,
-	MARKTYPE_INTERNAL, // internal structures
+	e_label_mark,
+	e_if_mark,
+	e_internal_mark, // internal structures
 };
 
 // Block types
 enum scopetype_e
 {
-	SCOPETYPE_UNKNOWN,
-	SCOPETYPE_IF,
-	SCOPETYPE_WHILE,
-	SCOPETYPE_FOR,
-	SCOPETYPE_DO,
-	SCOPETYPE_SWITCH,
-	SCOPETYPE_ELSE,
+	e_unknown_scope,
+	e_if_scope,
+	e_while_scope,
+	e_for_scope,
+	e_do_scope,
+	e_switch_scope,
+	e_else_scope,
 };
 
 // ============================================================================
