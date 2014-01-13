@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -31,8 +31,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "main.h"
-#include "bots.h"
 #include "stringtable.h"
 
 static string_list g_string_table;
@@ -50,9 +48,9 @@ const string_list& get_string_table()
 int get_string_table_index (const string& a)
 {
 	// Must not be too long.
-	if (strlen (a) >= MAX_STRING_LENGTH)
-		error ("string `%s` too long (%d characters, max is %d)\n",
-			   a.c_str(), a.length(), MAX_STRING_LENGTH);
+	if (a.length() >= g_max_string_length)
+		error ("string `%1` too long (%2 characters, max is %3)\n",
+			   a, a.length(), g_max_string_length);
 
 	// Find a free slot in the table.
 	int idx;
@@ -65,7 +63,7 @@ int get_string_table_index (const string& a)
 	}
 
 	// Check if the table is already full
-	if (g_string_table.size() == MAX_LIST_STRINGS - 1)
+	if (g_string_table.size() == g_max_stringlist_size - 1)
 		error ("too many strings!\n");
 
 	// Now, dump the string into the slot

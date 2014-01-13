@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -29,15 +29,13 @@
 */
 
 #include "main.h"
-#include "str.h"
 #include "object_writer.h"
 #include "data_buffer.h"
 #include "stringtable.h"
-#include "bots.h"
 
 extern bool g_GotMainLoop;
 
-object_writer::ObjectWriter (string path)
+object_writer::object_writer()
 {
 	MainBuffer = new data_buffer;
 	MainLoopBuffer = new data_buffer;
@@ -65,8 +63,8 @@ void object_writer::write_member_buffers()
 	// If there was no mainloop defined, write a dummy one now.
 	if (!g_GotMainLoop)
 	{
-		MainLoopBuffer->write (DH_MAINLOOP);
-		MainLoopBuffer->write (DH_ENDMAINLOOP);
+		MainLoopBuffer->write (dh_main_loop);
+		MainLoopBuffer->write (dh_end_main_loop);
 	}
 
 	// Write the onenter and mainloop buffers, IN THAT ORDER
@@ -92,12 +90,12 @@ void object_writer::write_string_table()
 		return;
 
 	// Write header
-	write (DH_STRINGLIST);
+	write (dh_string_list);
 	write (stringcount);
 
 	// Write all strings
 	for (int a = 0; a < stringcount; a++)
-		write_string (get_string_table() [a]);
+		write_string (get_string_table()[a]);
 }
 
 // Write main buffer to file
@@ -120,7 +118,7 @@ void object_writer::write_to_file (string filepath)
 		generic_union<word> uni;
 		uni.as_word = static_cast<word> (MainBuffer->marks[ref->num]->pos);
 
-		for (int v = 0; v < sizeof (word); v++)
+		for (int v = 0; v < (int) sizeof (word); v++)
 			memset (MainBuffer->buffer + ref->pos + v, uni.as_bytes[v], 1);
 
 		/*

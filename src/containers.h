@@ -39,13 +39,13 @@
 template<class T> class list
 {
 	public:
-		typedef typename ::std::deque<T> list_type;
-		typedef typename list_type::iterator it;
-		typedef typename list_type::const_iterator c_it;
-		typedef typename list_type::reverse_iterator r_it;
-		typedef typename list_type::const_reverse_iterator cr_it;
-		typedef T element_type;
-		typedef list<T> self_type;
+		using list_type					= typename ::std::deque<T>;
+		using iterator					= typename list_type::iterator;
+		using const_iterator			= typename list_type::const_iterator;
+		using reverse_iterator			= typename list_type::reverse_iterator;
+		using const_reverse_iterator	= typename list_type::const_reverse_iterator;
+		using element_type				= T;
+		using self_type					= list<T>;
 
 		// =====================================================================
 		//
@@ -65,56 +65,56 @@ template<class T> class list
 
 		// =====================================================================
 		//
-		it begin()
+		iterator begin()
 		{
 			return m_data.begin();
 		}
 
 		// =====================================================================
 		//
-		c_it begin() const
+		const_iterator begin() const
 		{
 			return m_data.cbegin();
 		}
 
 		// =====================================================================
 		//
-		it end()
+		iterator end()
 		{
 			return m_data.end();
 		}
 
 		// =====================================================================
 		//
-		c_it end() const
+		const_iterator end() const
 		{
 			return m_data.cend();
 		}
 
 		// =====================================================================
 		//
-		r_it rbegin()
+		reverse_iterator rbegin()
 		{
 			return m_data.rbegin();
 		}
 
 		// =====================================================================
 		//
-		cr_it crbegin() const
+		const_reverse_iterator crbegin() const
 		{
 			return m_data.crbegin();
 		}
 
 		// =====================================================================
 		//
-		r_it rend()
+		reverse_iterator rend()
 		{
 			return m_data.rend();
 		}
 
 		// =====================================================================
 		//
-		cr_it crend() const
+		const_reverse_iterator crend() const
 		{
 			return m_data.crend();
 		}
@@ -217,7 +217,7 @@ template<class T> class list
 			// Remove duplicate entries. For this to be effective, the vector must be
 			// sorted first.
 			sort();
-			it pos = std::unique (begin(), end());
+			iterator pos = std::unique (begin(), end());
 			resize (std::distance (begin(), pos));
 		}
 
@@ -260,11 +260,11 @@ template<class T> class list
 
 		// =====================================================================
 		//
-		int find (const element_type& needle)
+		int find (const element_type& needle) const
 		{
 			int i = 0;
 
-			for (const element_type & hay : *this)
+			for (const element_type& hay : *this)
 			{
 				if (hay == needle)
 					return i;

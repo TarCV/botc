@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -57,8 +57,10 @@ void lexer::process_file (string file_name)
 
 	lexer_scanner sc (fp);
 
+	devf ("Processing tokens...\n");
 	while (sc.get_next_token())
 	{
+		devf (".\n");
 		// Preprocessor commands:
 		if (sc.get_token_type() == tk_hash)
 		{
@@ -93,7 +95,7 @@ void lexer::process_file (string file_name)
 		}
 	}
 
-	devf ("Lexer: File %1 processed.\n", file_name);
+	devf ("Lexer: File %1 processed (%2 tokens).\n", file_name, m_tokens.size());
 	m_token_position = m_tokens.begin() - 1;
 }
 
@@ -104,6 +106,12 @@ bool lexer::get_next (e_token req)
 	iterator pos = m_token_position;
 	devf ("Lexer: Requested next token, requirement: %1\n", describe_token_type (req));
 
+	if (m_tokens.is_empty())
+	{
+		devf ("Lexer: no tokens! Failed.\n");
+		return false;
+	}
+
 	if (is_at_end())
 	{
 		devf ("Lexer: at end of tokens. Failed.\n");
@@ -112,7 +120,7 @@ bool lexer::get_next (e_token req)
 
 	m_token_position++;
 
-	if (req != tk_any && get_token() != req)
+	if (req != tk_any && get_token_type() != req)
 	{
 		devf ("Lexer: Token %1 does not meet the requirement\n", describe_token (get_token()));
 		m_token_position = pos;
@@ -156,7 +164,7 @@ void lexer::must_get_any_of (const list<e_token>& toks)
 		error ("unexpected EOF");
 
 	for (e_token tok : toks)
-		if (get_token() == tok)
+		if (get_token_type() == tok)
 			return;
 
 	string toknames;
@@ -181,7 +189,7 @@ int lexer::get_one_symbol (const string_list& syms)
 	if (!get_next())
 		error ("unexpected EOF");
 
-	if (get_token() == tk_symbol)
+	if (get_token_type() == tk_symbol)
 	{
 		for (int i = 0; i < syms.size(); ++i)
 		{
@@ -198,7 +206,8 @@ int lexer::get_one_symbol (const string_list& syms)
 //
 void lexer::must_be (e_token tok)
 {
-	if (get_token() != tok)
+	print ("pos: %1", m_token_position - m_tokens.begin());
+	if (get_token_type() != tok)
 		error ("expected %1, got %2", describe_token_type (tok),
 			describe_token (get_token()));
 }
@@ -263,4 +272,5 @@ string lexer::peek_next_string (int a)
 	m_token_position += a;
 	string result = get_token()->text;
 	m_token_position = oldpos;
+	return result;
 }

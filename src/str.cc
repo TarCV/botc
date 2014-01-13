@@ -147,13 +147,13 @@ void string::replace (const char* a, const char* b)
 //
 int string::count (const char needle) const
 {
-    int numNeedles = 0;
+    int needles = 0;
 
     for (const char & c : m_string)
         if (c == needle)
-            numNeedles++;
+            needles++;
 
-    return numNeedles;
+    return needles;
 }
 
 // =============================================================================
@@ -174,12 +174,12 @@ string string::substring (long a, long b) const
         b = c;
     }
 
-    char* newString = new char[b - a + 1];
-    strncpy (newString, m_string.c_str() + a, b - a);
-    newString[b - a] = '\0';
+    char* newstr = new char[b - a + 1];
+    strncpy (newstr, m_string.c_str() + a, b - a);
+    newstr[b - a] = '\0';
 
-    string other (newString);
-    delete[] newString;
+    string other (newstr);
+    delete[] newstr;
     return other;
 }
 
@@ -299,9 +299,9 @@ string string::operator+ (const string data) const
 //
 string string::operator+ (const char* data) const
 {
-    string newString = *this;
-    newString += data;
-    return newString;
+    string newstr = *this;
+    newstr += data;
+    return newstr;
 }
 
 // =============================================================================
@@ -461,4 +461,22 @@ bool string::mask (const string& pattern) const
     }
 
     return true;
+}
+
+// =============================================================================
+//
+string string::from_number (int a)
+{
+	char buf[32];
+	::sprintf (buf, "%d", a);
+	return string (buf);
+}
+
+// =============================================================================
+//
+string string::from_number (long a)
+{
+	char buf[32];
+	::sprintf (buf, "%ld", a);
+	return string (buf);
 }

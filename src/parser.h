@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -81,7 +81,7 @@ enum operator_e
 struct operator_info
 {
 	operator_e		opercode;
-	DATAHEADERS_e	dataheader;
+	e_data_header	dataheader;
 	e_token			token;
 };
 
@@ -165,7 +165,7 @@ class botscript_parser
 		botscript_parser();
 		~botscript_parser();
 		void parse_botscript (string file_name, object_writer* w);
-		data_buffer* ParseCommand (CommandDef* comm);
+		data_buffer* ParseCommand (command_info* comm);
 		data_buffer* parse_expression (type_e reqtype);
 		data_buffer* ParseAssignment (script_variable* var);
 		int parse_operator (bool peek = false);
@@ -181,9 +181,30 @@ class botscript_parser
 		string describe_position() const;
 
 	private:
-		lexer*	m_lx;
+		lexer*			m_lx;
+		object_writer*	m_writer;
+		void parse_state_block();
+		void parse_event_block();
+		void parse_mainloop();
+		void parse_on_enter_exit();
+		void parse_variable_declaration();
+		void parse_goto();
+		void parse_if();
+		void parse_else();
+		void parse_while_block();
+		void parse_for_block();
+		void parse_do_block();
+		void parse_switch_block();
+		void parse_switch_case();
+		void parse_switch_default();
+		void parse_break();
+		void parse_continue();
+		void parse_continue();
+		void parse_block_end();
+		void parse_const();
+		void parse_label();
 };
 
-constant_info* find_constant_by_name (string token);
+constant_info* find_constant (const string& tok);
 
 #endif // BOTC_PARSER_H

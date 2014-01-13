@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,8 @@
 #define BOTC_STRINGTABLE_H
 
 #include "main.h"
-#include "bots.h"
 
-int get_string_table_index(const string& a);
+int get_string_table_index (const string& a);
 const string_list& get_string_table();
 int num_strings_in_table();
 

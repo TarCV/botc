@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,9 @@ class format_arg
 {
 	public:
 		format_arg (const string& a) : m_string (a) {}
-		format_arg (int a) : m_string (a) {}
-		format_arg (long a) : m_string (a) {}
+		format_arg (char a) : m_string (a) {}
+		format_arg (int a) : m_string (string::from_number (a)) {}
+		format_arg (long a) : m_string (string::from_number (a)) {}
 		format_arg (const char* a) : m_string (a) {}
 
 		format_arg (void* a)
@@ -99,6 +100,20 @@ inline string charnum (char a)
 	return custom_format (a, "%d");
 }
 
+class script_error : public std::exception
+{
+	public:
+		script_error (const string& msg) : m_msg (msg) {}
+
+		inline const char* what() const throw()
+		{
+			return m_msg.c_str();
+		}
+
+	private:
+		string m_msg;
+};
+
 string format_args (const list<format_arg>& args);
 void print_args (FILE* fp, const list<format_arg>& args);
 void do_fatal (const list<format_arg>& args);
@@ -107,10 +122,12 @@ void do_fatal (const list<format_arg>& args);
 # define format(...) format_args({ __VA_ARGS__ })
 # define fprint(A, ...) print_args( A, { __VA_ARGS__ })
 # define print(...) print_args( stdout, { __VA_ARGS__ })
+# define error(...) throw script_error (format (__VA_ARGS__))
 #else
 string format (void, ...);
 void fprint (FILE* fp, ...);
 void print (void, ...);
+void error (void, ...);
 #endif
 
 #ifndef IN_IDE_PARSER

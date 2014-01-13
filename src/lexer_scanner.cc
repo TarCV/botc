@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@
 #include <cstring>
 #include <string>
 #include "lexer_scanner.h"
+#include "lexer.h"
 
 static const string g_token_strings[] =
 {
@@ -93,7 +94,7 @@ static const string g_token_strings[] =
 	"return",
 };
 
-static_assert (countof (g_token_strings) == (int) last_named_token + 1,
+static_assert (countof (g_token_strings) == (int) last_named_token,
 	"Count of g_token_strings is not the same as the amount of named token identifiers.");
 
 // =============================================================================
@@ -130,7 +131,7 @@ bool lexer_scanner::check_string (const char* c, int flags)
 		r = false;
 
 	// Advance the cursor unless we want to just peek
-	if (r && ! (flags & f_check_peek))
+	if (r && !(flags & f_check_peek))
 		m_ptr += strlen (c);
 
 	return r;
@@ -153,6 +154,33 @@ bool lexer_scanner::get_next_token()
 		m_ptr++;
 	}
 
+	// Check for comments
+	if (strncmp (m_ptr, "//", 2) == 0)
+	{
+		m_ptr += 2;
+
+		while (*(++m_ptr) != '\n')
+			;
+
+		return get_next_token();
+	}
+	elif (strncmp (m_ptr, "/*", 2) == 0)
+	{
+		m_ptr += 2;
+
+		while (strncmp (++m_ptr, "*/", 2) != 0)
+		{
+			if (*m_ptr == '\n')
+			{
+				m_line++;
+				m_line_break_pos = m_ptr;
+			}
+		}
+
+		m_ptr += 2; // skip the */
+		return get_next_token();
+	}
+
 	if (*m_ptr == '\0')
 		return false;
 
@@ -162,7 +190,7 @@ bool lexer_scanner::get_next_token()
 		if (check_string (g_token_strings[i], f_check_word))
 		{
 			m_token_text = g_token_strings[i];
-			m_e_token = (e_token) i;
+			m_token_type = (e_token) i;
 			return true;
 		}
 	}
@@ -196,19 +224,19 @@ bool lexer_scanner::get_next_token()
 			m_token_text += *m_ptr++;
 		}
 
-		m_e_token = tk_string;
+		m_token_type = tk_string;
 		m_ptr++; // skip the final quote
 		return true;
 	}
 
-	m_e_token = tk_symbol;
+	m_token_type = tk_symbol;
 
 	if (isdigit (*m_ptr))
 	{
 		while (isdigit (*m_ptr))
 			m_token_text += *m_ptr++;
 
-		m_e_token = tk_number;
+		m_token_type = tk_number;
 		return true;
 	}
 
@@ -239,11 +267,14 @@ bool lexer_scanner::get_next_token()
 		return true;
 	}
 
+	error ("unknown character \"%1\"", *m_ptr);
 	return false;
 }
 
+// =============================================================================
+//
 string lexer_scanner::get_token_string (e_token a)
 {
-	assert ((int) a <= (int) last_named_token);
+	assert ((int) a <= last_named_token);
 	return g_token_strings[a];
 }
