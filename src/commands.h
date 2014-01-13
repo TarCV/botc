@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -31,31 +31,29 @@
 #ifndef BOTC_COMMANDS_H
 #define BOTC_COMMANDS_H
 
-#define MAX_MAXARGS 8
-#define MAX_ARGNAMELEN 16
-
 #include "main.h"
 #include "str.h"
 
-#define ITERATE_COMMANDS(comm) \
-	for (comm = g_CommDef; comm->next != null; comm = comm->next)
-
-struct CommandDef {
-	string name;
-	int number;
-	int numargs;
-	int maxargs;
-	type_e returnvalue;
-	type_e argtypes[MAX_MAXARGS];
-	char argnames[MAX_MAXARGS][MAX_ARGNAMELEN];
-	int defvals[MAX_MAXARGS];
-	CommandDef* next;
+struct command_argument
+{
+	type_e					type;
+	string					name;
+	int						defvalue;
 };
 
-void ReadCommands ();
-CommandDef* FindCommand (string a);
-string GetCommandPrototype (CommandDef* comm);
+struct command_info
+{
+	string					name;
+	int						number;
+	int						numargs;
+	int						maxargs;
+	type_e					returnvalue;
+	list<command_argument>	args;
+};
 
-extern CommandDef* g_CommDef;
+void						init_commands ();
+command_info*				find_command_by_name (string a);
+string						get_command_signature (command_info* comm);
+const list<command_info*>	get_commands();
 
 #endif // BOTC_COMMANDS_H

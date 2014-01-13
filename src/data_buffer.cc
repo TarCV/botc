@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -67,7 +67,7 @@ void data_buffer::merge (data_buffer* other)
 		{
 			// Same for references
 			// TODO: add a g_NextRef system like here, akin to marks!
-			int r = AddMarkReference (other->refs[u]->num, false);
+			int r = add_reference (other->refs[u]->num, false);
 			refs[r]->pos = other->refs[u]->pos + oldsize;
 		}
 	}
@@ -109,7 +109,7 @@ int data_buffer::add_mark (string name)
 
 // ============================================================================
 //
-int data_buffer::AddMarkReference (int marknum, bool placeholder)
+int data_buffer::add_reference (int marknum, bool placeholder)
 {
 	int u;
 
@@ -117,6 +117,7 @@ int data_buffer::AddMarkReference (int marknum, bool placeholder)
 		if (!refs[u])
 			break;
 
+	// TODO: get rid of this
 	if (u == MAX_MARKS)
 		error ("mark reference quota exceeded, all goto-statements, if-structs and loops add refs\n");
 
@@ -127,7 +128,7 @@ int data_buffer::AddMarkReference (int marknum, bool placeholder)
 
 	// Write a dummy placeholder for the reference
 	if (placeholder)
-		write (1234);
+		write (0xBEEFCAFE);
 
 	return u;
 }
@@ -205,18 +206,18 @@ void data_buffer::write_float (string floatstring)
 	// TODO: Casting float to word causes the decimal to be lost.
 	// Find a way to store the number without such loss.
 	float val = atof (floatstring);
-	write (DH_PUSHNUMBER);
-	write (static_cast<word> ((val > 0) ? val : -val));
+	write (dh_push_number);
+	write (static_cast<word> (abs (val)));
 
 	if (val < 0)
-		write (DH_UNARYMINUS);
+		write (dh_unary_minus);
 }
 
 // ============================================================================
 //
 void data_buffer::write_string (string a)
 {
-	write (DH_PUSHSTRINGINDEX);
+	write (dh_push_string_index);
 	write (get_string_table_index (a));
 }
 

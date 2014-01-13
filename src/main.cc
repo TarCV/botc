@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -35,11 +35,10 @@
 #include "commands.h"
 #include "stringtable.h"
 #include "variables.h"
-#include "containers.h"
 #include "data_buffer.h"
-#include "bots.h"
 #include "object_writer.h"
 #include "parser.h"
+#include "lexer.h"
 
 // List of keywords
 const string_list g_Keywords =
@@ -78,113 +77,129 @@ int g_NextMark = 0;
 
 int main (int argc, char** argv)
 {
-	// Intepret command-line parameters:
-	// -l: list commands
-	// I guess there should be a better way to do this.
-	if (argc == 2 && !strcmp (argv[1], "-l"))
+	try
 	{
-		ReadCommands();
-		printf ("Begin list of commands:\n");
-		printf ("------------------------------------------------------\n");
-
-		CommandDef* comm;
-		ITERATE_COMMANDS (comm)
-			print ("%1\n", GetCommandPrototype (comm));
-
-		printf ("------------------------------------------------------\n");
-		printf ("End of command list\n");
-		exit (0);
-	}
-
-	// Print header
-	string header;
-	string headerline;
-	header = format ("%1 version %2.%3", APPNAME, VERSION_MAJOR, VERSION_MINOR);
-
-	for (int i = 0; i < (header.len() / 2) - 1; ++i)
-		headerline += "-=";
-
-	headerline += '-';
-	print ("%1\n%2\n", header, headerline);
-
-	if (argc < 2)
-	{
-		fprintf (stderr, "usage: %s <infile> [outfile] # compiles botscript\n", argv[0]);
-		fprintf (stderr, "       %s -l                 # lists commands\n", argv[0]);
-		exit (1);
-	}
-
-	string outfile;
-
-	if (argc < 3)
-		outfile = ObjectFileName (argv[1]);
-	else
-		outfile = argv[2];
-
-	// If we'd end up writing into an existing file,
-	// ask the user if we want to overwrite it
-	if (fexists (outfile))
-	{
-		// Additional warning if the paths are the same
-		string warning;
-#ifdef FILE_CASEINSENSITIVE
-
-		if (+outfile == +string (argv[1]))
-#else
-		if (outfile == argv[1])
-#endif
+		// Intepret command-line parameters:
+		// -l: list commands
+		// I guess there should be a better way to do this.
+		if (argc == 2 && !strcmp (argv[1], "-l"))
 		{
-			warning = "\nWARNING: Output file is the same as the input file. ";
-			warning += "Answering yes here will destroy the source!\n";
-			warning += "Continue nevertheless?";
+			command_info* comm;
+			init_commands();
+			printf ("Begin list of commands:\n");
+			printf ("------------------------------------------------------\n");
+
+			for (command_info* comm : get_commands())
+				print ("%1\n", get_command_signature (comm));
+
+			printf ("------------------------------------------------------\n");
+			printf ("End of command list\n");
+			exit (0);
 		}
 
-		printf ("output file `%s` already exists! overwrite?%s (y/n) ", outfile.chars(), warning.chars());
+		// Print header
+		string header;
+		string headerline;
+		header = format ("%1 version %2.%3", APPNAME, VERSION_MAJOR, VERSION_MINOR);
 
-		char ans;
-		fgets (&ans, 1, stdin);
+		for (int i = 0; i < (header.len() / 2) - 1; ++i)
+			headerline += "-=";
 
-		if (ans != 'y')
+		headerline += '-';
+		print ("%1\n%2\n", header, headerline);
+
+		if (argc < 2)
 		{
-			printf ("abort\n");
+			fprintf (stderr, "usage: %s <infile> [outfile] # compiles botscript\n", argv[0]);
+			fprintf (stderr, "       %s -l                 # lists commands\n", argv[0]);
 			exit (1);
 		}
+
+		string outfile;
+
+		if (argc < 3)
+			outfile = ObjectFileName (argv[1]);
+		else
+			outfile = argv[2];
+
+		// If we'd end up writing into an existing file,
+		// ask the user if we want to overwrite it
+		if (fexists (outfile))
+		{
+			// Additional warning if the paths are the same
+			string warning;
+#ifdef FILE_CASEINSENSITIVE
+
+			if (+outfile == +string (argv[1]))
+#else
+			if (outfile == argv[1])
+#endif
+			{
+				warning = "\nWARNING: Output file is the same as the input file. ";
+				warning += "Answering yes here will destroy the source!\n";
+				warning += "Continue nevertheless?";
+			}
+
+			printf ("output file `%s` already exists! overwrite?%s (y/n) ", outfile.chars(), warning.chars());
+
+			char ans;
+			fgets (&ans, 1, stdin);
+
+			if (ans != 'y')
+			{
+				printf ("abort\n");
+				exit (1);
+			}
+		}
+
+		// Read definitions
+		printf ("Reading definitions...\n");
+		init_events();
+		init_commands();
+
+		// Prepare reader and writer
+		botscript_parser* r = new botscript_parser;
+		object_writer* w = new object_writer;
+
+		// We're set, begin parsing :)
+		printf ("Parsing script...\n");
+		r->parse_botscript (argv[1], w);
+		printf ("Script parsed successfully.\n");
+
+		// Parse done, print statistics and write to file
+		int globalcount = g_GlobalVariables.size();
+		int stringcount = num_strings_in_table();
+		int NumMarks = w->MainBuffer->count_marks();
+		int NumRefs = w->MainBuffer->count_references();
+		print ("%1 / %2 strings written\n", stringcount, g_max_stringlist_size);
+		print ("%1 / %2 global variables\n", globalcount, g_max_global_vars);
+		print ("%1 / %2 bytecode marks\n", NumMarks, MAX_MARKS); // TODO: nuke
+		print ("%1 / %2 bytecode references\n", NumRefs, MAX_MARKS); // TODO: nuke
+		print ("%1 / %2 events\n", g_NumEvents, g_max_events);
+		print ("%1 state%s1\n", g_NumStates);
+
+		w->write_to_file (outfile);
+
+		// Clear out the junk
+		delete r;
+		delete w;
+
+		// Done!
+		exit (0);
 	}
+	catch (script_error& e)
+	{
+		lexer* lx = lexer::get_main_lexer();
+		string fileinfo;
 
-	// Read definitions
-	printf ("Reading definitions...\n");
-	ReadEvents();
-	ReadCommands();
+		if (lx != null && lx->has_valid_token())
+		{
+			lexer::token* tk = lx->get_token();
+			fileinfo = format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
+		}
 
-	// Prepare reader and writer
-	botscript_parser* r = new botscript_parser;
-	object_writer* w = new object_writer;
-
-	// We're set, begin parsing :)
-	printf ("Parsing script...\n");
-	r->parse_botscript (argv[1], w);
-	printf ("Script parsed successfully.\n");
-
-	// Parse done, print statistics and write to file
-	int globalcount = g_GlobalVariables.size();
-	int stringcount = num_strings_in_table();
-	int NumMarks = w->MainBuffer->count_marks();
-	int NumRefs = w->MainBuffer->count_references();
-	print ("%1 / %2 strings written\n", stringcount, MAX_LIST_STRINGS);
-	print ("%1 / %2 global variables\n", globalcount, MAX_SCRIPT_VARIABLES);
-	print ("%1 / %2 bytecode marks\n", NumMarks, MAX_MARKS); // TODO: nuke
-	print ("%1 / %2 bytecode references\n", NumRefs, MAX_MARKS); // TODO: nuke
-	print ("%1 / %2 events\n", g_NumEvents, MAX_NUM_EVENTS);
-	print ("%1 state%s1\n", g_NumStates);
-
-	w->write_to_file (outfile);
-
-	// Clear out the junk
-	delete r;
-	delete w;
-
-	// Done!
-	exit (0);
+		fprint (stderr, "%1error: %2\n", fileinfo, e.what());
+	}
 }
 
 // ============================================================================
@@ -201,18 +216,6 @@ bool fexists (string path)
 	}
 
 	return false;
-}
-
-// ============================================================================
-// Generic error
-void error (const char* text, ...)
-{
-	va_list va;
-	va_start (va, text);
-	fprintf (stderr, "error: ");
-	vfprintf (stderr, text, va);
-	va_end (va);
-	exit (1);
 }
 
 // ============================================================================

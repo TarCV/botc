@@ -51,7 +51,7 @@ class string
 
 		string() {}
 
-		string (char a)
+		explicit string (char a)
 		{
 			m_string = &a;
 		}
@@ -94,6 +94,9 @@ class string
 		string             operator+ (const char* data) const;
 		string&            operator+= (const string data);
 		string&            operator+= (const char* data);
+
+		static string		from_number (int a);
+		static string		from_number (long a);
 
 		inline bool is_empty() const
 		{

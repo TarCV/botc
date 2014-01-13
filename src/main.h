@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -39,10 +39,10 @@
 #include <cstdarg>
 #include <cstdint>
 #include "types.h"
-#include "bots.h"
-#include "str.h"
 #include "containers.h"
+#include "str.h"
 #include "format.h"
+#include "botstuff.h"
 #include "tokens.h"
 
 // Application name and version
@@ -52,11 +52,12 @@
 
 // On Windows, files are case-insensitive
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
-	#define FILE_CASEINSENSITIVE
+#define FILE_CASEINSENSITIVE
 #endif
 
 // Parser mode: where is the parser at?
-enum parsermode_e {
+enum parsermode_e
+{
 	MODE_TOPLEVEL,	// at top level
 	MODE_EVENT,		// inside event definition
 	MODE_MAINLOOP,	// inside mainloop
@@ -64,7 +65,8 @@ enum parsermode_e {
 	MODE_ONEXIT,	// inside onexit
 };
 
-enum type_e {
+enum type_e
+{
 	TYPE_UNKNOWN = 0,
 	TYPE_VOID,
 	TYPE_INT,
@@ -99,52 +101,38 @@ extern int g_NumEvents;
 extern parsermode_e g_CurMode;
 extern string g_CurState;
 
-#define neurosphere if (g_Neurosphere)
-#define twice for (int repeat_token = 0; repeat_token < 2; repeat_token++)
-
 #ifndef __GNUC__
 #define __attribute__(X)
 #endif
 #define deprecated __attribute__ ((deprecated))
-
-// Power function
-template<class T> T pow (T a, int b) {
-	if (!b)
-		return 1;
-	
-	T r = a;
-	while (b > 1) {
-		b--;
-		r = r * a;
-	}
-	
-	return r;
-}
 
 // Byte datatype
 typedef int32_t word;
 typedef unsigned char byte;
 
 // Keywords
-extern const char** g_Keywords;
+extern const string_list g_Keywords;
 
 bool IsKeyword (string s);
 int NumKeywords ();
 
 // Script mark and reference
-struct ScriptMark {
+struct ScriptMark
+{
 	string name;
 	size_t pos;
 };
 
-struct ScriptMarkReference {
+struct ScriptMarkReference
+{
 	int num;
 	size_t pos;
 };
 
 // ====================================================================
 // Generic union
-template <class T> union generic_union {
+template <class T> union generic_union
+{
 	T as_t;
 	byte as_bytes[sizeof (T)];
 	char as_chars[sizeof (T)];
@@ -156,10 +144,11 @@ template <class T> union generic_union {
 
 // ====================================================================
 // Finds a byte in the given value.
-template <class T> inline unsigned char GetByteIndex (T a, int b) {
-	union_t<T> uni;
-	uni.val = a;
-	return uni.b[b];
+template <class T> inline unsigned char GetByteIndex (T a, int b)
+{
+	generic_union<T> uni;
+	uni.as_t = a;
+	return uni.as_bytes[b];
 }
 
 #endif // BOTC_COMMON_H

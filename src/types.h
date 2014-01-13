@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2012-2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -33,30 +33,12 @@
 
 #include <cstdlib>
 #include <stdexcept>
-#include "str.h"
 
 static const std::nullptr_t null = nullptr;
 
-class script_error : public std::exception
+template<class T> inline T abs (T a)
 {
-	public:
-		script_error (const string& msg) : m_msg (msg) {}
-
-		inline const char* what() const throw()
-		{
-			return m_msg.c_str();
-		}
-
-	private:
-		string m_msg;
-};
-
-#ifndef IN_IDE_PARSER
-# define error(...) throw script_error (format (__VA_ARGS__))
-#else
-// kdevelop stuff
-using FILE = void; // blargh
-void error (void, ...);
-#endif
+	return (a >= 0) ? a : -a;
+}
 
 #endif // BOTC_TYPES_H

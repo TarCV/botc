@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2013-2014, Santeri Piippo
+	Copyright (c) 2014, Santeri Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -39,11 +39,11 @@ class lexer
 types:
 	struct token
 	{
-		e_token	type;
+		e_token		type;
 		string		text;
 		string		file;
-		int		line;
-		int		column;
+		int			line;
+		int			column;
 	};
 
 	using token_list = list<token>;
@@ -55,16 +55,21 @@ public:
 
 	void process_file (string file_name);
 	bool get_next (e_token req = tk_any);
-	void must_get_next (e_token tok);
+	void must_get_next (e_token tok = tk_any);
 	void must_get_any_of (const list<e_token>& toks);
 	int get_one_symbol (const string_list& syms);
 	void must_be (e_token tok);
 	bool peek_next (token* tk = null);
 
+	inline bool has_valid_token() const
+	{
+		return (is_at_end() == false && m_token_position != m_tokens.begin());
+	}
+
 	inline token* get_token() const
 	{
-		assert (is_at_end() == false);
-		return & (*m_token_position);
+		assert (has_valid_token() == true);
+		return &(*m_token_position);
 	}
 
 	inline bool is_at_end() const
@@ -72,7 +77,7 @@ public:
 		return m_token_position == m_tokens.end();
 	}
 
-	inline token get_token_type() const
+	inline e_token get_token_type() const
 	{
 		return get_token()->type;
 	}
@@ -95,7 +100,7 @@ public:
 		m_token_position += a;
 	}
 
-	string peek_next_string (int a);
+	string peek_next_string (int a = 1);
 
 private:
 	token_list		m_tokens;
