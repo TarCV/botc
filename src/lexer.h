@@ -28,8 +28,8 @@
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef BOTC_LEXER_H
+#define BOTC_LEXER_H
 
 #include "main.h"
 #include "lexer_scanner.h"
@@ -112,4 +112,4 @@ private:
 	static string describe_token_private (e_token tok_type, token* tok);
 };
 
-#endif // LEXER_H
+#endif // BOTC_LEXER_H

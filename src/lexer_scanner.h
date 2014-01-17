@@ -28,8 +28,8 @@
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef IRIS_SCANNER_H
-#define IRIS_SCANNER_H
+#ifndef BOTC_LEXER_SCANNER_H
+#define BOTC_LEXER_SCANNER_H
 
 #include <climits>
 #include "main.h"
@@ -89,9 +89,9 @@ class lexer_scanner
 		static string get_token_string (e_token a);
 
 	private:
-		char*			m_data,
-			*			m_ptr,
-			*			m_line_break_pos;
+		char*			m_data;
+		char*			m_ptr;
+		char*			m_line_break_pos;
 		string			m_token_text,
 						m_last_token;
 		e_token			m_token_type;
@@ -112,5 +112,4 @@ class lexer_scanner
 		void			skip (int chars);
 };
 
-#endif // IRIS_SCANNER_H
-
+#endif // BOTC_LEXER_SCANNER_H
