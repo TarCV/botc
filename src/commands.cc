@@ -157,6 +157,10 @@ string get_command_signature (command_info* comm)
 	text += GetTypeName (comm->returnvalue);
 	text += ' ';
 	text += comm->name;
+
+	if (comm->maxargs != 0)
+		text += ' ';
+
 	text += '(';
 
 	bool hasoptionals = false;
@@ -178,7 +182,7 @@ string get_command_signature (command_info* comm)
 
 		if (i >= comm->numargs)
 		{
-			text += '=';
+			text += " = ";
 
 			bool is_string = comm->args[i].type == TYPE_STRING;
 

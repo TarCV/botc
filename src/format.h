@@ -117,12 +117,13 @@ class script_error : public std::exception
 string format_args (const list<format_arg>& args);
 void print_args (FILE* fp, const list<format_arg>& args);
 void do_fatal (const list<format_arg>& args);
+void do_error (string msg);
 
 #ifndef IN_IDE_PARSER
 # define format(...) format_args({ __VA_ARGS__ })
 # define fprint(A, ...) print_args( A, { __VA_ARGS__ })
 # define print(...) print_args( stdout, { __VA_ARGS__ })
-# define error(...) throw script_error (format (__VA_ARGS__))
+# define error(...) do_error (format (__VA_ARGS__))
 #else
 string format (void, ...);
 void fprint (FILE* fp, ...);

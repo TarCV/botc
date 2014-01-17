@@ -52,8 +52,11 @@ class lexer_scanner
 		};
 
 	public:
-		static inline bool is_symbol_char (char c)
+		static inline bool is_symbol_char (char c, bool allow_numbers)
 		{
+			if (allow_numbers && (c >= '0' && c <= '9'))
+				return true;
+
 			return (c >= 'a' && c <= 'z') ||
 				   (c >= 'A' && c <= 'Z') ||
 				   (c == '_');
@@ -101,6 +104,12 @@ class lexer_scanner
 
 		// Sets the current position based on given data.
 		void			set_position (const position_info& a);
+
+		// Skips one character
+		void			skip();
+
+		// Skips many characters
+		void			skip (int chars);
 };
 
 #endif // IRIS_SCANNER_H

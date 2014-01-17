@@ -31,6 +31,7 @@
 #include <cstdio>
 #include "main.h"
 #include "format.h"
+#include "lexer.h"
 
 static void draw_pos (const string& fmt, int pos)
 {
@@ -121,4 +122,18 @@ void print_args (FILE* fp, const list<format_arg>& args)
 {
 	string out = format_args (args);
 	fprintf (fp, "%s", out.chars());
+}
+
+void do_error (string msg)
+{
+	lexer* lx = lexer::get_main_lexer();
+	string fileinfo;
+
+	if (lx != null && lx->has_valid_token())
+	{
+		lexer::token* tk = lx->get_token();
+		fileinfo = format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
+	}
+
+	throw script_error (fileinfo + msg);
 }

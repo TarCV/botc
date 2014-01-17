@@ -104,8 +104,9 @@ enum e_token
 	tk_number,				// ----- 55
 	tk_string,				// - 56
 
-	last_named_token = (int) tk_symbol - 1,
-	tk_any = INT_MAX
+	tk_first_named_token	= tk_bool,
+	tk_last_named_token		= (int) tk_symbol - 1,
+	tk_any					= INT_MAX
 };
 
 #endif
