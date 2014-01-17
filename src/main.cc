@@ -188,16 +188,7 @@ int main (int argc, char** argv)
 	}
 	catch (script_error& e)
 	{
-		lexer* lx = lexer::get_main_lexer();
-		string fileinfo;
-
-		if (lx != null && lx->has_valid_token())
-		{
-			lexer::token* tk = lx->get_token();
-			fileinfo = format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
-		}
-
-		fprint (stderr, "%1error: %2\n", fileinfo, e.what());
+		fprint (stderr, "error: %1\n", e.what());
 	}
 }
 

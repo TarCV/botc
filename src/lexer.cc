@@ -38,18 +38,15 @@ lexer::lexer()
 {
 	assert (g_main_lexer == null);
 	g_main_lexer = this;
-	devf ("Lexer initialized\n");
 }
 
 lexer::~lexer()
 {
 	g_main_lexer = null;
-	devf ("Lexer de-initialized\n");
 }
 
 void lexer::process_file (string file_name)
 {
-	devf ("Lexer: processing %1\n", file_name);
 	FILE* fp = fopen (file_name, "r");
 
 	if (fp == null)
@@ -57,10 +54,8 @@ void lexer::process_file (string file_name)
 
 	lexer_scanner sc (fp);
 
-	devf ("Processing tokens...\n");
 	while (sc.get_next_token())
 	{
-		devf (".\n");
 		// Preprocessor commands:
 		if (sc.get_token_type() == tk_hash)
 		{
@@ -68,8 +63,6 @@ void lexer::process_file (string file_name)
 
 			if (sc.get_token_text() == "include")
 			{
-				devf ("Lexer: encountered #include\n");
-
 				must_get_next_from_scanner (sc, tk_string);
 				string file_name = sc.get_token_text();
 
@@ -90,12 +83,9 @@ void lexer::process_file (string file_name)
 			tok.type = sc.get_token_type();
 			tok.text = sc.get_token_text();
 			m_tokens << tok;
-			devf ("Lexer: added %1 (%2)\n", describe_token_type (tok.type),
-				  describe_token (&tok));
 		}
 	}
 
-	devf ("Lexer: File %1 processed (%2 tokens).\n", file_name, m_tokens.size());
 	m_token_position = m_tokens.begin() - 1;
 }
 
@@ -104,30 +94,21 @@ void lexer::process_file (string file_name)
 bool lexer::get_next (e_token req)
 {
 	iterator pos = m_token_position;
-	devf ("Lexer: Requested next token, requirement: %1\n", describe_token_type (req));
 
 	if (m_tokens.is_empty())
-	{
-		devf ("Lexer: no tokens! Failed.\n");
 		return false;
-	}
-
-	if (is_at_end())
-	{
-		devf ("Lexer: at end of tokens. Failed.\n");
-		return false;
-	}
 
 	m_token_position++;
 
+	if (is_at_end())
+		return false;
+
 	if (req != tk_any && get_token_type() != req)
 	{
-		devf ("Lexer: Token %1 does not meet the requirement\n", describe_token (get_token()));
 		m_token_position = pos;
 		return false;
 	}
 
-	devf ("Lexer: Get successful: %1\n", describe_token (get_token()));
 	return true;
 }
 
@@ -158,8 +139,6 @@ void lexer::must_get_next_from_scanner (lexer_scanner& sc, e_token tok)
 //
 void lexer::must_get_any_of (const list<e_token>& toks)
 {
-	devf ("Lexer: need to get a token that is any of: %1\n", toks);
-
 	if (!get_next())
 		error ("unexpected EOF");
 
@@ -206,7 +185,6 @@ int lexer::get_one_symbol (const string_list& syms)
 //
 void lexer::must_be (e_token tok)
 {
-	print ("pos: %1", m_token_position - m_tokens.begin());
 	if (get_token_type() != tok)
 		error ("expected %1, got %2", describe_token_type (tok),
 			describe_token (get_token()));
@@ -216,7 +194,7 @@ void lexer::must_be (e_token tok)
 //
 string lexer::describe_token_private (e_token tok_type, lexer::token* tok)
 {
-	if ( (int) tok_type < (int) last_named_token)
+	if (tok_type < tk_last_named_token)
 		return "\"" + lexer_scanner::get_token_string (tok_type) + "\"";
 
 	switch (tok_type)

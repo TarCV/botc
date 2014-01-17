@@ -86,7 +86,7 @@ static const string g_token_strings[] =
 	"onexit",
 	"state",
 	"switch",
-	"str"
+	"str",
 	"void",
 	"while",
 	"enum",
@@ -94,7 +94,7 @@ static const string g_token_strings[] =
 	"return",
 };
 
-static_assert (countof (g_token_strings) == (int) last_named_token,
+static_assert (countof (g_token_strings) == (int) tk_last_named_token + 1,
 	"Count of g_token_strings is not the same as the amount of named token identifiers.");
 
 // =============================================================================
@@ -126,8 +126,8 @@ bool lexer_scanner::check_string (const char* c, int flags)
 {
 	bool r = strncmp (m_ptr, c, strlen (c)) == 0;
 
-	// There is to be whitespace after words
-	if (r && (flags & f_check_word) && !isspace (m_ptr[strlen (c)]))
+	// There is to be a non-symbol character after words
+	if (r && (flags & f_check_word) && is_symbol_char (m_ptr[strlen (c)], true))
 		r = false;
 
 	// Advance the cursor unless we want to just peek
@@ -143,41 +143,27 @@ bool lexer_scanner::get_next_token()
 {
 	m_token_text = "";
 
-	while (isspace (*m_ptr) == true)
-	{
-		if (*m_ptr == '\n')
-		{
-			m_line++;
-			m_line_break_pos = m_ptr;
-		}
-
-		m_ptr++;
-	}
+	while (isspace (*m_ptr))
+		skip();
 
 	// Check for comments
 	if (strncmp (m_ptr, "//", 2) == 0)
 	{
 		m_ptr += 2;
 
-		while (*(++m_ptr) != '\n')
-			;
+		while (*m_ptr != '\n')
+			skip();
 
 		return get_next_token();
 	}
 	elif (strncmp (m_ptr, "/*", 2) == 0)
 	{
-		m_ptr += 2;
+		skip (2); // skip the start symbols
 
-		while (strncmp (++m_ptr, "*/", 2) != 0)
-		{
-			if (*m_ptr == '\n')
-			{
-				m_line++;
-				m_line_break_pos = m_ptr;
-			}
-		}
+		while (strncmp (m_ptr, "*/", 2) != 0)
+			skip();
 
-		m_ptr += 2; // skip the */
+		skip (2); // skip the end symbols
 		return get_next_token();
 	}
 
@@ -185,9 +171,14 @@ bool lexer_scanner::get_next_token()
 		return false;
 
 	// Check tokens
-	for (int i = 0; i < (int) (sizeof g_token_strings / sizeof * g_token_strings); ++i)
+	for (int i = 0; i < countof (g_token_strings); ++i)
 	{
-		if (check_string (g_token_strings[i], f_check_word))
+		int flags = 0;
+
+		if (i >= tk_first_named_token)
+			flags |= f_check_word;
+
+		if (check_string (g_token_strings[i], flags))
 		{
 			m_token_text = g_token_strings[i];
 			m_token_type = (e_token) i;
@@ -229,8 +220,6 @@ bool lexer_scanner::get_next_token()
 		return true;
 	}
 
-	m_token_type = tk_symbol;
-
 	if (isdigit (*m_ptr))
 	{
 		while (isdigit (*m_ptr))
@@ -240,25 +229,13 @@ bool lexer_scanner::get_next_token()
 		return true;
 	}
 
-	if (is_symbol_char (*m_ptr))
+	if (is_symbol_char (*m_ptr, false))
 	{
+		m_token_type = tk_symbol;
+
 		while (m_ptr != '\0')
 		{
-			if (!is_symbol_char (*m_ptr))
-				break;
-
-			bool stop_here = false;
-
-			for (string i : g_token_strings)
-			{
-				if (check_string (i, f_check_peek | f_check_word))
-				{
-					stop_here = true;
-					break;
-				}
-			}
-
-			if (stop_here)
+			if (!is_symbol_char (*m_ptr, true))
 				break;
 
 			m_token_text += *m_ptr++;
@@ -273,8 +250,29 @@ bool lexer_scanner::get_next_token()
 
 // =============================================================================
 //
+void lexer_scanner::skip()
+{
+	if (*m_ptr == '\n')
+	{
+		m_line++;
+		m_line_break_pos = m_ptr;
+	}
+
+	m_ptr++;
+}
+
+// =============================================================================
+//
+void lexer_scanner::skip (int chars)
+{
+	for (int i = 0; i < chars; ++i)
+		skip();
+}
+
+// =============================================================================
+//
 string lexer_scanner::get_token_string (e_token a)
 {
-	assert ((int) a <= last_named_token);
+	assert ((int) a <= tk_last_named_token);
 	return g_token_strings[a];
 }

@@ -246,7 +246,10 @@ long string::to_long (bool* ok, int base) const
     errno = 0;
     char* endptr;
     long i = strtol (m_string.c_str(), &endptr, base);
-    *ok = (errno == 0 && *endptr == '\0');
+
+	if (ok)
+		*ok = (errno == 0 && *endptr == '\0');
+
     return i;
 }
 
@@ -257,7 +260,10 @@ float string::to_float (bool* ok) const
     errno = 0;
     char* endptr;
     float i = strtof (m_string.c_str(), &endptr);
-    *ok = (errno == 0 && *endptr == '\0');
+
+	if (ok)
+		*ok = (errno == 0 && *endptr == '\0');
+
     return i;
 }
 
@@ -268,7 +274,10 @@ double string::to_double (bool* ok) const
     errno = 0;
     char* endptr;
     double i = strtod (m_string.c_str(), &endptr);
-    *ok = (errno == 0 && *endptr == '\0');
+
+	if (ok)
+		*ok = (errno == 0 && *endptr == '\0');
+
     return i;
 }
 
