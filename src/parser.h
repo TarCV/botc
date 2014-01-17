@@ -167,13 +167,13 @@ class botscript_parser
 		void parse_botscript (string file_name, object_writer* w);
 		data_buffer* ParseCommand (command_info* comm);
 		data_buffer* parse_expression (type_e reqtype);
-		data_buffer* ParseAssignment (script_variable* var);
+		data_buffer* parse_assignment (script_variable* var);
 		int parse_operator (bool peek = false);
 		data_buffer* parse_expr_value (type_e reqtype);
 		string parse_float ();
 		void push_scope ();
-		data_buffer* parse_statement (object_writer* w);
-		void add_switch_case (object_writer* w, data_buffer* b);
+		data_buffer* parse_statement ();
+		void add_switch_case (data_buffer* b);
 		void check_toplevel();
 		void check_not_toplevel();
 		bool token_is (e_token a);
@@ -183,6 +183,7 @@ class botscript_parser
 	private:
 		lexer*			m_lx;
 		object_writer*	m_writer;
+
 		void parse_state_block();
 		void parse_event_block();
 		void parse_mainloop();
@@ -198,7 +199,6 @@ class botscript_parser
 		void parse_switch_case();
 		void parse_switch_default();
 		void parse_break();
-		void parse_continue();
 		void parse_continue();
 		void parse_block_end();
 		void parse_const();

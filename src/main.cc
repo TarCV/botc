@@ -84,7 +84,6 @@ int main (int argc, char** argv)
 		// I guess there should be a better way to do this.
 		if (argc == 2 && !strcmp (argv[1], "-l"))
 		{
-			command_info* comm;
 			init_commands();
 			printf ("Begin list of commands:\n");
 			printf ("------------------------------------------------------\n");
