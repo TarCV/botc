@@ -42,7 +42,7 @@
 // TODO: make these static
 int g_NumStates = 0;
 int g_NumEvents = 0;
-parsermode_e g_CurMode = MODE_TOPLEVEL;
+parsermode_e g_current_mode = MODE_TOPLEVEL;
 string g_CurState = "";
 bool g_stateSpawnDefined = false;
 bool g_GotMainLoop = false;
@@ -51,8 +51,6 @@ data_buffer* g_IfExpression = null;
 bool g_CanElse = false;
 static string* g_undefined_labels[MAX_MARKS]; // TODO: make a list
 list<constant_info> g_ConstInfo;
-
-static botscript_parser* g_current_parser = null;
 
 // ============================================================================
 //
@@ -70,16 +68,16 @@ botscript_parser::~botscript_parser()
 //
 void botscript_parser::check_toplevel()
 {
-	if (g_CurMode != MODE_TOPLEVEL)
-		error ("%1-statements may only be defined at top level!", token_string().chars());
+	if (g_current_mode != MODE_TOPLEVEL)
+		error ("%1-statements may only be defined at top level!", token_string());
 }
 
 // ============================================================================
 //
 void botscript_parser::check_not_toplevel()
 {
-	if (g_CurMode == MODE_TOPLEVEL)
-		error ("%1-statements must not be defined at top level!", token_string().chars());
+	if (g_current_mode == MODE_TOPLEVEL)
+		error ("%1-statements must not be defined at top level!", token_string());
 }
 
 // ============================================================================
@@ -211,7 +209,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				}
 
 				// If nothing else, parse it as a statement
-				data_buffer* b = parse_statement (w);
+				data_buffer* b = parse_statement();
 
 				if (!b)
 					error ("unknown token `%1`", token_string());
@@ -225,7 +223,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 
 	// ===============================================================================
 	// Script file ended. Do some last checks and write the last things to main buffer
-	if (g_CurMode != MODE_TOPLEVEL)
+	if (g_current_mode != MODE_TOPLEVEL)
 		error ("script did not end at top level; a `}` is missing somewhere");
 
 	// stateSpawn must be defined!
@@ -234,7 +232,7 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 
 	for (int i = 0; i < MAX_MARKS; i++)
 		if (g_undefined_labels[i])
-			error ("label `%s` is referenced via `goto` but isn't defined\n", g_undefined_labels[i]->chars());
+			error ("label `%1` is referenced via `goto` but isn't defined\n", g_undefined_labels[i]);
 
 	// Dump the last state's onenter and mainloop
 	m_writer->write_member_buffers();
@@ -291,7 +289,7 @@ void botscript_parser::parse_event_block()
 		error ("bad event, got `%1`\n", token_string());
 
 	m_lx->must_get_next (tk_brace_start);
-	g_CurMode = MODE_EVENT;
+	g_current_mode = MODE_EVENT;
 	m_writer->write (dh_event);
 	m_writer->write (e->number);
 	g_NumEvents++;
@@ -305,7 +303,7 @@ void botscript_parser::parse_mainloop()
 	m_lx->must_get_next (tk_brace_start);
 
 	// Mode must be set before dataheader is written here!
-	g_CurMode = MODE_MAINLOOP;
+	g_current_mode = MODE_MAINLOOP;
 	m_writer->write (dh_main_loop);
 }
 
@@ -319,7 +317,7 @@ void botscript_parser::parse_on_enter_exit()
 
 	// Mode must be set before dataheader is written here,
 	// because onenter goes to a separate buffer.
-	g_CurMode = onenter ? MODE_ONENTER : MODE_ONEXIT;
+	g_current_mode = onenter ? MODE_ONENTER : MODE_ONEXIT;
 	m_writer->write (onenter ? dh_on_enter : dh_on_exit);
 }
 
@@ -328,7 +326,7 @@ void botscript_parser::parse_on_enter_exit()
 void botscript_parser::parse_variable_declaration()
 {
 	// For now, only globals are supported
-	if (g_CurMode != MODE_TOPLEVEL || g_CurState.is_empty() == false)
+	if (g_current_mode != MODE_TOPLEVEL || g_CurState.is_empty() == false)
 		error ("variables must only be global for now");
 
 	type_e type =	(token_is (tk_int)) ? TYPE_INT :
@@ -371,7 +369,6 @@ void botscript_parser::parse_goto()
 	m_writer->write (dh_goto);
 	m_writer->add_reference (m);
 	m_lx->must_get_next (tk_semicolon);
-	continue;
 }
 
 // ============================================================================
@@ -479,7 +476,7 @@ void botscript_parser::parse_for_block()
 	// Initializer
 	m_lx->must_get_next (tk_paren_start);
 	m_lx->must_get_next();
-	data_buffer* init = parse_statement (w);
+	data_buffer* init = parse_statement();
 
 	if (!init)
 		error ("bad statement for initializer of for");
@@ -497,7 +494,7 @@ void botscript_parser::parse_for_block()
 
 	// Incrementor
 	m_lx->must_get_next();
-	data_buffer* incr = parse_statement (w);
+	data_buffer* incr = parse_statement();
 
 	if (!incr)
 		error ("bad statement for incrementor of for");
@@ -592,7 +589,7 @@ void botscript_parser::parse_switch_case()
 	m_writer->SwitchBuffer = null;
 	m_writer->write (dh_case_goto);
 	m_writer->write (num);
-	add_switch_case (m_writer, null);
+	add_switch_case (null);
 	SCOPE (0).casenumbers[SCOPE (0).casecursor] = num;
 }
 
@@ -619,7 +616,7 @@ void botscript_parser::parse_switch_default()
 	SCOPE (0).buffer1 = b;
 	b->write (dh_drop);
 	b->write (dh_goto);
-	add_switch_case (m_writer, b);
+	add_switch_case (b);
 }
 
 // ============================================================================
@@ -786,13 +783,13 @@ void botscript_parser::parse_block_end()
 
 		// Descend down the stack
 		g_ScopeCursor--;
-		continue;
+		return;
 	}
 
-	int dataheader =	(g_CurMode == MODE_EVENT) ? dh_end_event :
-						(g_CurMode == MODE_MAINLOOP) ? dh_end_main_loop :
-						(g_CurMode == MODE_ONENTER) ? dh_end_on_enter :
-						(g_CurMode == MODE_ONEXIT) ? dh_end_on_exit : -1;
+	int dataheader =	(g_current_mode == MODE_EVENT) ? dh_end_event :
+						(g_current_mode == MODE_MAINLOOP) ? dh_end_main_loop :
+						(g_current_mode == MODE_ONENTER) ? dh_end_on_enter :
+						(g_current_mode == MODE_ONEXIT) ? dh_end_on_exit : -1;
 
 	if (dataheader == -1)
 		error ("unexpected `}`");
@@ -801,7 +798,7 @@ void botscript_parser::parse_block_end()
 	// onenter and mainloop go into special buffers, and we want
 	// the closing data headers into said buffers too.
 	m_writer->write (dataheader);
-	g_CurMode = MODE_TOPLEVEL;
+	g_current_mode = MODE_TOPLEVEL;
 	m_lx->get_next (tk_semicolon);
 }
 
@@ -857,10 +854,10 @@ void botscript_parser::parse_label()
 
 	// want no conflicts..
 	if (find_command_by_name (label_name))
-		error ("label name `%s` conflicts with command name\n", label_name);
+		error ("label name `%1` conflicts with command name\n", label_name);
 
 	if (find_global_variable (label_name))
-		error ("label name `%s` conflicts with variable\n", label_name);
+		error ("label name `%1` conflicts with variable\n", label_name);
 
 	// See if a mark already exists for this label
 	int mark = -1;
@@ -891,7 +888,7 @@ data_buffer* botscript_parser::ParseCommand (command_info* comm)
 {
 	data_buffer* r = new data_buffer (64);
 
-	if (g_CurMode == MODE_TOPLEVEL)
+	if (g_current_mode == MODE_TOPLEVEL)
 		error ("command call at top level");
 
 	m_lx->must_get_next (tk_paren_start);
@@ -904,16 +901,16 @@ data_buffer* botscript_parser::ParseCommand (command_info* comm)
 		if (token_is (tk_paren_end))
 		{
 			if (curarg < comm->numargs)
-				error ("too few arguments passed to %s\n\tprototype: %s",
-					comm->name.chars(), get_command_signature (comm).chars());
+				error ("too few arguments passed to %1\n\tprototype: %2",
+					comm->name, get_command_signature (comm));
 
 			break;
 			curarg++;
 		}
 
 		if (curarg >= comm->maxargs)
-			error ("too many arguments passed to %s\n\tprototype: %s",
-				comm->name.chars(), get_command_signature (comm).chars());
+			error ("too many arguments passed to %1\n\tprototype: %2",
+				comm->name, get_command_signature (comm));
 
 		r->merge (parse_expression (comm->args[curarg].type));
 		m_lx->must_get_next();
@@ -958,6 +955,7 @@ data_buffer* botscript_parser::ParseCommand (command_info* comm)
 
 // ============================================================================
 // Is the given operator an assignment operator?
+//
 static bool is_assignment_operator (int oper)
 {
 	switch (oper)
@@ -978,6 +976,7 @@ static bool is_assignment_operator (int oper)
 
 // ============================================================================
 // Finds an operator's corresponding dataheader
+//
 static word get_data_header_by_operator (script_variable* var, int oper)
 {
 	if (is_assignment_operator (oper))
@@ -1004,24 +1003,24 @@ static word get_data_header_by_operator (script_variable* var, int oper)
 
 	switch (oper)
 	{
-	case OPER_ADD: return dh_add;
-	case OPER_SUBTRACT: return dh_subtract;
-	case OPER_MULTIPLY: return dh_multiply;
-	case OPER_DIVIDE: return dh_divide;
-	case OPER_MODULUS: return dh_modulus;
-	case OPER_EQUALS: return dh_equals;
-	case OPER_NOTEQUALS: return dh_not_equals;
-	case OPER_LESSTHAN: return dh_less_than;
-	case OPER_GREATERTHAN: return dh_greater_than;
-	case OPER_LESSTHANEQUALS: return dh_at_most;
-	case OPER_GREATERTHANEQUALS: return dh_at_least;
-	case OPER_LEFTSHIFT: return dh_left_shift;
-	case OPER_RIGHTSHIFT: return dh_right_shift;
-	case OPER_OR: return dh_or_logical;
-	case OPER_AND: return dh_and_logical;
-	case OPER_BITWISEOR: return dh_or_bitwise;
-	case OPER_BITWISEEOR: return dh_eor_bitwise;
-	case OPER_BITWISEAND: return dh_and_bitwise;
+		case OPER_ADD: return dh_add;
+		case OPER_SUBTRACT: return dh_subtract;
+		case OPER_MULTIPLY: return dh_multiply;
+		case OPER_DIVIDE: return dh_divide;
+		case OPER_MODULUS: return dh_modulus;
+		case OPER_EQUALS: return dh_equals;
+		case OPER_NOTEQUALS: return dh_not_equals;
+		case OPER_LESSTHAN: return dh_less_than;
+		case OPER_GREATERTHAN: return dh_greater_than;
+		case OPER_LESSTHANEQUALS: return dh_at_most;
+		case OPER_GREATERTHANEQUALS: return dh_at_least;
+		case OPER_LEFTSHIFT: return dh_left_shift;
+		case OPER_RIGHTSHIFT: return dh_right_shift;
+		case OPER_OR: return dh_or_logical;
+		case OPER_AND: return dh_and_logical;
+		case OPER_BITWISEOR: return dh_or_bitwise;
+		case OPER_BITWISEEOR: return dh_eor_bitwise;
+		case OPER_BITWISEAND: return dh_and_bitwise;
 	}
 
 	error ("DataHeaderByOperator: couldn't find dataheader for operator %d!\n", oper);
@@ -1030,6 +1029,7 @@ static word get_data_header_by_operator (script_variable* var, int oper)
 
 // ============================================================================
 // Parses an expression, potentially recursively
+//
 data_buffer* botscript_parser::parse_expression (type_e reqtype)
 {
 	data_buffer* retbuf = new data_buffer (64);
@@ -1087,7 +1087,9 @@ data_buffer* botscript_parser::parse_expression (type_e reqtype)
 
 // ============================================================================
 // Parses an operator string. Returns the operator number code.
+//
 #define ISNEXT(C) (m_lx->peek_next_string (peek ? 1 : 0) == C)
+
 int botscript_parser::parse_operator (bool peek)
 {
 	string oper;
@@ -1163,6 +1165,7 @@ int botscript_parser::parse_operator (bool peek)
 }
 
 // ============================================================================
+//
 string botscript_parser::parse_float()
 {
 	m_lx->must_be (tk_number);
@@ -1185,6 +1188,7 @@ string botscript_parser::parse_float()
 // Parses a value in the expression and returns the data needed to push
 // it, contained in a data buffer. A value can be either a variable, a command,
 // a literal or an expression.
+//
 data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 {
 	data_buffer* b = new data_buffer (16);
@@ -1209,7 +1213,7 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 			error ("strlen only works with const str");
 
 		if (reqtype != TYPE_INT)
-			error ("strlen returns int but %s is expected\n", GetTypeName (reqtype).c_str());
+			error ("strlen returns int but %1 is expected\n", GetTypeName (reqtype));
 
 		b->write (dh_push_number);
 		b->write (constant->val.len());
@@ -1231,7 +1235,7 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 
 		// Command
 		if (reqtype && comm->returnvalue != reqtype)
-			error ("%s returns an incompatible data type", comm->name.chars());
+			error ("%1 returns an incompatible data type", comm->name);
 
 		b = ParseCommand (comm);
 	}
@@ -1239,9 +1243,9 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 	{
 		// Type check
 		if (reqtype != constant->type)
-			error ("constant `%s` is %s, expression requires %s\n",
-				constant->name.c_str(), GetTypeName (constant->type).c_str(),
-				GetTypeName (reqtype).c_str());
+			error ("constant `%1` is %2, expression requires %3\n",
+				constant->name, GetTypeName (constant->type),
+				GetTypeName (reqtype));
 
 		switch (constant->type)
 		{
@@ -1315,7 +1319,8 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 // Parses an assignment. An assignment starts with a variable name, followed
 // by an assignment operator, followed by an expression value. Expects current
 // token to be the name of the variable, and expects the variable to be given.
-data_buffer* botscript_parser::ParseAssignment (script_variable* var)
+//
+data_buffer* botscript_parser::parse_assignment (script_variable* var)
 {
 	bool global = !var->statename.len();
 
@@ -1326,7 +1331,7 @@ data_buffer* botscript_parser::ParseAssignment (script_variable* var)
 	if (!is_assignment_operator (oper))
 		error ("expected assignment operator");
 
-	if (g_CurMode == MODE_TOPLEVEL)
+	if (g_current_mode == MODE_TOPLEVEL)
 		error ("can't alter variables at top level");
 
 	// Parse the right operand
@@ -1357,6 +1362,8 @@ data_buffer* botscript_parser::ParseAssignment (script_variable* var)
 	return retbuf;
 }
 
+// ============================================================================
+//
 void botscript_parser::push_scope()
 {
 	g_ScopeCursor++;
@@ -1379,19 +1386,23 @@ void botscript_parser::push_scope()
 	}
 }
 
-data_buffer* botscript_parser::parse_statement (object_writer* w)
+// ============================================================================
+//
+data_buffer* botscript_parser::parse_statement()
 {
 	if (find_constant (token_string())) // There should not be constants here.
 		error ("invalid use for constant\n");
 
 	// If it's a variable, expect assignment.
 	if (script_variable* var = find_global_variable (token_string()))
-		return ParseAssignment (var);
+		return parse_assignment (var);
 
 	return null;
 }
 
-void botscript_parser::add_switch_case (object_writer* w, data_buffer* b)
+// ============================================================================
+//
+void botscript_parser::add_switch_case (data_buffer* b)
 {
 	ScopeInfo* info = &SCOPE (0);
 

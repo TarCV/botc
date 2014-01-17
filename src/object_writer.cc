@@ -139,8 +139,8 @@ void object_writer::write_to_file (string filepath)
 data_buffer* object_writer::get_current_buffer()
 {
 	return	SwitchBuffer ? SwitchBuffer :
-			(g_CurMode == MODE_MAINLOOP) ? MainLoopBuffer :
-			(g_CurMode == MODE_ONENTER) ? OnEnterBuffer :
+			(g_current_mode == MODE_MAINLOOP) ? MainLoopBuffer :
+			(g_current_mode == MODE_ONENTER) ? OnEnterBuffer :
 			MainBuffer;
 }
 

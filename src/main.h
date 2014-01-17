@@ -98,7 +98,7 @@ string GetTypeName (type_e type);
 // Make the parser's variables globally available
 extern int g_NumStates;
 extern int g_NumEvents;
-extern parsermode_e g_CurMode;
+extern parsermode_e g_current_mode;
 extern string g_CurState;
 
 #ifndef __GNUC__
