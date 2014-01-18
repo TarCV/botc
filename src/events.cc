@@ -47,8 +47,9 @@ void init_events()
 	lx.process_file ("events.def");
 	int num_events = 0;
 
-	while (lx.get_next (tk_symbol))
+	while (lx.get_next())
 	{
+		lx.must_be (tk_symbol);
 		event_info* e = new event_info;
 		e->name = lx.get_token()->text;
 		e->number = num_events++;

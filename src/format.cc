@@ -74,14 +74,14 @@ string format_args (const list<format_arg>& args)
 		// handle modifiers
 		if (fmt[pos + ofs] == 's' || fmt[pos + ofs] == 'x')
 		{
-			mod = fmt[ pos + ofs ];
+			mod = fmt[pos + ofs];
 			ofs++;
 		}
 
 		if (!isdigit (fmt[pos + ofs]))
 		{
 			fprintf (stderr, "bad format string, expected digit with optional "
-					 "modifier after '%%':\n");
+				"modifier after '%%':\n");
 			draw_pos (fmt, pos);
 			return fmt;
 		}
@@ -96,19 +96,12 @@ string format_args (const list<format_arg>& args)
 
 		string repl = args[i].as_string();
 
-		if (mod == 's')
+		switch (mod)
 		{
-			repl = (repl == "1") ? "" : "s";
-		}
-
-		elif (mod == 'd')
-		{
-			repl.sprintf ("%d", repl[0]);
-		}
-		elif (mod == 'x')
-		{
-			// modifier x: reinterpret the argument as hex
-			repl.sprintf ("0x%X", strtol (repl.chars(), null, 10));
+			case 's': repl = (repl == "1") ? "" : "s";			break;
+			case 'd': repl.sprintf ("%d", repl[0]);				break;
+			case 'x': repl.sprintf ("0x%X", repl.to_long());	break;
+			default: break;
 		}
 
 		fmt.replace (pos, 1 + ofs, repl);

@@ -63,7 +63,7 @@ public:
 
 	inline bool has_valid_token() const
 	{
-		return (is_at_end() == false && m_token_position != m_tokens.begin() - 1);
+		return (m_token_position < m_tokens.end() && m_token_position >= m_tokens.begin());
 	}
 
 	inline token* get_token() const
