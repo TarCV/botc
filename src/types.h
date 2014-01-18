@@ -41,4 +41,8 @@ template<class T> inline T abs (T a)
 	return (a >= 0) ? a : -a;
 }
 
+#ifdef IN_IDE_PARSER
+using FILE = void;
+#endif
+
 #endif // BOTC_TYPES_H

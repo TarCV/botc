@@ -82,6 +82,8 @@ void lexer::process_file (string file_name)
 			tok.column = sc.get_column();
 			tok.type = sc.get_token_type();
 			tok.text = sc.get_token_text();
+			//	devf ("Token #%1: %2:%3:%4: %5 (%6)\n", m_tokens.size(),
+			//		tok.file, tok.line, tok.column, describe_token (&tok), describe_token_type (tok.type));
 			m_tokens << tok;
 		}
 	}
@@ -100,10 +102,7 @@ bool lexer::get_next (e_token req)
 
 	m_token_position++;
 
-	if (is_at_end())
-		return false;
-
-	if (req != tk_any && get_token_type() != req)
+	if (is_at_end() || (req != tk_any && get_token_type() != req))
 	{
 		m_token_position = pos;
 		return false;
@@ -114,12 +113,13 @@ bool lexer::get_next (e_token req)
 
 // =============================================================================
 //
-void lexer::must_get_next (e_token tok)
+void lexer::must_get_next (e_token tt)
 {
 	if (!get_next())
 		error ("unexpected EOF");
 
-	must_be (tok);
+	if (tt != tk_any)
+		must_be (tt);
 }
 
 // =============================================================================

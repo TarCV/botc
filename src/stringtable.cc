@@ -67,9 +67,8 @@ int get_string_table_index (const string& a)
 		error ("too many strings!\n");
 
 	// Now, dump the string into the slot
-	g_string_table[idx] = a;
-
-	return idx;
+	g_string_table.push_back (a);
+	return (g_string_table.size() - 1);
 }
 
 // ============================================================================
