@@ -77,7 +77,9 @@ static const string g_token_strings[] =
 	"do",
 	"else",
 	"event",
+	"eventdef",
 	"for",
+	"funcdef",
 	"goto",
 	"if",
 	"int",
@@ -194,7 +196,7 @@ bool lexer_scanner::get_next_token()
 		while (*m_ptr != '\"')
 		{
 			if (!*m_ptr)
-				return false;
+				error ("unterminated string");
 
 			if (check_string ("\\n"))
 			{
@@ -216,7 +218,7 @@ bool lexer_scanner::get_next_token()
 		}
 
 		m_token_type = tk_string;
-		m_ptr++; // skip the final quote
+		skip(); // skip the final quote
 		return true;
 	}
 
@@ -233,13 +235,13 @@ bool lexer_scanner::get_next_token()
 	{
 		m_token_type = tk_symbol;
 
-		while (m_ptr != '\0')
+		do
 		{
 			if (!is_symbol_char (*m_ptr, true))
 				break;
 
 			m_token_text += *m_ptr++;
-		}
+		} while (*m_ptr != '\0');
 
 		return true;
 	}
@@ -275,4 +277,16 @@ string lexer_scanner::get_token_string (e_token a)
 {
 	assert ((int) a <= tk_last_named_token);
 	return g_token_strings[a];
+}
+
+// =============================================================================
+//
+string lexer_scanner::read_line()
+{
+	string line;
+
+	while (*m_ptr != '\n')
+		line += *(m_ptr++);
+
+	return line;
 }

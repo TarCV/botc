@@ -185,6 +185,14 @@ void botscript_parser::parse_botscript (string file_name, object_writer* w)
 				parse_const();
 				break;
 
+			case tk_eventdef:
+				parse_eventdef();
+				break;
+
+			case tk_funcdef:
+				parse_funcdef();
+				break;
+
 			default:
 			{
 				// Check for labels
@@ -880,6 +888,110 @@ void botscript_parser::parse_label()
 		m_writer->add_mark (label_name);
 
 	m_lx->must_get_next (tk_colon);
+}
+
+// =============================================================================
+//
+void botscript_parser::parse_eventdef()
+{
+	event_info* e = new event_info;
+
+	m_lx->must_get_next (tk_number);
+	e->number = token_string().to_long();
+	m_lx->must_get_next (tk_colon);
+	m_lx->must_get_next (tk_symbol);
+	e->name = m_lx->get_token()->text;
+	m_lx->must_get_next (tk_paren_start);
+	m_lx->must_get_next (tk_paren_end);
+	m_lx->must_get_next (tk_semicolon);
+	add_event (e);
+}
+
+// =============================================================================
+//
+void botscript_parser::parse_funcdef()
+{
+	command_info* comm = new command_info;
+
+	// Number
+	m_lx->must_get_next (tk_number);
+	comm->number = m_lx->get_token()->text.to_long();
+
+	m_lx->must_get_next (tk_colon);
+
+	// Name
+	m_lx->must_get_next (tk_symbol);
+	comm->name = m_lx->get_token()->text;
+
+	if (IsKeyword (comm->name))
+		error ("function name `%1` conflicts with keyword", comm->name);
+
+	m_lx->must_get_next (tk_colon);
+
+	// Return value
+	m_lx->must_get_any_of ({tk_int, tk_void, tk_bool, tk_str});
+	comm->returnvalue = GetTypeByName (m_lx->get_token()->text); // TODO
+	assert (comm->returnvalue != -1);
+
+	m_lx->must_get_next (tk_colon);
+
+	// Num args
+	m_lx->must_get_next (tk_number);
+	comm->numargs = m_lx->get_token()->text.to_long();
+
+	m_lx->must_get_next (tk_colon);
+
+	// Max args
+	m_lx->must_get_next (tk_number);
+	comm->maxargs = m_lx->get_token()->text.to_long();
+
+	// Argument types
+	int curarg = 0;
+
+	while (curarg < comm->maxargs)
+	{
+		command_argument arg;
+		m_lx->must_get_next (tk_colon);
+		m_lx->must_get_any_of ({tk_int, tk_bool, tk_str});
+		type_e type = GetTypeByName (m_lx->get_token()->text);
+		assert (type != -1 && type != TYPE_VOID);
+		arg.type = type;
+
+		m_lx->must_get_next (tk_paren_start);
+		m_lx->must_get_next (tk_symbol);
+		arg.name = m_lx->get_token()->text;
+
+		// If this is an optional parameter, we need the default value.
+		if (curarg >= comm->numargs)
+		{
+			m_lx->must_get_next (tk_assign);
+
+			switch (type)
+			{
+				case TYPE_INT:
+				case TYPE_BOOL:
+					m_lx->must_get_next (tk_number);
+					break;
+
+				case TYPE_STRING:
+					m_lx->must_get_next (tk_string);
+					break;
+
+				case TYPE_UNKNOWN:
+				case TYPE_VOID:
+					break;
+			}
+
+			arg.defvalue = m_lx->get_token()->text.to_long();
+		}
+
+		m_lx->must_get_next (tk_paren_end);
+		comm->args << arg;
+		curarg++;
+	}
+
+	m_lx->must_get_next (tk_semicolon);
+	add_command_definition (comm);
 }
 
 // ============================================================================

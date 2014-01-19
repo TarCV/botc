@@ -203,6 +203,8 @@ class botscript_parser
 		void parse_block_end();
 		void parse_const();
 		void parse_label();
+		void parse_eventdef();
+		void parse_funcdef();
 };
 
 constant_info* find_constant (const string& tok);

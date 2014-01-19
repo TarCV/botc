@@ -46,20 +46,20 @@ types:
 		int			column;
 	};
 
-	using token_list = list<token>;
-	using iterator = token_list::iterator;
+	using token_list	= list<token>;
+	using iterator		= token_list::iterator;
 
 public:
 	lexer();
 	~lexer();
 
-	void process_file (string file_name);
-	bool get_next (e_token req = tk_any);
-	void must_get_next (e_token tok = tk_any);
-	void must_get_any_of (const list<e_token>& toks);
-	int get_one_symbol (const string_list& syms);
-	void must_be (e_token tok);
-	bool peek_next (token* tk = null);
+	void	process_file (string file_name);
+	bool	get_next (e_token req = tk_any);
+	void	must_get_next (e_token tok = tk_any);
+	void	must_get_any_of (const list<e_token>& toks);
+	int		get_one_symbol (const string_list& syms);
+	void	must_be (e_token tok);
+	bool	peek_next (token* tk = null);
 
 	inline bool has_valid_token() const
 	{
@@ -107,7 +107,8 @@ private:
 	iterator		m_token_position;
 
 	// read a mandatory token from scanner
-	void must_get_next_from_scanner (lexer_scanner& sc, e_token tok = tk_any);
+	void must_get_next_from_scanner (lexer_scanner& sc, e_token tt = tk_any);
+	void check_file_header (lexer_scanner& sc);
 
 	static string describe_token_private (e_token tok_type, token* tok);
 };

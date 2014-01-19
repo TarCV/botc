@@ -47,8 +47,12 @@
 
 // Application name and version
 #define APPNAME "botc"
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 999
+#define VERSION_MAJOR	1
+#define VERSION_MINOR	0
+#define VERSION_PATCH 	0
+
+#define MAKE_VERSION_NUMBER(MAJ, MIN, PAT) ((MAJ * 10000) + (MIN * 100) + PAT)
+#define VERSION_NUMBER MAKE_VERSION_NUMBER (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 
 // On Windows, files are case-insensitive
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
@@ -90,10 +94,14 @@ enum type_e
 // Shortcut for zeroing something
 #define ZERO(obj) memset (&obj, 0, sizeof (obj));
 
+enum form_length_e { e_long_form, e_short_form };
+
 string ObjectFileName (string s);
 bool fexists (string path);
 type_e GetTypeByName (string token);
 string GetTypeName (type_e type);
+string get_version_string (form_length_e len);
+string make_version_string (int major, int minor, int patch);
 
 // Make the parser's variables globally available
 extern int g_NumStates;

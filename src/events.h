@@ -39,7 +39,7 @@ struct event_info
 	int number;
 };
 
-void init_events();
+void add_event (event_info* e);
 event_info* find_event_by_index (int idx);
 event_info* find_event_by_name (string a);
 

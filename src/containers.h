@@ -323,7 +323,7 @@ template<class T> class list
 		//
 		const element_type& last() const
 		{
-			return *(m_data.end());
+			return *(m_data.end() - 1);
 		}
 
 		// =====================================================================

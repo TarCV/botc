@@ -51,7 +51,7 @@ struct command_info
 	list<command_argument>	args;
 };
 
-void						init_commands ();
+void						add_command_definition (command_info* comm);
 command_info*				find_command_by_name (string a);
 string						get_command_signature (command_info* comm);
 const list<command_info*>	get_commands();

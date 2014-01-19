@@ -40,100 +40,16 @@
 static list<command_info*> g_commands;
 
 // ============================================================================
-// Reads command definitions from commands.def and stores them to memory.
-void init_commands ()
+//
+void add_command_definition (command_info* comm)
 {
-	lexer lx;
-	lx.process_file ("commands.def");
+	// Ensure that there is no conflicts
+	for (command_info* it : g_commands)
+		if (it->number == comm->number)
+			error ("Attempted to redefine command #%1 (%2) as %3",
+				g_commands[comm->number]->name, comm->name);
 
-	while (lx.get_next())
-	{
-		command_info* comm = new command_info;
-
-		// Number
-		lx.must_be (tk_number);
-		comm->number = lx.get_token()->text.to_long();
-
-		lx.must_get_next (tk_colon);
-
-		// Name
-		lx.must_get_next (tk_symbol);
-		comm->name = lx.get_token()->text;
-
-		if (IsKeyword (comm->name))
-			error ("command name `%1` conflicts with keyword", comm->name);
-
-		lx.must_get_next (tk_colon);
-
-		// Return value
-		lx.must_get_any_of ({tk_int, tk_void, tk_bool, tk_str});
-		comm->returnvalue = GetTypeByName (lx.get_token()->text); // TODO
-		assert (comm->returnvalue != -1);
-
-		lx.must_get_next (tk_colon);
-
-		// Num args
-		lx.must_get_next (tk_number);
-		comm->numargs = lx.get_token()->text.to_long();
-
-		lx.must_get_next (tk_colon);
-
-		// Max args
-		lx.must_get_next (tk_number);
-		comm->maxargs = lx.get_token()->text.to_long();
-
-		// Argument types
-		int curarg = 0;
-
-		while (curarg < comm->maxargs)
-		{
-			command_argument arg;
-			lx.must_get_next (tk_colon);
-			lx.must_get_any_of ({tk_int, tk_bool, tk_str});
-			type_e type = GetTypeByName (lx.get_token()->text);
-			assert (type != -1 && type != TYPE_VOID);
-			arg.type = type;
-
-			lx.must_get_next (tk_paren_start);
-			lx.must_get_next (tk_symbol);
-			arg.name = lx.get_token()->text;
-
-			// If this is an optional parameter, we need the default value.
-			if (curarg >= comm->numargs)
-			{
-				lx.must_get_next (tk_assign);
-
-				switch (type)
-				{
-					case TYPE_INT:
-					case TYPE_BOOL:
-						lx.must_get_next (tk_number);
-						break;
-
-					case TYPE_STRING:
-						lx.must_get_next (tk_string);
-						break;
-
-					case TYPE_UNKNOWN:
-					case TYPE_VOID:
-						break;
-				}
-
-				arg.defvalue = lx.get_token()->text.to_long();
-			}
-
-			lx.must_get_next (tk_paren_end);
-			comm->args << arg;
-			curarg++;
-		}
-
-		g_commands << comm;
-	}
-
-	if (g_commands.is_empty())
-		error ("no commands defined!\n");
-
-	print ("%1 command definitions read.\n", g_commands.size());
+	g_commands << comm;
 }
 
 // ============================================================================
