@@ -65,6 +65,7 @@ class lexer_scanner
 		lexer_scanner (FILE* fp);
 		~lexer_scanner();
 		bool get_next_token();
+		string read_line();
 
 		inline const string& get_token_text() const
 		{

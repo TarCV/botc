@@ -33,6 +33,8 @@
 #include "format.h"
 #include "lexer.h"
 
+// =============================================================================
+//
 static void draw_pos (const string& fmt, int pos)
 {
 	string rep (fmt);
@@ -111,12 +113,16 @@ string format_args (const list<format_arg>& args)
 	return fmt;
 }
 
+// =============================================================================
+//
 void print_args (FILE* fp, const list<format_arg>& args)
 {
 	string out = format_args (args);
 	fprintf (fp, "%s", out.chars());
 }
 
+// =============================================================================
+//
 void do_error (string msg)
 {
 	lexer* lx = lexer::get_main_lexer();

@@ -39,6 +39,7 @@
 #include "object_writer.h"
 #include "parser.h"
 #include "lexer.h"
+#include "gitinfo.h"
 
 // List of keywords
 const string_list g_Keywords =
@@ -84,7 +85,6 @@ int main (int argc, char** argv)
 		// I guess there should be a better way to do this.
 		if (argc == 2 && !strcmp (argv[1], "-l"))
 		{
-			init_commands();
 			printf ("Begin list of commands:\n");
 			printf ("------------------------------------------------------\n");
 
@@ -99,13 +99,17 @@ int main (int argc, char** argv)
 		// Print header
 		string header;
 		string headerline;
-		header = format ("%1 version %2.%3", APPNAME, VERSION_MAJOR, VERSION_MINOR);
+		header = format (APPNAME " version %1", get_version_string (e_long_form));
 
-		for (int i = 0; i < (header.len() / 2) - 1; ++i)
+#ifdef DEBUG
+		header += " (debug build)";
+#endif
+
+		for (int i = 0; i < header.len() / 2; ++i)
 			headerline += "-=";
 
 		headerline += '-';
-		print ("%1\n%2\n", header, headerline);
+		print ("%2\n\n%1\n\n%2\n\n", header, headerline);
 
 		if (argc < 2)
 		{
@@ -150,11 +154,6 @@ int main (int argc, char** argv)
 				exit (1);
 			}
 		}
-
-		// Read definitions
-		printf ("Reading definitions...\n");
-		init_events();
-		init_commands();
 
 		// Prepare reader and writer
 		botscript_parser* r = new botscript_parser;
@@ -256,16 +255,40 @@ string GetTypeName (type_e type)
 {
 	switch (type)
 	{
-	case TYPE_INT: return "int"; break;
-
-	case TYPE_STRING: return "str"; break;
-
-	case TYPE_VOID: return "void"; break;
-
-	case TYPE_BOOL: return "bool"; break;
-
-	case TYPE_UNKNOWN: return "???"; break;
+		case TYPE_INT: return "int"; break;
+		case TYPE_STRING: return "str"; break;
+		case TYPE_VOID: return "void"; break;
+		case TYPE_BOOL: return "bool"; break;
+		case TYPE_UNKNOWN: return "???"; break;
 	}
 
 	return "";
+}
+// =============================================================================
+//
+
+string make_version_string (int major, int minor, int patch)
+{
+	string ver = format ("%1.%2", major, minor);
+
+	if (patch != 0)
+	{
+		ver += ".";
+		ver += patch;
+	}
+
+	return ver;
+}
+
+// =============================================================================
+//
+string get_version_string (form_length_e len)
+{
+	string tag (GIT_DESCRIPTION);
+	string version = tag;
+
+	if (tag.ends_with ("-pre") && len == e_long_form)
+		version += "-" + string (GIT_HASH).mid (0, 8);
+
+	return version;
 }

@@ -40,32 +40,17 @@ static void unlink_events();
 static list<event_info*> g_events;
 
 // ============================================================================
-// Read event definitions from file
-void init_events()
+//
+void add_event (event_info* e)
 {
-	lexer lx;
-	lx.process_file ("events.def");
-	int num_events = 0;
-
-	while (lx.get_next())
-	{
-		lx.must_be (tk_symbol);
-		event_info* e = new event_info;
-		e->name = lx.get_token()->text;
-		e->number = num_events++;
-		g_events << e;
-	}
-
-	printf ("%d event definitions read.\n", num_events);
-	atexit (&unlink_events);
+	g_events << e;
 }
 
 // ============================================================================
 // Delete event definitions recursively
+//
 static void unlink_events()
 {
-	print ("Freeing event information.\n");
-
 	for (event_info* e : g_events)
 		delete e;
 

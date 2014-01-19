@@ -297,7 +297,7 @@ string operator+ (const char* a, const string& b)
 
 // =============================================================================
 //
-string string::operator+ (const string data) const
+string string::operator+ (const string& data) const
 {
     string newString = *this;
     newString += data;
@@ -315,6 +315,17 @@ string string::operator+ (const char* data) const
 
 // =============================================================================
 //
+string string::operator+ (int num) const
+{
+	string newstr = *this;
+	string numstr;
+	numstr.sprintf ("%d", num);
+	newstr += numstr;
+	return newstr;
+}
+
+// =============================================================================
+//
 string& string::operator+= (const string data)
 {
     append (data);
@@ -327,6 +338,15 @@ string& string::operator+= (const char* data)
 {
     append (data);
     return *this;
+}
+
+// =============================================================================
+//
+string& string::operator+= (int num)
+{
+	string numstr;
+	numstr.sprintf ("%d", num);
+	return operator+= (numstr);
 }
 
 // =============================================================================

@@ -79,30 +79,32 @@ enum e_token
 	tk_do,					// - 36
 	tk_else,				// - 37
 	tk_event,				// - 38
-	tk_for,					// - 39
-	tk_goto,				// ----- 40
-	tk_if,					// - 41
-	tk_int,					// - 42
-	tk_mainloop,			// - 43
-	tk_onenter,				// - 44
-	tk_onexit,				// ----- 45
-	tk_state,				// - 46
-	tk_switch,				// - 47
-	tk_str,					// - 48
-	tk_void,				// - 49
-	tk_while,				// ----- 50
+	tk_eventdef,			// - 39
+	tk_for,					// ----- 40
+	tk_funcdef,				// - 41
+	tk_goto,				// - 42
+	tk_if,					// - 43
+	tk_int,					// - 44
+	tk_mainloop,			// ----- 45
+	tk_onenter,				// - 46
+	tk_onexit,				// - 47
+	tk_state,				// - 48
+	tk_switch,				// - 49
+	tk_str,					// ----- 50
+	tk_void,				// - 51
+	tk_while,				// - 52
 
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
-	tk_enum,				// - 51
-	tk_func,				// - 52
-	tk_return,				// - 53
+	tk_enum,				// - 53
+	tk_func,				// - 54
+	tk_return,				// ----- 55
 
 	// --------------
 	// Generic tokens
-	tk_symbol,				// - 54
-	tk_number,				// ----- 55
-	tk_string,				// - 56
+	tk_symbol,				// - 56
+	tk_number,				// - 57
+	tk_string,				// - 58
 
 	tk_first_named_token	= tk_bool,
 	tk_last_named_token		= (int) tk_symbol - 1,

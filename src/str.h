@@ -90,10 +90,12 @@ class string
 		void               trim (length_type n);
 		string             to_uppercase() const;
 
-		string             operator+ (const string data) const;
+		string             operator+ (const string& data) const;
 		string             operator+ (const char* data) const;
+		string             operator+ (int num) const;
 		string&            operator+= (const string data);
 		string&            operator+= (const char* data);
+		string&            operator+= (int num);
 
 		static string		from_number (int a);
 		static string		from_number (long a);
