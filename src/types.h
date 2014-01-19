@@ -41,20 +41,6 @@ template<class T> inline T abs (T a)
 	return (a >= 0) ? a : -a;
 }
 
-// =============================================================================
-// A simple basic exception
-//
-class simple_exception : public std::exception
-{
-	public:
-		simple_exception();
-
-		inline const char* what() const throw()
-		{
-			return "simple exception";
-		}
-};
-
 #ifdef IN_IDE_PARSER
 using FILE = void;
 #endif
