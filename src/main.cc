@@ -27,51 +27,14 @@
 */
 
 #include "main.h"
-#include "object_writer.h"
 #include "events.h"
 #include "commands.h"
 #include "stringtable.h"
 #include "variables.h"
 #include "data_buffer.h"
-#include "object_writer.h"
 #include "parser.h"
 #include "lexer.h"
 #include "gitinfo.h"
-
-// List of keywords
-const string_list g_Keywords =
-{
-	"bool",
-	"break",
-	"case",
-	"continue",
-	"const",
-	"default",
-	"do",
-	"else",
-	"event",
-	"for",
-	"goto",
-	"if",
-	"int",
-	"mainloop",
-	"onenter",
-	"onexit",
-	"state",
-	"switch",
-	"str"
-	"void",
-	"while",
-
-	// These ones aren't implemented yet but I plan to do so, thus they are
-	// reserved. Also serves as a to-do list of sorts for me. >:F
-	"enum", // Would enum actually be useful? I think so.
-	"func", // Would function support need external support from zandronum?
-	"return",
-};
-
-// databuffer global variable
-int g_NextMark = 0;
 
 int main (int argc, char** argv)
 {
@@ -102,7 +65,7 @@ int main (int argc, char** argv)
 		header += " (debug build)";
 #endif
 
-		for (int i = 0; i < header.len() / 2; ++i)
+		for (int i = 0; i < header.length() / 2; ++i)
 			headerline += "-=";
 
 		headerline += '-';
@@ -122,62 +85,26 @@ int main (int argc, char** argv)
 		else
 			outfile = argv[2];
 
-		// If we'd end up writing into an existing file,
-		// ask the user if we want to overwrite it
-		if (fexists (outfile))
-		{
-			// Additional warning if the paths are the same
-			string warning;
-#ifdef FILE_CASEINSENSITIVE
-
-			if (+outfile == +string (argv[1]))
-#else
-			if (outfile == argv[1])
-#endif
-			{
-				warning = "\nWARNING: Output file is the same as the input file. ";
-				warning += "Answering yes here will destroy the source!\n";
-				warning += "Continue nevertheless?";
-			}
-
-			printf ("output file `%s` already exists! overwrite?%s (y/n) ", outfile.chars(), warning.chars());
-
-			char ans;
-			fgets (&ans, 1, stdin);
-
-			if (ans != 'y')
-			{
-				printf ("abort\n");
-				exit (1);
-			}
-		}
-
 		// Prepare reader and writer
-		botscript_parser* r = new botscript_parser;
-		object_writer* w = new object_writer;
+		botscript_parser* parser = new botscript_parser;
 
 		// We're set, begin parsing :)
-		printf ("Parsing script...\n");
-		r->parse_botscript (argv[1], w);
-		printf ("Script parsed successfully.\n");
+		print ("Parsing script...\n");
+		parser->parse_botscript (argv[1]);
+		print ("Script parsed successfully.\n");
 
 		// Parse done, print statistics and write to file
 		int globalcount = g_GlobalVariables.size();
 		int stringcount = num_strings_in_table();
-		int NumMarks = w->MainBuffer->count_marks();
-		int NumRefs = w->MainBuffer->count_references();
 		print ("%1 / %2 strings written\n", stringcount, g_max_stringlist_size);
 		print ("%1 / %2 global variables\n", globalcount, g_max_global_vars);
-		print ("%1 / %2 bytecode marks\n", NumMarks, MAX_MARKS); // TODO: nuke
-		print ("%1 / %2 bytecode references\n", NumRefs, MAX_MARKS); // TODO: nuke
-		print ("%1 / %2 events\n", g_NumEvents, g_max_events);
-		print ("%1 state%s1\n", g_NumStates);
+		print ("%1 / %2 events\n", parser->get_num_events(), g_max_events);
+		print ("%1 state%s1\n", parser->get_num_states());
 
-		w->write_to_file (outfile);
+		parser->write_to_file (outfile);
 
 		// Clear out the junk
-		delete r;
-		delete w;
+		delete parser;
 
 		// Done!
 		exit (0);
@@ -211,27 +138,11 @@ string ObjectFileName (string s)
 	// Locate the extension and chop it out
 	int extdot = s.last (".");
 
-	if (extdot >= s.len() - 4)
-		s -= (s.len() - extdot);
+	if (extdot >= s.length() - 4)
+		s -= (s.length() - extdot);
 
 	s += ".o";
 	return s;
-}
-
-// ============================================================================
-// Is the given argument a reserved keyword?
-bool IsKeyword (string s)
-{
-	for (int u = 0; u < NumKeywords(); u++)
-		if (s.to_uppercase() == g_Keywords[u].to_uppercase())
-			return true;
-
-	return false;
-}
-
-int NumKeywords()
-{
-	return sizeof (g_Keywords) / sizeof (const char*);
 }
 
 // ============================================================================

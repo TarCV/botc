@@ -26,8 +26,8 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_COMMON_H
-#define BOTC_COMMON_H
+#ifndef BOTC_MAIN_H
+#define BOTC_MAIN_H
 
 #if !defined (__cplusplus) || __cplusplus < 201103L
 # error botc requires a C++11-compliant compiler to be built
@@ -36,6 +36,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstdint>
+#include "property.h"
 #include "types.h"
 #include "containers.h"
 #include "str.h"
@@ -56,25 +57,6 @@
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
 #define FILE_CASEINSENSITIVE
 #endif
-
-// Parser mode: where is the parser at?
-enum parsermode_e
-{
-	MODE_TOPLEVEL,	// at top level
-	MODE_EVENT,		// inside event definition
-	MODE_MAINLOOP,	// inside mainloop
-	MODE_ONENTER,	// inside onenter
-	MODE_ONEXIT,	// inside onexit
-};
-
-enum type_e
-{
-	TYPE_UNKNOWN = 0,
-	TYPE_VOID,
-	TYPE_INT,
-	TYPE_STRING,
-	TYPE_BOOL,
-};
 
 #define elif else if
 
@@ -101,60 +83,9 @@ string GetTypeName (type_e type);
 string get_version_string (form_length_e len);
 string make_version_string (int major, int minor, int patch);
 
-// Make the parser's variables globally available
-extern int g_NumStates;
-extern int g_NumEvents;
-extern parsermode_e g_current_mode;
-extern string g_CurState;
-
 #ifndef __GNUC__
 #define __attribute__(X)
 #endif
 #define deprecated __attribute__ ((deprecated))
 
-// Byte datatype
-typedef int32_t word;
-typedef unsigned char byte;
-
-// Keywords
-extern const string_list g_Keywords;
-
-bool IsKeyword (string s);
-int NumKeywords ();
-
-// Script mark and reference
-struct ScriptMark
-{
-	string name;
-	size_t pos;
-};
-
-struct ScriptMarkReference
-{
-	int num;
-	size_t pos;
-};
-
-// ====================================================================
-// Generic union
-template <class T> union generic_union
-{
-	T as_t;
-	byte as_bytes[sizeof (T)];
-	char as_chars[sizeof (T)];
-	double as_double;
-	float as_float;
-	int as_int;
-	word as_word;
-};
-
-// ====================================================================
-// Finds a byte in the given value.
-template <class T> inline unsigned char GetByteIndex (T a, int b)
-{
-	generic_union<T> uni;
-	uni.as_t = a;
-	return uni.as_bytes[b];
-}
-
-#endif // BOTC_COMMON_H
+#endif // BOTC_MAIN_H

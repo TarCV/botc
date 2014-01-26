@@ -33,7 +33,7 @@
 
 // =============================================================================
 //
-static void draw_pos (const string& fmt, int pos)
+static void draw_position (const string& fmt, int pos)
 {
 	string rep (fmt);
 	rep.replace ("\n", "↵");
@@ -47,6 +47,8 @@ static void draw_pos (const string& fmt, int pos)
 	fprintf (stderr, "^\n");
 }
 
+// =============================================================================
+//
 string format_args (const list<format_arg>& args)
 {
 	const string& fmtstr = args[0].as_string();
@@ -82,7 +84,7 @@ string format_args (const list<format_arg>& args)
 		{
 			fprintf (stderr, "bad format string, expected digit with optional "
 				"modifier after '%%':\n");
-			draw_pos (fmt, pos);
+			draw_position (fmt, pos);
 			return fmt;
 		}
 
@@ -123,7 +125,7 @@ void print_args (FILE* fp, const list<format_arg>& args)
 //
 void do_error (string msg)
 {
-	lexer* lx = lexer::get_main_lexer();
+	lexer* lx = lexer::get_current_lexer();
 	string fileinfo;
 
 	if (lx != null && lx->has_valid_token())

@@ -4,6 +4,7 @@
 // Do not edit unless you know what you are doing!
 
 // =============================================================================
+//
 // Function definitions
 // Syntax: number:name:returntype:numargs:maxargs[:argumentlist]
 //
@@ -102,6 +103,7 @@ funcdef 91:ChatSectionExistsInLump:bool:2:2:str(lump):str(section);
 funcdef 92:ChatSectionExistsInChatLump:bool:1:1:str(section);
 
 // =============================================================================
+//
 // Events:
 // eventdef <number>:<name>();
 //

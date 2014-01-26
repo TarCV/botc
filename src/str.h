@@ -82,9 +82,9 @@ class string
 		bool               starts_with (const string& other);
 		string             strip (list< char > unwanted);
 		string             substring (long a, long b = -1) const;
-		double             to_double (bool* ok = null) const;
-		float              to_float (bool* ok = null) const;
-		long               to_long (bool* ok = null, int base = 10) const;
+		double             to_double (bool* ok = nullptr) const;
+		float              to_float (bool* ok = nullptr) const;
+		long               to_long (bool* ok = nullptr, int base = 10) const;
 		void               trim (length_type n);
 		string             to_uppercase() const;
 
@@ -171,11 +171,6 @@ class string
 		inline void insert (length_type pos, char c)
 		{
 			m_string.insert (m_string.begin() + pos, c);
-		}
-
-		inline length_type len() const
-		{
-			return length();
 		}
 
 		inline length_type length() const

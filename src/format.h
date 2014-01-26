@@ -35,11 +35,20 @@
 class format_arg
 {
 	public:
-		format_arg (const string& a) : m_string (a) {}
-		format_arg (char a) : m_string (a) {}
-		format_arg (int a) : m_string (string::from_number (a)) {}
-		format_arg (long a) : m_string (string::from_number (a)) {}
-		format_arg (const char* a) : m_string (a) {}
+		format_arg (const string& a) :
+			m_string (a) {}
+
+		format_arg (char a) :
+			m_string (a) {}
+
+		format_arg (int a) :
+			m_string (string::from_number (a)) {}
+
+		format_arg (long a) :
+			m_string (string::from_number (a)) {}
+
+		format_arg (const char* a) :
+			m_string (a) {}
 
 		format_arg (void* a)
 		{
@@ -87,30 +96,6 @@ template<class T> string custom_format (T a, const char* fmtstr)
 	out.sprintf (fmtstr, a);
 	return out;
 }
-
-inline string hex (ulong a)
-{
-	return custom_format (a, "0x%X");
-}
-
-inline string charnum (char a)
-{
-	return custom_format (a, "%d");
-}
-
-class script_error : public std::exception
-{
-	public:
-		script_error (const string& msg) : m_msg (msg) {}
-
-		inline const char* what() const throw()
-		{
-			return m_msg.c_str();
-		}
-
-	private:
-		string m_msg;
-};
 
 string format_args (const list<format_arg>& args);
 void print_args (FILE* fp, const list<format_arg>& args);

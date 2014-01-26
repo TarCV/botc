@@ -40,6 +40,11 @@ struct script_variable
 	type_e type;
 	int value;
 	int index;
+
+	bool is_global() const
+	{
+		return statename.is_empty();
+	}
 };
 
 extern list<script_variable> g_GlobalVariables;

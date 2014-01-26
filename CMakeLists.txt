@@ -9,7 +9,6 @@ add_executable (botc
 	src/lexer.cc
 	src/lexer_scanner.cc
 	src/main.cc
-	src/object_writer.cc
 	src/parser.cc
 	src/str.cc
 	src/stringtable.cc

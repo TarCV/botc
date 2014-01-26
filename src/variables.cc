@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "object_writer.h"
 #include "stringtable.h"
 #include "variables.h"
 #include "parser.h"
@@ -49,9 +48,6 @@ script_variable* declare_global_variable (type_e type, string name)
 	// Check that the variable is valid
 	if (find_command_by_name (name))
 		error ("name of variable-to-be `%s` conflicts with that of a command", name.chars());
-
-	if (IsKeyword (name))
-		error ("name of variable-to-be `%s` is a keyword", name.chars());
 
 	if (g_GlobalVariables.size() >= g_max_global_vars)
 		error ("too many global variables!");
