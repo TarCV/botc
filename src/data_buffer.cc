@@ -30,46 +30,46 @@
 
 // ============================================================================
 //
-void data_buffer::merge (data_buffer* other)
+data_buffer::data_buffer (int size)
+{
+	set_writepos (get_buffer());
+	set_buffer (new byte[size]);
+	set_allocated_size (size);
+}
+
+// ============================================================================
+//
+data_buffer::~data_buffer()
+{
+	assert (count_marks() == 0 && count_refs() == 0);
+	delete get_buffer();
+}
+
+// ============================================================================
+//
+void data_buffer::merge_and_destroy (data_buffer* other)
 {
 	if (!other)
 		return;
 
-	int oldsize = writesize;
+	int oldsize = get_write_size();
+	copy_buffer (other);
 
-	for (int x = 0; x < other->writesize; x++)
-		write (* (other->buffer + x));
-
-	// Merge its marks and references
-	int u = 0;
-
-	for (u = 0; u < MAX_MARKS; u++)
+	// Assimilate in its marks and references
+	for (byte_mark* mark : other->get_marks())
 	{
-		if (other->marks[u])
-		{
-			// Merge the mark and offset its position.
-			if (marks[u])
-				error ("DataBuffer: duplicate mark %d!\n");
-
-			marks[u] = other->marks[u];
-			marks[u]->pos += oldsize;
-
-			// The original mark becomes null so that the deconstructor
-			// will not delete it prematurely. (should it delete any
-			// marks in the first place since there is no such thing
-			// as at temporary mark?)
-			other->marks[u] = null;
-		}
-
-		if (other->refs[u])
-		{
-			// Same for references
-			// TODO: add a g_NextRef system like here, akin to marks!
-			int r = add_reference (other->refs[u]->num, false);
-			refs[r]->pos = other->refs[u]->pos + oldsize;
-		}
+		mark->pos += oldsize;
+		push_to_marks (mark);
 	}
 
+	for (mark_reference* ref : other->get_refs())
+	{
+		ref->pos += oldsize;
+		push_to_refs (ref);
+	}
+
+	clear_marks();
+	clear_refs();
 	delete other;
 }
 
@@ -78,182 +78,166 @@ void data_buffer::merge (data_buffer* other)
 data_buffer* data_buffer::clone()
 {
 	data_buffer* other = new data_buffer;
-
-	for (int x = 0; x < writesize; x++)
-		other->write (* (buffer + x));
-
+	other->copy_buffer (this);
 	return other;
 }
 
 // ============================================================================
 //
-int data_buffer::add_mark (string name)
+void data_buffer::copy_buffer (const data_buffer* buf)
 {
-	// Find a free slot for the mark
-	int u = g_NextMark++;
-
-	if (marks[u])
-		error ("DataBuffer: attempted to re-create mark %u!\n", u);
-
-	if (u >= MAX_MARKS)
-		error ("mark quota exceeded, all labels, if-structs and loops add marks\n");
-
-	ScriptMark* m = new ScriptMark;
-	m->name = name;
-	m->pos = writesize;
-	marks[u] = m;
-	return u;
+	check_space (buf->get_write_size());
+	memcpy (m_writepos, buf->get_buffer(), buf->get_write_size());
+	m_writepos += buf->get_write_size();
 }
 
 // ============================================================================
 //
-int data_buffer::add_reference (int marknum, bool placeholder)
+byte_mark* data_buffer::add_mark (string name)
 {
-	int u;
+	byte_mark* mark = new byte_mark;
+	mark->name = name;
+	mark->pos = get_write_size();
+	push_to_marks (mark);
+	return mark;
+}
 
-	for (u = 0; u < MAX_MARKS; u++)
-		if (!refs[u])
-			break;
-
-	// TODO: get rid of this
-	if (u == MAX_MARKS)
-		error ("mark reference quota exceeded, all goto-statements, if-structs and loops add refs\n");
-
-	ScriptMarkReference* r = new ScriptMarkReference;
-	r->num = marknum;
-	r->pos = writesize;
-	refs[u] = r;
+// ============================================================================
+//
+mark_reference* data_buffer::add_reference (byte_mark* mark, bool write_placeholder)
+{
+	mark_reference* ref = new mark_reference;
+	ref->target = mark;
+	ref->pos = get_write_size();
+	push_to_refs (ref);
 
 	// Write a dummy placeholder for the reference
-	if (placeholder)
-		write (0xBEEFCAFE);
+	if (write_placeholder)
+		write_dword (0xBEEFCAFE);
 
-	return u;
+	return ref;
 }
 
 // ============================================================================
 //
-void data_buffer::delete_mark (int marknum)
+void data_buffer::adjust_mark (byte_mark* mark)
 {
-	if (!marks[marknum])
-		return;
-
-	// Delete the mark
-	delete marks[marknum];
-	marks[marknum] = null;
-
-	// Delete its references
-	for (int u = 0; u < MAX_MARKS; u++)
-	{
-		if (refs[u]->num == marknum)
-		{
-			delete refs[u];
-			refs[u] = null;
-		}
-	}
+	mark->pos = get_write_size();
 }
 
 // ============================================================================
 //
-void data_buffer::move_mark (int i)
+void data_buffer::offset_mark (byte_mark* mark, int offset)
 {
-	if (!marks[i])
-		return;
-
-	marks[i]->pos = writesize;
+	mark->pos += offset;
 }
 
 // ============================================================================
 //
-void data_buffer::offset_mark (int mark, int offset)
+void data_buffer::write_float (float a)
 {
-	if (!marks[mark])
-		return;
+	// TODO: Find a way to store the number without decimal loss.
+	write_dword (dh_push_number);
+	write_dword (abs (a));
 
-	marks[mark]->pos += offset;
+	if (a < 0)
+		write_dword (dh_unary_minus);
 }
 
 // ============================================================================
 //
-int data_buffer::count_marks()
+void data_buffer::write_string_index (const string& a)
 {
-	int count = 0;
-
-	for (int u = 0; u < MAX_MARKS; u++)
-		count += !!marks[u];
-
-	return count;
-}
-
-// ============================================================================
-//
-int data_buffer::count_references()
-{
-	int count = 0;
-
-	for (int u = 0; u < MAX_MARKS; u++)
-		count += !!refs[u];
-
-	return count;
-}
-
-// ============================================================================
-//
-void data_buffer::write_float (string floatstring)
-{
-	// TODO: Casting float to word causes the decimal to be lost.
-	// Find a way to store the number without such loss.
-	float val = atof (floatstring);
-	write (dh_push_number);
-	write (static_cast<word> (abs (val)));
-
-	if (val < 0)
-		write (dh_unary_minus);
-}
-
-// ============================================================================
-//
-void data_buffer::write_string (string a)
-{
-	write (dh_push_string_index);
-	write (get_string_table_index (a));
+	write_dword (dh_push_string_index);
+	write_dword (get_string_table_index (a));
 }
 
 // ============================================================================
 //
 void data_buffer::dump()
 {
-	for (int x = 0; x < writesize; x++)
-		printf ("%d. [%d]\n", x, * (buffer + x));
+	for (int i = 0; i < get_write_size(); ++i)
+		printf ("%d. [%d]\n", i, get_buffer()[i]);
 }
 
 // ============================================================================
 //
-data_buffer::~data_buffer()
+void data_buffer::check_space (int bytes)
 {
-	delete buffer;
+	int writesize = get_write_size();
 
-	// Delete any marks and references
-	for (int i = 0; i < MAX_MARKS; i++)
-	{
-		delete marks[i];
-		delete refs[i];
-	}
+	if (writesize + bytes < get_allocated_size())
+		return;
+
+	// We don't have enough space in the buffer to write
+	// the stuff - thus resize. First, store the old
+	// buffer temporarily:
+	char* copy = new char[get_allocated_size()];
+	memcpy (copy, get_buffer(), get_allocated_size());
+
+	// Remake the buffer with the new size. Have enough space
+	// for the stuff we're going to write, as well as a bit
+	// of leeway so we don't have to resize immediately again.
+	size_t newsize = get_allocated_size() + bytes + 512;
+
+	delete get_buffer();
+	set_buffer (new byte[newsize]);
+	set_allocated_size (newsize);
+
+	// Now, copy the stuff back.
+	memcpy (m_buffer, copy, get_allocated_size());
+	set_writepos (get_buffer() + writesize);
+	delete copy;
 }
 
-// ============================================================================
+// =============================================================================
 //
-data_buffer::data_buffer (int size)
+void data_buffer::write_byte (int8_t data)
 {
-	writesize = 0;
+	check_space (1);
+	*m_writepos++ = data;
+}
 
-	buffer = new unsigned char[size];
-	allocsize = size;
+// =============================================================================
+//
+void data_buffer::write_word (int16_t data)
+{
+	check_space (2);
 
-	// Clear the marks table out
-	for (int u = 0; u < MAX_MARKS; u++)
-	{
-		marks[u] = null;
-		refs[u] = null;
-	}
+	for (int i = 0; i < 2; ++i)
+		*m_writepos++ = (data >> (i * 8)) & 0xFF;
+}
+
+// =============================================================================
+//
+void data_buffer::write_dword (int32_t data)
+{
+	check_space (4);
+
+	for (int i = 0; i < 4; ++i)
+		*m_writepos++ = (data >> (i * 8)) & 0xFF;
+}
+
+// =============================================================================
+//
+void data_buffer::write_string (const string& a)
+{
+	check_space (a.length() + 1);
+
+	for (char c : a)
+		write_byte (c);
+
+	write_byte ('\0');
+}
+
+
+// =============================================================================
+//
+byte_mark* data_buffer::find_mark_by_name (const string& target)
+{
+	for (byte_mark* mark : get_marks())
+		if (mark->name == target)
+			return mark;
+
+	return null;
 }

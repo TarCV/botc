@@ -32,18 +32,26 @@
 #include <stdio.h>
 #include "main.h"
 #include "commands.h"
-#include "object_writer.h"
 #include "lexer_scanner.h"
 #include "tokens.h"
 
-#define MAX_FILESTACK 8
 #define MAX_SCOPE 32
 #define MAX_CASE 64
+#define MAX_MARKS 512 // TODO: get rid of this
 
+class data_buffer;
 class lexer;
 class script_variable;
 
+struct undefined_label
+{
+	string		name;
+	byte_mark*	target;
+};
+
+// ============================================================================
 // Operators
+//
 enum operator_e
 {
 	OPER_ADD,
@@ -76,6 +84,8 @@ enum operator_e
 	OPER_STRLEN,
 };
 
+// ============================================================================
+//
 struct operator_info
 {
 	operator_e		opercode;
@@ -83,7 +93,9 @@ struct operator_info
 	e_token			token;
 };
 
+// ============================================================================
 // Mark types
+//
 enum marktype_e
 {
 	e_label_mark,
@@ -91,7 +103,9 @@ enum marktype_e
 	e_internal_mark, // internal structures
 };
 
-// Block types
+// ============================================================================
+// Scope types
+//
 enum scopetype_e
 {
 	e_unknown_scope,
@@ -104,32 +118,34 @@ enum scopetype_e
 };
 
 // ============================================================================
-// Meta-data about blocks
+// Meta-data about scopes
+//
 struct ScopeInfo
 {
-	int mark1;
-	int mark2;
-	scopetype_e type;
-	data_buffer* buffer1;
+	byte_mark*		mark1;
+	byte_mark*		mark2;
+	scopetype_e		type;
+	data_buffer*	buffer1;
 
 	// switch-related stuff
 	// Which case are we at?
-	short casecursor;
+	int				casecursor;
 
 	// Marks to case-blocks
-	int casemarks[MAX_CASE];
+	byte_mark*		casemarks[MAX_CASE];
 
 	// Numbers of the case labels
-	int casenumbers[MAX_CASE];
+	int				casenumbers[MAX_CASE];
 
 	// actual case blocks
-	data_buffer* casebuffers[MAX_CASE];
+	data_buffer*	casebuffers[MAX_CASE];
 
 	// What is the current buffer of the block?
-	data_buffer* recordbuffer;
+	data_buffer*	recordbuffer;
 };
 
 // ============================================================================
+//
 struct constant_info
 {
 	string name;
@@ -138,71 +154,105 @@ struct constant_info
 };
 
 // ============================================================================
-// The script reader reads the script, parses it and tells the object writer
-// the bytecode it needs to write to file.
+//
 class botscript_parser
 {
 	public:
 		// ====================================================================
-		// TODO: make private
-		FILE* fp[MAX_FILESTACK];
-		string filepath[MAX_FILESTACK];
-		int fc;
-
-		int pos[MAX_FILESTACK];
-		int curline[MAX_FILESTACK];
-		int curchar[MAX_FILESTACK];
-		ScopeInfo scopestack[MAX_SCOPE];
-		long savedpos[MAX_FILESTACK]; // filepointer cursor position
-		int commentmode;
-		long prevpos;
-		string prevtoken;
-
-		// ====================================================================
 		// METHODS
 		botscript_parser();
 		~botscript_parser();
-		void parse_botscript (string file_name, object_writer* w);
-		data_buffer* ParseCommand (command_info* comm);
-		data_buffer* parse_expression (type_e reqtype);
-		data_buffer* parse_assignment (script_variable* var);
-		int parse_operator (bool peek = false);
-		data_buffer* parse_expr_value (type_e reqtype);
-		string parse_float ();
-		void push_scope ();
-		data_buffer* parse_statement ();
-		void add_switch_case (data_buffer* b);
-		void check_toplevel();
-		void check_not_toplevel();
-		bool token_is (e_token a);
-		string token_string();
-		string describe_position() const;
+		void			parse_botscript (string file_name);
+		data_buffer*	parse_command (command_info* comm);
+		data_buffer*	parse_expression (type_e reqtype);
+		data_buffer*	parse_assignment (script_variable* var);
+		int				parse_operator (bool peek = false);
+		data_buffer*	parse_expr_value (type_e reqtype);
+		string			parse_float();
+		void			push_scope();
+		data_buffer*	parse_statement();
+		void			add_switch_case (data_buffer* b);
+		void			check_toplevel();
+		void			check_not_toplevel();
+		bool			token_is (e_token a);
+		string			token_string();
+		string			describe_position() const;
+		void			write_to_file (string outfile);
+
+		inline int get_num_events() const
+		{
+			return m_num_events;
+		}
+
+		inline int get_num_states() const
+		{
+			return m_num_states;
+		}
 
 	private:
-		lexer*			m_lx;
-		object_writer*	m_writer;
+		// The lexer we're using.
+		lexer*					m_lx;
 
-		void parse_state_block();
-		void parse_event_block();
-		void parse_mainloop();
-		void parse_on_enter_exit();
-		void parse_variable_declaration();
-		void parse_goto();
-		void parse_if();
-		void parse_else();
-		void parse_while_block();
-		void parse_for_block();
-		void parse_do_block();
-		void parse_switch_block();
-		void parse_switch_case();
-		void parse_switch_default();
-		void parse_break();
-		void parse_continue();
-		void parse_block_end();
-		void parse_const();
-		void parse_label();
-		void parse_eventdef();
-		void parse_funcdef();
+		// The main buffer - the contents of this is what we
+		// write to file after parsing is complete
+		data_buffer*			m_main_buffer;
+
+		// onenter buffer - the contents of the onenter{} block
+		// is buffered here and is merged further at the end of state
+		data_buffer*			m_on_enter_buffer;
+
+		// Mainloop buffer - the contents of the mainloop{} block
+		// is buffered here and is merged further at the end of state
+		data_buffer*			m_main_loop_buffer;
+
+		// Switch buffer - switch case data is recorded to this
+		// buffer initially, instead of into main buffer.
+		data_buffer*			m_switch_buffer;
+
+		int						m_num_states;
+		int						m_num_events;
+		parsermode_e			m_current_mode;
+		string					m_current_state;
+		bool					m_state_spawn_defined;
+		bool					m_got_main_loop;
+		int						m_scope_cursor;
+		data_buffer*			m_if_expression;
+		bool					m_can_else;
+		list<undefined_label>	m_undefined_labels;
+		list<constant_info>		m_constants;
+
+		// How many bytes have we written to file?
+		int				m_num_written_bytes;
+
+		// Scope data
+		// TODO: make a list
+		ScopeInfo		m_scope_stack[MAX_SCOPE];
+
+		data_buffer*	buffer();
+		constant_info*	find_constant (const string& tok);
+		void			parse_state_block();
+		void			parse_event_block();
+		void			parse_mainloop();
+		void			parse_on_enter_exit();
+		void			parse_variable_declaration();
+		void			parse_goto();
+		void			parse_if();
+		void			parse_else();
+		void			parse_while_block();
+		void			parse_for_block();
+		void			parse_do_block();
+		void			parse_switch_block();
+		void			parse_switch_case();
+		void			parse_switch_default();
+		void			parse_break();
+		void			parse_continue();
+		void			parse_block_end();
+		void			parse_const();
+		void			parse_label();
+		void			parse_eventdef();
+		void			parse_funcdef();
+		void			write_member_buffers();
+		void			write_string_table();
 };
 
 constant_info* find_constant (const string& tok);

@@ -264,7 +264,7 @@ template<class T> class list
 
 			for (const element_type& hay : *this)
 			{
-				if (hay == needle)
+				if (&hay == &needle)
 					return i;
 
 				i++;

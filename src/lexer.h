@@ -91,7 +91,7 @@ public:
 		return describe_token_private (tok->type, tok);
 	}
 
-	static lexer* get_main_lexer();
+	static lexer* get_current_lexer();
 
 	inline void skip (int a = 1)
 	{

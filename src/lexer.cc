@@ -285,7 +285,7 @@ bool lexer::peek_next (lexer::token* tk)
 
 // =============================================================================
 //
-lexer* lexer::get_main_lexer()
+lexer* lexer::get_current_lexer()
 {
 	return g_main_lexer;
 }

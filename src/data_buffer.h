@@ -36,112 +36,60 @@
 
 #define MAX_MARKS 512
 
-extern int g_NextMark;
-
 // ============================================================================
-// DataBuffer: A dynamic data buffer.
+// data_buffer: A dynamic data buffer.
+//
+// Notes:
+//
+// - A mark is a "pointer" to a particular position in the bytecode. The actual
+//   permanent position cannot be predicted in any way or form, thus these things
+//   are used to "mark" a position like that for future use.
+//
+// - A reference is another "mark" that references a mark. When the bytecode
+//   is written to file, they are changed into their marks' current
+//   positions. Marks themselves are never written to files, only refs are
+//
 class data_buffer
 {
-public:
-	// The actual buffer
-	byte* buffer;
+	PROPERTY (private, byte*,					buffer,			NO_OPS,		STOCK_WRITE)
+	PROPERTY (private, int,						allocated_size,	NUM_OPS,	STOCK_WRITE)
+	PROPERTY (private, byte*,					writepos,		NO_OPS,		STOCK_WRITE)
+	PROPERTY (private, list<byte_mark*>,		marks,			LIST_OPS,	STOCK_WRITE)
+	PROPERTY (private, list<mark_reference*>,	refs,			LIST_OPS,	STOCK_WRITE)
 
-	// Allocated size of the buffer
-	int allocsize;
+	public:
+		data_buffer (int size = 128);
+		~data_buffer();
 
-	// Written size of the buffer
-	int writesize;
+		// ====================================================================
+		// Merge another data buffer into this one.
+		// Note: @other is destroyed in the process!
+		void merge_and_destroy (data_buffer* other);
 
-	// Marks and references
-	ScriptMark* marks[MAX_MARKS];
-	ScriptMarkReference* refs[MAX_MARKS];
+		// Clones this databuffer to a new one and returns it.
+		data_buffer* clone ();
 
-	data_buffer (int size = 128);
-	~data_buffer ();
+		byte_mark* add_mark (string name);
 
-	// ====================================================================
-	// Write stuff to the buffer
-	// TODO: un-template and remove the union, move to source file
-	template<class T> void write (T stuff)
-	{
-		if (writesize + sizeof (T) >= allocsize)
+		mark_reference*	add_reference (byte_mark* mark, bool write_placeholder = true);
+		void			check_space (int bytes);
+		void			delete_mark (int marknum);
+		void			adjust_mark(byte_mark* mark);
+		void			offset_mark (byte_mark* mark, int offset);
+		byte_mark*		find_mark_by_name (const string& target);
+		void			dump();
+		void			write_float (float a);
+		void			write_string_index (const string& a);
+		void			write_string (const string& a);
+		void			write_byte (int8_t data);
+		void			write_word (int16_t data);
+		void			write_dword (int32_t data);
+		void			copy_buffer (const data_buffer* buf);
+
+		inline int get_write_size() const
 		{
-			// We don't have enough space in the buffer to write
-			// the stuff - thus resize. First, store the old
-			// buffer temporarily:
-			char* copy = new char[allocsize];
-			memcpy (copy, buffer, allocsize);
-
-			// Remake the buffer with the new size. Have enough space
-			// for the stuff we're going to write, as well as a bit
-			// of leeway so we don't have to resize immediately again.
-			size_t newsize = allocsize + sizeof (T) + 128;
-
-			delete buffer;
-			buffer = new unsigned char[newsize];
-			allocsize = newsize;
-
-			// Now, copy the stuff back.
-			memcpy (buffer, copy, allocsize);
-			delete copy;
+			return m_writepos - get_buffer();
 		}
-
-		// Buffer is now guaranteed to have enough space.
-		// Write the stuff one byte at a time.
-		generic_union<T> uni;
-		uni.as_t = stuff;
-
-		for (int x = 0; x < sizeof (T); x++)
-		{
-			if (writesize >= allocsize) // should NEVER happen because resizing is done above
-				error ("DataBuffer: written size exceeds allocated size!\n");
-
-			buffer[writesize] = uni.as_bytes[x];
-			writesize++;
-		}
-	}
-
-	// ====================================================================
-	// Merge another data buffer into this one.
-	void merge (data_buffer* other);
-
-	// Clones this databuffer to a new one and returns it.
-	data_buffer* clone ();
-
-	// ====================================================================
-	// Adds a mark to the buffer. A mark is a "pointer" to a particular
-	// position in the bytecode. The actual permanent position cannot
-	// be predicted in any way or form, thus these things will be used
-	// to "mark" a position like that for future use.
-	int add_mark (string name);
-
-	// ====================================================================
-	// A ref is another "mark" that references a mark. When the bytecode
-	// is written to file, they are changed into their marks' current
-	// positions. Marks themselves are never written to files, only refs are
-	int add_reference (int marknum, bool placeholder = true);
-
-	// Delete a mark and all references to it.
-	void delete_mark (int marknum);
-
-	// Adjusts a mark to the current position
-	void move_mark(int i);
-
-	void offset_mark (int mark, int offset);
-
-	// Dump the buffer (for debugging purposes)
-	void dump();
-
-	// Count the amount of marks
-	int count_marks ();
-
-	// Count the amount of refs
-	int count_references ();
-
-	// Write a float into the buffer
-	void write_float (string floatstring);
-
-	void write_string (string a);
 };
 
 #endif // BOTC_DATABUFFER_H

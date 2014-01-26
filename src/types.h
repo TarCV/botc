@@ -31,8 +31,72 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include "str.h"
 
 static const std::nullptr_t null = nullptr;
+
+// Byte datatype
+typedef int32_t word;
+typedef unsigned char byte;
+
+// Parser mode: where is the parser at?
+enum parsermode_e
+{
+	MODE_TOPLEVEL,	// at top level
+	MODE_EVENT,		// inside event definition
+	MODE_MAINLOOP,	// inside mainloop
+	MODE_ONENTER,	// inside onenter
+	MODE_ONEXIT,	// inside onexit
+};
+
+enum type_e
+{
+	TYPE_UNKNOWN = 0,
+	TYPE_VOID,
+	TYPE_INT,
+	TYPE_STRING,
+	TYPE_BOOL,
+};
+
+// Script mark and reference
+struct byte_mark
+{
+	string		name;
+	int			pos;
+};
+
+struct mark_reference
+{
+	byte_mark*	target;
+	int			pos;
+};
+
+class script_error : public std::exception
+{
+	public:
+		script_error (const string& msg) : m_msg (msg) {}
+
+		inline const char* what() const throw()
+		{
+			return m_msg.c_str();
+		}
+
+	private:
+		string m_msg;
+};
+
+// ====================================================================
+// Generic union
+template <class T> union generic_union
+{
+	T as_t;
+	byte as_bytes[sizeof (T)];
+	char as_chars[sizeof (T)];
+	double as_double;
+	float as_float;
+	int as_int;
+	word as_word;
+};
 
 template<class T> inline T abs (T a)
 {
