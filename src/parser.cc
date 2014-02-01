@@ -53,7 +53,7 @@ botscript_parser::~botscript_parser()
 //
 void botscript_parser::check_toplevel()
 {
-	if (m_current_mode != MODE_TOPLEVEL)
+	if (m_current_mode != e_top_level_mode)
 		error ("%1-statements may only be defined at top level!", token_string());
 }
 
@@ -61,7 +61,7 @@ void botscript_parser::check_toplevel()
 //
 void botscript_parser::check_not_toplevel()
 {
-	if (m_current_mode == MODE_TOPLEVEL)
+	if (m_current_mode == e_top_level_mode)
 		error ("%1-statements must not be defined at top level!", token_string());
 }
 
@@ -74,7 +74,7 @@ void botscript_parser::parse_botscript (string file_name)
 	// Lex and preprocess the file
 	m_lx->process_file (file_name);
 
-	m_current_mode = MODE_TOPLEVEL;
+	m_current_mode = e_top_level_mode;
 	m_num_states = 0;
 	m_num_events = 0;
 	m_scope_cursor = 0;
@@ -220,7 +220,7 @@ void botscript_parser::parse_botscript (string file_name)
 
 	// ===============================================================================
 	// Script file ended. Do some last checks and write the last things to main buffer
-	if (m_current_mode != MODE_TOPLEVEL)
+	if (m_current_mode != e_top_level_mode)
 		error ("script did not end at top level; a `}` is missing somewhere");
 
 	// stateSpawn must be defined!
@@ -293,7 +293,7 @@ void botscript_parser::parse_event_block()
 		error ("bad event, got `%1`\n", token_string());
 
 	m_lx->must_get_next (tk_brace_start);
-	m_current_mode = MODE_EVENT;
+	m_current_mode = e_event_mode;
 	buffer()->write_dword (dh_event);
 	buffer()->write_dword (e->number);
 	m_num_events++;
@@ -306,7 +306,7 @@ void botscript_parser::parse_mainloop()
 	check_toplevel();
 	m_lx->must_get_next (tk_brace_start);
 
-	m_current_mode = MODE_MAINLOOP;
+	m_current_mode = e_main_loop_mode;
 	m_main_loop_buffer->write_dword (dh_main_loop);
 }
 
@@ -318,7 +318,7 @@ void botscript_parser::parse_on_enter_exit()
 	bool onenter = (token_is (tk_onenter));
 	m_lx->must_get_next (tk_brace_start);
 
-	m_current_mode = onenter ? MODE_ONENTER : MODE_ONEXIT;
+	m_current_mode = onenter ? e_onenter_mode : e_onexit_mode;
 	buffer()->write_dword (onenter ? dh_on_enter : dh_on_exit);
 }
 
@@ -327,12 +327,12 @@ void botscript_parser::parse_on_enter_exit()
 void botscript_parser::parse_variable_declaration()
 {
 	// For now, only globals are supported
-	if (m_current_mode != MODE_TOPLEVEL || m_current_state.is_empty() == false)
+	if (m_current_mode != e_top_level_mode || m_current_state.is_empty() == false)
 		error ("variables must only be global for now");
 
-	type_e type =	(token_is (tk_int)) ? TYPE_INT :
-					(token_is (tk_str)) ? TYPE_STRING :
-					TYPE_BOOL;
+	type_e type =	(token_is (tk_int)) ? e_int_type :
+					(token_is (tk_str)) ? e_string_type :
+					e_bool_type;
 
 	m_lx->must_get_next();
 	string varname = token_string();
@@ -386,7 +386,7 @@ void botscript_parser::parse_if()
 
 	// Read the expression and write it.
 	m_lx->must_get_next();
-	data_buffer* c = parse_expression (TYPE_INT);
+	data_buffer* c = parse_expression (e_int_type);
 	buffer()->merge_and_destroy (c);
 
 	m_lx->must_get_next (tk_paren_end);
@@ -452,7 +452,7 @@ void botscript_parser::parse_while_block()
 	// Condition
 	m_lx->must_get_next (tk_paren_start);
 	m_lx->must_get_next();
-	data_buffer* expr = parse_expression (TYPE_INT);
+	data_buffer* expr = parse_expression (e_int_type);
 	m_lx->must_get_next (tk_paren_end);
 	m_lx->must_get_next (tk_brace_start);
 
@@ -488,7 +488,7 @@ void botscript_parser::parse_for_block()
 
 	// Condition
 	m_lx->must_get_next();
-	data_buffer* cond = parse_expression (TYPE_INT);
+	data_buffer* cond = parse_expression (e_int_type);
 
 	if (!cond)
 		error ("bad statement for condition of for");
@@ -556,7 +556,7 @@ void botscript_parser::parse_switch_block()
 	push_scope();
 	m_lx->must_get_next (tk_paren_start);
 	m_lx->must_get_next();
-	buffer()->merge_and_destroy (parse_expression (TYPE_INT));
+	buffer()->merge_and_destroy (parse_expression (e_int_type));
 	m_lx->must_get_next (tk_paren_end);
 	m_lx->must_get_next (tk_brace_start);
 	SCOPE (0).type = e_switch_scope;
@@ -718,8 +718,6 @@ void botscript_parser::parse_block_end()
 			case e_for_scope:
 				// write the incrementor at the end of the loop block
 				buffer()->merge_and_destroy (SCOPE (0).buffer1);
-
-				// fall-thru
 			case e_while_scope:
 				// write down the instruction to go back to the start of the loop
 				buffer()->write_dword (dh_goto);
@@ -734,7 +732,7 @@ void botscript_parser::parse_block_end()
 				m_lx->must_get_next (tk_while);
 				m_lx->must_get_next (tk_paren_start);
 				m_lx->must_get_next();
-				data_buffer* expr = parse_expression (TYPE_INT);
+				data_buffer* expr = parse_expression (e_int_type);
 				m_lx->must_get_next (tk_paren_end);
 				m_lx->must_get_next (tk_semicolon);
 
@@ -791,10 +789,10 @@ void botscript_parser::parse_block_end()
 		return;
 	}
 
-	int dataheader =	(m_current_mode == MODE_EVENT) ? dh_end_event :
-						(m_current_mode == MODE_MAINLOOP) ? dh_end_main_loop :
-						(m_current_mode == MODE_ONENTER) ? dh_end_on_enter :
-						(m_current_mode == MODE_ONEXIT) ? dh_end_on_exit : -1;
+	int dataheader =	(m_current_mode == e_event_mode) ? dh_end_event :
+						(m_current_mode == e_main_loop_mode) ? dh_end_main_loop :
+						(m_current_mode == e_onenter_mode) ? dh_end_on_enter :
+						(m_current_mode == e_onexit_mode) ? dh_end_on_exit : -1;
 
 	if (dataheader == -1)
 		error ("unexpected `}`");
@@ -803,7 +801,7 @@ void botscript_parser::parse_block_end()
 	// onenter and mainloop go into special buffers, and we want
 	// the closing data headers into said buffers too.
 	buffer()->write_dword (dataheader);
-	m_current_mode = MODE_TOPLEVEL;
+	m_current_mode = e_top_level_mode;
 	m_lx->get_next (tk_semicolon);
 }
 
@@ -816,9 +814,9 @@ void botscript_parser::parse_const()
 	// Get the type
 	m_lx->must_get_next();
 	string typestring = token_string();
-	info.type = GetTypeByName (typestring);
+	info.type = get_type_by_name (typestring);
 
-	if (info.type == TYPE_UNKNOWN || info.type == TYPE_VOID)
+	if (info.type == e_unknown_type || info.type == e_void_type)
 		error ("unknown type `%1` for constant", typestring);
 
 	m_lx->must_get_next();
@@ -828,19 +826,19 @@ void botscript_parser::parse_const()
 
 	switch (info.type)
 	{
-		case TYPE_BOOL:
-		case TYPE_INT:
+		case e_bool_type:
+		case e_int_type:
 		{
 			m_lx->must_get_next (tk_number);
 		} break;
 
-		case TYPE_STRING:
+		case e_string_type:
 		{
 			m_lx->must_get_next (tk_string);
 		} break;
 
-		case TYPE_UNKNOWN:
-		case TYPE_VOID:
+		case e_unknown_type:
+		case e_void_type:
 			break;
 	}
 
@@ -923,7 +921,7 @@ void botscript_parser::parse_funcdef()
 
 	// Return value
 	m_lx->must_get_any_of ({tk_int, tk_void, tk_bool, tk_str});
-	comm->returnvalue = GetTypeByName (m_lx->get_token()->text); // TODO
+	comm->returnvalue = get_type_by_name (m_lx->get_token()->text); // TODO
 	assert (comm->returnvalue != -1);
 
 	m_lx->must_get_next (tk_colon);
@@ -946,8 +944,8 @@ void botscript_parser::parse_funcdef()
 		command_argument arg;
 		m_lx->must_get_next (tk_colon);
 		m_lx->must_get_any_of ({tk_int, tk_bool, tk_str});
-		type_e type = GetTypeByName (m_lx->get_token()->text);
-		assert (type != -1 && type != TYPE_VOID);
+		type_e type = get_type_by_name (m_lx->get_token()->text);
+		assert (type != -1 && type != e_void_type);
 		arg.type = type;
 
 		m_lx->must_get_next (tk_paren_start);
@@ -961,17 +959,17 @@ void botscript_parser::parse_funcdef()
 
 			switch (type)
 			{
-				case TYPE_INT:
-				case TYPE_BOOL:
+				case e_int_type:
+				case e_bool_type:
 					m_lx->must_get_next (tk_number);
 					break;
 
-				case TYPE_STRING:
+				case e_string_type:
 					m_lx->must_get_next (tk_string);
 					break;
 
-				case TYPE_UNKNOWN:
-				case TYPE_VOID:
+				case e_unknown_type:
+				case e_void_type:
 					break;
 			}
 
@@ -993,7 +991,7 @@ data_buffer* botscript_parser::parse_command (command_info* comm)
 {
 	data_buffer* r = new data_buffer (64);
 
-	if (m_current_mode == MODE_TOPLEVEL)
+	if (m_current_mode == e_top_level_mode)
 		error ("command call at top level");
 
 	m_lx->must_get_next (tk_paren_start);
@@ -1349,23 +1347,23 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 		// Type check
 		if (reqtype != constant->type)
 			error ("constant `%1` is %2, expression requires %3\n",
-				constant->name, GetTypeName (constant->type),
-				GetTypeName (reqtype));
+				constant->name, get_type_name (constant->type),
+				get_type_name (reqtype));
 
 		switch (constant->type)
 		{
-			case TYPE_BOOL:
-			case TYPE_INT:
+			case e_bool_type:
+			case e_int_type:
 				b->write_dword (dh_push_number);
 				b->write_dword (atoi (constant->val));
 				break;
 
-			case TYPE_STRING:
+			case e_string_type:
 				b->write_string_index (constant->val);
 				break;
 
-			case TYPE_VOID:
-			case TYPE_UNKNOWN:
+			case e_void_type:
+			case e_unknown_type:
 				break;
 		}
 	}
@@ -1380,13 +1378,13 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 		// If nothing else, check for literal
 		switch (reqtype)
 		{
-		case TYPE_VOID:
-		case TYPE_UNKNOWN:
+		case e_void_type:
+		case e_unknown_type:
 			error ("unknown identifier `%1` (expected keyword, function or variable)", token_string());
 			break;
 
-		case TYPE_BOOL:
-		case TYPE_INT:
+		case e_bool_type:
+		case e_int_type:
 		{
 			m_lx->must_be (tk_number);
 
@@ -1403,7 +1401,7 @@ data_buffer* botscript_parser::parse_expr_value (type_e reqtype)
 			break;
 		}
 
-		case TYPE_STRING:
+		case e_string_type:
 			// PushToStringTable either returns the string index of the
 			// string if it finds it in the table, or writes it to the
 			// table and returns it index if it doesn't find it there.
@@ -1434,7 +1432,7 @@ data_buffer* botscript_parser::parse_assignment (script_variable* var)
 	if (!is_assignment_operator (oper))
 		error ("expected assignment operator");
 
-	if (m_current_mode == MODE_TOPLEVEL)
+	if (m_current_mode == e_top_level_mode)
 		error ("can't alter variables at top level");
 
 	// Parse the right operand
@@ -1570,10 +1568,10 @@ data_buffer* botscript_parser::buffer()
 	if (m_switch_buffer != null)
 		return m_switch_buffer;
 
-	if (m_current_mode == MODE_MAINLOOP)
+	if (m_current_mode == e_main_loop_mode)
 		return m_main_loop_buffer;
 
-	if (m_current_mode == MODE_ONENTER)
+	if (m_current_mode == e_onenter_mode)
 		return m_on_enter_buffer;
 
 	return m_main_buffer;
@@ -1630,27 +1628,18 @@ void botscript_parser::write_string_table()
 void botscript_parser::write_to_file (string outfile)
 {
 	FILE* fp = fopen (outfile, "w");
-	CHECK_FILE (fp, outfile, "writing");
+
+	if (fp == null)
+		error ("couldn't open %1 for writing: %2", outfile, strerror (errno));
 
 	// First, resolve references
-	for (int u = 0; u < MAX_MARKS; u++)
+	for (mark_reference* ref : m_main_buffer->get_refs())
 	{
-		mark_reference* ref = m_main_buffer->get_refs()[u];
-
-		if (!ref)
-			continue;
-
 		// Substitute the placeholder with the mark position
-		generic_union<word> uni;
-		uni.as_word = static_cast<word> (ref->target->pos);
+		for (int v = 0; v < 4; v++)
+			m_main_buffer->get_buffer()[ref->pos + v] = ((ref->target->pos) << (8 * v)) & 0xFF;
 
-		for (int v = 0; v < (int) sizeof (word); v++)
-			memset (m_main_buffer->get_buffer() + ref->pos + v, uni.as_bytes[v], 1);
-
-		/*
-		printf ("reference %u at %d resolved to %u at %d\n",
-			u, ref->pos, ref->num, MainBuffer->marks[ref->num]->pos);
-		*/
+		print ("reference at %1 resolved to mark at %2\n", ref->pos, ref->target->pos);
 	}
 
 	// Then, dump the main buffer to the file

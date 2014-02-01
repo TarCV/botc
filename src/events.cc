@@ -44,6 +44,7 @@ void add_event (event_info* e)
 }
 
 // ============================================================================
+//
 // Delete event definitions recursively
 //
 static void unlink_events()
@@ -55,14 +56,18 @@ static void unlink_events()
 }
 
 // ============================================================================
+//
 // Finds an event definition by index
+//
 event_info* find_event_by_index (int idx)
 {
 	return g_events[idx];
 }
 
 // ============================================================================
+//
 // Finds an event definition by name
+//
 event_info* find_event_by_name (string a)
 {
 	for (event_info* e : g_events)

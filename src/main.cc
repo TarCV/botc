@@ -81,7 +81,7 @@ int main (int argc, char** argv)
 		string outfile;
 
 		if (argc < 3)
-			outfile = ObjectFileName (argv[1]);
+			outfile = make_object_file_name (argv[1]);
 		else
 			outfile = argv[2];
 
@@ -116,24 +116,10 @@ int main (int argc, char** argv)
 }
 
 // ============================================================================
-// Utility functions
-
-// ============================================================================
-// Does the given file exist?
-bool fexists (string path)
-{
-	if (FILE* test = fopen (path, "r"))
-	{
-		fclose (test);
-		return true;
-	}
-
-	return false;
-}
-
-// ============================================================================
+//
 // Mutates given filename to an object filename
-string ObjectFileName (string s)
+//
+string make_object_file_name (string s)
 {
 	// Locate the extension and chop it out
 	int extdot = s.last (".");
@@ -146,35 +132,38 @@ string ObjectFileName (string s)
 }
 
 // ============================================================================
-type_e GetTypeByName (string t)
+//
+type_e get_type_by_name (string t)
 {
 	t = t.to_lowercase();
-	return	(t == "int") ? TYPE_INT :
-			(t == "str") ? TYPE_STRING :
-			(t == "void") ? TYPE_VOID :
-			(t == "bool") ? TYPE_BOOL :
-			TYPE_UNKNOWN;
+	return	(t == "int") ? e_int_type :
+			(t == "str") ? e_string_type :
+			(t == "void") ? e_void_type :
+			(t == "bool") ? e_bool_type :
+			e_unknown_type;
 }
 
 
 // ============================================================================
+//
 // Inverse operation - type name by value
-string GetTypeName (type_e type)
+//
+string get_type_name (type_e type)
 {
 	switch (type)
 	{
-		case TYPE_INT: return "int"; break;
-		case TYPE_STRING: return "str"; break;
-		case TYPE_VOID: return "void"; break;
-		case TYPE_BOOL: return "bool"; break;
-		case TYPE_UNKNOWN: return "???"; break;
+		case e_int_type: return "int"; break;
+		case e_string_type: return "str"; break;
+		case e_void_type: return "void"; break;
+		case e_bool_type: return "bool"; break;
+		case e_unknown_type: return "???"; break;
 	}
 
 	return "";
 }
+
 // =============================================================================
 //
-
 string make_version_string (int major, int minor, int patch)
 {
 	string ver = format ("%1.%2", major, minor);

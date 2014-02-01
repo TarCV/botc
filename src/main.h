@@ -60,26 +60,18 @@
 
 #define elif else if
 
-#define CHECK_FILE(pointer,path,action) \
-	if (!pointer) { \
-		error ("couldn't open %s for %s!\n", path.chars(), action); \
-		exit (1); \
-	}
-
 #define types public
 #define countof(A) ((int) (sizeof A / sizeof *A))
-#define autocast(A) (decltype(A))
-#define assign_autocast(A,B) a = autocast(A) b
 
 // Shortcut for zeroing something
 #define ZERO(obj) memset (&obj, 0, sizeof (obj));
 
 enum form_length_e { e_long_form, e_short_form };
 
-string ObjectFileName (string s);
+string make_object_file_name (string s);
 bool fexists (string path);
-type_e GetTypeByName (string token);
-string GetTypeName (type_e type);
+type_e get_type_by_name (string token);
+string get_type_name (type_e type);
 string get_version_string (form_length_e len);
 string make_version_string (int major, int minor, int patch);
 

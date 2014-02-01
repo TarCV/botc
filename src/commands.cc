@@ -67,7 +67,7 @@ command_info* find_command_by_name (string fname)
 string get_command_signature (command_info* comm)
 {
 	string text;
-	text += GetTypeName (comm->returnvalue);
+	text += get_type_name (comm->returnvalue);
 	text += ' ';
 	text += comm->name;
 
@@ -89,7 +89,7 @@ string get_command_signature (command_info* comm)
 		if (i)
 			text += ", ";
 
-		text += GetTypeName (comm->args[i].type);
+		text += get_type_name (comm->args[i].type);
 		text += ' ';
 		text += comm->args[i].name;
 
@@ -97,7 +97,7 @@ string get_command_signature (command_info* comm)
 		{
 			text += " = ";
 
-			bool is_string = comm->args[i].type == TYPE_STRING;
+			bool is_string = comm->args[i].type == e_string_type;
 
 			if (is_string)
 				text += '"';
