@@ -42,7 +42,7 @@ list<script_variable> g_LocalVariables;
 script_variable* declare_global_variable (type_e type, string name)
 {
 	// Unfortunately the VM does not support string variables so yeah.
-	if (type == TYPE_STRING)
+	if (type == e_string_type)
 		error ("variables cannot be string\n");
 
 	// Check that the variable is valid

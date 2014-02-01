@@ -42,20 +42,20 @@ typedef unsigned char byte;
 // Parser mode: where is the parser at?
 enum parsermode_e
 {
-	MODE_TOPLEVEL,	// at top level
-	MODE_EVENT,		// inside event definition
-	MODE_MAINLOOP,	// inside mainloop
-	MODE_ONENTER,	// inside onenter
-	MODE_ONEXIT,	// inside onexit
+	e_top_level_mode,	// at top level
+	e_event_mode,		// inside event definition
+	e_main_loop_mode,	// inside mainloop
+	e_onenter_mode,		// inside onenter
+	e_onexit_mode,		// inside onexit
 };
 
 enum type_e
 {
-	TYPE_UNKNOWN = 0,
-	TYPE_VOID,
-	TYPE_INT,
-	TYPE_STRING,
-	TYPE_BOOL,
+	e_unknown_type = 0,
+	e_void_type,
+	e_int_type,
+	e_string_type,
+	e_bool_type,
 };
 
 // Script mark and reference
