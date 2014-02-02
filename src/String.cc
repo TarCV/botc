@@ -59,8 +59,9 @@ String String::Strip (const List< char >& unwanted)
 				copy.RemoveAt (i);
 
 	/*
-	while(( pos = copy.first( c )) != -1 )
-		copy.erase( pos );
+	int pos = 0;
+	while ((pos = copy.First (c)) != -1)
+		copy.RemoveAt (pos--);
 	*/
 
 	return copy;
@@ -72,7 +73,7 @@ String String::ToUppercase() const
 {
 	String newstr = mString;
 
-	for (char & c : newstr)
+	for (char& c : newstr)
 		if (c >= 'a' && c <= 'z')
 			c -= 'a' - 'A';
 

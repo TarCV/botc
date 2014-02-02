@@ -75,6 +75,9 @@ void BotscriptParser::ParseBotscript (String fileName)
 	// Lex and preprocess the file
 	mLexer->ProcessFile (fileName);
 
+	mMainBuffer = new DataBuffer;
+	mOnEnterBuffer = new DataBuffer;
+	mMainLoopBuffer = new DataBuffer;
 	mCurrentMode = ETopLevelMode;
 	mNumStates = 0;
 	mNumEvents = 0;
@@ -868,16 +871,16 @@ void BotscriptParser::ParseLabel()
 		Error ("label name `%1` conflicts with variable\n", labelName);
 
 	// See if a mark already exists for this label
-	for (UndefinedLabel& undf : mUndefinedLabels)
+	for (UndefinedLabel& label : mUndefinedLabels)
 	{
-		if (undf.name != labelName)
+		if (label.name != labelName)
 			continue;
 
-		mark = undf.target;
+		mark = label.target;
 		buffer()->AdjustMark (mark);
 
 		// No longer undefined
-		mUndefinedLabels.Remove (undf);
+		mUndefinedLabels.Remove (label);
 		break;
 	}
 
@@ -914,26 +917,22 @@ void BotscriptParser::ParseFuncdef()
 	// Number
 	mLexer->MustGetNext (tkNumber);
 	comm->number = mLexer->GetToken()->text.ToLong();
-
 	mLexer->MustGetNext (tkColon);
 
 	// Name
 	mLexer->MustGetNext (tkSymbol);
 	comm->name = mLexer->GetToken()->text;
-
 	mLexer->MustGetNext (tkColon);
 
 	// Return value
 	mLexer->MustGetAnyOf ({tkInt, tkVoid, tkBool, tkStr});
 	comm->returnvalue = GetTypeByName (mLexer->GetToken()->text); // TODO
 	assert (comm->returnvalue != -1);
-
 	mLexer->MustGetNext (tkColon);
 
 	// Num args
 	mLexer->MustGetNext (tkNumber);
 	comm->numargs = mLexer->GetToken()->text.ToLong();
-
 	mLexer->MustGetNext (tkColon);
 
 	// Max args

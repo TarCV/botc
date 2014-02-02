@@ -198,7 +198,7 @@ void Lexer::MustGetFromScanner (LexerScanner& sc, EToken tt)
 
 // =============================================================================
 //
-void Lexer::MustGetAnyOf (const List< EToken >& toks)
+void Lexer::MustGetAnyOf (const List<EToken>& toks)
 {
 	if (!GetNext())
 		Error ("unexpected EOF");
@@ -303,4 +303,11 @@ String Lexer::PeekNextString (int a)
 	String result = GetToken()->text;
 	mTokenPosition = oldpos;
 	return result;
+}
+
+// =============================================================================
+//
+String Lexer::DescribePosition()
+{
+	return Format ("%1 / %2", mTokenPosition - mTokens.begin(), mTokens.Size());
 }
