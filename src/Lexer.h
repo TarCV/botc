@@ -99,6 +99,7 @@ public:
 	}
 
 	String PeekNextString (int a = 1);
+	String DescribePosition();
 
 private:
 	TokenList		mTokens;
