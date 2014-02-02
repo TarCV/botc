@@ -32,81 +32,81 @@
 #include <climits>
 
 // =======================================================
-enum e_token
+enum EToken
 {
 	// Non-word tokens
-	tk_equals,				// ----- 0
-	tk_brackets,			// - 1
-	tk_add_assign,			// - 2
-	tk_sub_assign,			// - 3
-	tk_multiply_assign,		// - 4
-	tk_divide_assign,		// ----- 5
-	tk_modulus_assign,		// - 6
-	tk_single_quote,		// - 7
-	tk_dollar_sign,			// - 8
-	tk_paren_start,			// - 9
-	tk_paren_end,			// ----- 10
-	tk_bracket_start,		// - 11
-	tk_bracket_end,			// - 12
-	tk_brace_start,			// - 13
-	tk_brace_end,			// - 14
-	tk_assign,				// ----- 15
-	tk_plus,				// - 16
-	tk_minus,				// - 17
-	tk_multiply,			// - 18
-	tk_divide,				// - 19
-	tk_modulus,				// ----- 20
-	tk_comma,				// - 21
-	tk_lesser,				// - 22
-	tk_greater,				// - 23
-	tk_dot,					// - 24
-	tk_colon,				// ----- 25
-	tk_semicolon,			// - 26
-	tk_hash,				// - 27
-	tk_exclamation_mark,	// - 28
-	tk_arrow,				// - 29
+	tkEquals,				// ----- 0
+	tkBrackets,				// - 1
+	tkAddAssign,			// - 2
+	tkSubAssign,			// - 3
+	tkMultiplyAssign,		// - 4
+	tkDivideAssign,			// ----- 5
+	tkModulusAssign,		// - 6
+	tkSingleQuote,			// - 7
+	tkDollarSign,			// - 8
+	tkParenStart,			// - 9
+	tkParenEnd,				// ----- 10
+	tkBracketStart,			// - 11
+	tkBracketEnd,			// - 12
+	tkBraceStart,			// - 13
+	tkBraceEnd,				// - 14
+	tkAssign,				// ----- 15
+	tkPlus,					// - 16
+	tkMinus,				// - 17
+	tkMultiply,				// - 18
+	tkDivide,				// - 19
+	tkModulus,				// ----- 20
+	tkComma,				// - 21
+	tkLesser,				// - 22
+	tkGreater,				// - 23
+	tkDot,					// - 24
+	tkColon,				// ----- 25
+	tkSemicolon,			// - 26
+	tkHash,					// - 27
+	tkExclamationMark,		// - 28
+	tkArrow,				// - 29
 
 	// --------------
 	// Named tokens
-	tk_bool,				// ----- 30
-	tk_break,				// - 31
-	tk_case,				// - 32
-	tk_continue,			// - 33
-	tk_const,				// - 34
-	tk_default,				// ----- 35
-	tk_do,					// - 36
-	tk_else,				// - 37
-	tk_event,				// - 38
-	tk_eventdef,			// - 39
-	tk_for,					// ----- 40
-	tk_funcdef,				// - 41
-	tk_goto,				// - 42
-	tk_if,					// - 43
-	tk_int,					// - 44
-	tk_mainloop,			// ----- 45
-	tk_onenter,				// - 46
-	tk_onexit,				// - 47
-	tk_state,				// - 48
-	tk_switch,				// - 49
-	tk_str,					// ----- 50
-	tk_void,				// - 51
-	tk_while,				// - 52
+	tkBool,					// ----- 30
+	tkBreak,				// - 31
+	tkCase,					// - 32
+	tkContinue,				// - 33
+	tkConst,				// - 34
+	tkDefault,				// ----- 35
+	tkDo,					// - 36
+	tkElse,					// - 37
+	tkEvent,				// - 38
+	tkEventdef,				// - 39
+	tkFor,					// ----- 40
+	tkFuncdef,				// - 41
+	tkGoto,					// - 42
+	tkIf,					// - 43
+	tkInt,					// - 44
+	tkMainloop,				// ----- 45
+	tkOnenter,				// - 46
+	tkOnexit,				// - 47
+	tkState,				// - 48
+	tkSwitch,				// - 49
+	tkStr,					// ----- 50
+	tkVoid,					// - 51
+	tkWhile,				// - 52
 
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
-	tk_enum,				// - 53
-	tk_func,				// - 54
-	tk_return,				// ----- 55
+	tkEnum,					// - 53
+	tkFunc,					// - 54
+	tkReturn,				// ----- 55
 
 	// --------------
 	// Generic tokens
-	tk_symbol,				// - 56
-	tk_number,				// - 57
-	tk_string,				// - 58
+	tkSymbol,				// - 56
+	tkNumber,				// - 57
+	tkString,				// - 58
 
-	tk_first_named_token	= tk_bool,
-	tk_last_named_token		= (int) tk_symbol - 1,
-	tk_any					= INT_MAX
+	tkFirstNamedToken		= tkBool,
+	tkLastNamedToken		= (int) tkSymbol - 1,
+	tkAny					= INT_MAX
 };
 
 #endif

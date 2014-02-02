@@ -31,10 +31,10 @@
 #include <cassert>
 #include <cstring>
 #include <string>
-#include "lexer_scanner.h"
-#include "lexer.h"
+#include "LexerScanner.h"
+#include "Lexer.h"
 
-static const string g_token_strings[] =
+static const String gTokenStrings[] =
 {
 	"==",
 	"[]",
@@ -94,197 +94,197 @@ static const string g_token_strings[] =
 	"return",
 };
 
-static_assert (countof (g_token_strings) == (int) tk_last_named_token + 1,
-	"Count of g_token_strings is not the same as the amount of named token identifiers.");
+static_assert (countof (gTokenStrings) == (int) tkLastNamedToken + 1,
+	"Count of gTokenStrings is not the same as the amount of named token identifiers.");
 
 // =============================================================================
 //
-lexer_scanner::lexer_scanner (FILE* fp) :
-	m_line (1)
+LexerScanner::LexerScanner (FILE* fp) :
+	mLine (1)
 {
 	long fsize, bytes;
 
 	fseek (fp, 0l, SEEK_END);
 	fsize = ftell (fp);
 	rewind (fp);
-	m_data = new char[fsize];
-	m_ptr = m_line_break_pos = &m_data[0];
-	bytes = fread (m_data, 1, fsize, fp);
+	mData = new char[fsize];
+	mPosition = mLineBreakPosition = &mData[0];
+	bytes = fread (mData, 1, fsize, fp);
 	assert (bytes >= fsize);
 }
 
 // =============================================================================
 //
-lexer_scanner::~lexer_scanner()
+LexerScanner::~LexerScanner()
 {
-	delete m_data;
+	delete mData;
 }
 
 // =============================================================================
 //
-bool lexer_scanner::check_string (const char* c, int flags)
+bool LexerScanner::CheckString (const char* c, int flags)
 {
-	bool r = strncmp (m_ptr, c, strlen (c)) == 0;
+	bool r = strncmp (mPosition, c, strlen (c)) == 0;
 
 	// There is to be a non-symbol character after words
-	if (r && (flags & f_check_word) && is_symbol_char (m_ptr[strlen (c)], true))
+	if (r && (flags & FCheckWord) && IsSymbolChar (mPosition[strlen (c)], true))
 		r = false;
 
 	// Advance the cursor unless we want to just peek
-	if (r && !(flags & f_check_peek))
-		m_ptr += strlen (c);
+	if (r && !(flags & FCheckPeek))
+		mPosition += strlen (c);
 
 	return r;
 }
 
 // =============================================================================
 //
-bool lexer_scanner::get_next_token()
+bool LexerScanner::GetNextToken()
 {
-	m_token_text = "";
+	mTokenText = "";
 
-	while (isspace (*m_ptr))
-		skip();
+	while (isspace (*mPosition))
+		Skip();
 
 	// Check for comments
-	if (strncmp (m_ptr, "//", 2) == 0)
+	if (strncmp (mPosition, "//", 2) == 0)
 	{
-		m_ptr += 2;
+		mPosition += 2;
 
-		while (*m_ptr != '\n')
-			skip();
+		while (*mPosition != '\n')
+			Skip();
 
-		return get_next_token();
+		return GetNextToken();
 	}
-	elif (strncmp (m_ptr, "/*", 2) == 0)
+	elif (strncmp (mPosition, "/*", 2) == 0)
 	{
-		skip (2); // skip the start symbols
+		Skip (2); // skip the start symbols
 
-		while (strncmp (m_ptr, "*/", 2) != 0)
-			skip();
+		while (strncmp (mPosition, "*/", 2) != 0)
+			Skip();
 
-		skip (2); // skip the end symbols
-		return get_next_token();
+		Skip (2); // skip the end symbols
+		return GetNextToken();
 	}
 
-	if (*m_ptr == '\0')
+	if (*mPosition == '\0')
 		return false;
 
 	// Check tokens
-	for (int i = 0; i < countof (g_token_strings); ++i)
+	for (int i = 0; i < countof (gTokenStrings); ++i)
 	{
 		int flags = 0;
 
-		if (i >= tk_first_named_token)
-			flags |= f_check_word;
+		if (i >= tkFirstNamedToken)
+			flags |= FCheckWord;
 
-		if (check_string (g_token_strings[i], flags))
+		if (CheckString (gTokenStrings[i], flags))
 		{
-			m_token_text = g_token_strings[i];
-			m_token_type = (e_token) i;
+			mTokenText = gTokenStrings[i];
+			mTokenType = (EToken) i;
 			return true;
 		}
 	}
 
 	// Check and parse string
-	if (*m_ptr == '\"')
+	if (*mPosition == '\"')
 	{
-		m_ptr++;
+		mPosition++;
 
-		while (*m_ptr != '\"')
+		while (*mPosition != '\"')
 		{
-			if (!*m_ptr)
-				error ("unterminated string");
+			if (!*mPosition)
+				Error ("unterminated string");
 
-			if (check_string ("\\n"))
+			if (CheckString ("\\n"))
 			{
-				m_token_text += '\n';
+				mTokenText += '\n';
 				continue;
 			}
-			elif (check_string ("\\t"))
+			elif (CheckString ("\\t"))
 			{
-				m_token_text += '\t';
+				mTokenText += '\t';
 				continue;
 			}
-			elif (check_string ("\\\""))
+			elif (CheckString ("\\\""))
 			{
-				m_token_text += '"';
+				mTokenText += '"';
 				continue;
 			}
 
-			m_token_text += *m_ptr++;
+			mTokenText += *mPosition++;
 		}
 
-		m_token_type = tk_string;
-		skip(); // skip the final quote
+		mTokenType = tkString;
+		Skip(); // skip the final quote
 		return true;
 	}
 
-	if (isdigit (*m_ptr))
+	if (isdigit (*mPosition))
 	{
-		while (isdigit (*m_ptr))
-			m_token_text += *m_ptr++;
+		while (isdigit (*mPosition))
+			mTokenText += *mPosition++;
 
-		m_token_type = tk_number;
+		mTokenType = tkNumber;
 		return true;
 	}
 
-	if (is_symbol_char (*m_ptr, false))
+	if (IsSymbolChar (*mPosition, false))
 	{
-		m_token_type = tk_symbol;
+		mTokenType = tkSymbol;
 
 		do
 		{
-			if (!is_symbol_char (*m_ptr, true))
+			if (!IsSymbolChar (*mPosition, true))
 				break;
 
-			m_token_text += *m_ptr++;
-		} while (*m_ptr != '\0');
+			mTokenText += *mPosition++;
+		} while (*mPosition != '\0');
 
 		return true;
 	}
 
-	error ("unknown character \"%1\"", *m_ptr);
+	Error ("unknown character \"%1\"", *mPosition);
 	return false;
 }
 
 // =============================================================================
 //
-void lexer_scanner::skip()
+void LexerScanner::Skip()
 {
-	if (*m_ptr == '\n')
+	if (*mPosition == '\n')
 	{
-		m_line++;
-		m_line_break_pos = m_ptr;
+		mLine++;
+		mLineBreakPosition = mPosition;
 	}
 
-	m_ptr++;
+	mPosition++;
 }
 
 // =============================================================================
 //
-void lexer_scanner::skip (int chars)
+void LexerScanner::Skip (int chars)
 {
 	for (int i = 0; i < chars; ++i)
-		skip();
+		Skip();
 }
 
 // =============================================================================
 //
-string lexer_scanner::get_token_string (e_token a)
+String LexerScanner::GetTokenString (EToken a)
 {
-	assert ((int) a <= tk_last_named_token);
-	return g_token_strings[a];
+	assert ((int) a <= tkLastNamedToken);
+	return gTokenStrings[a];
 }
 
 // =============================================================================
 //
-string lexer_scanner::read_line()
+String LexerScanner::ReadLine()
 {
-	string line;
+	String line;
 
-	while (*m_ptr != '\n')
-		line += *(m_ptr++);
+	while (*mPosition != '\n')
+		line += *(mPosition++);
 
 	return line;
 }

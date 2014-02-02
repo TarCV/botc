@@ -26,13 +26,19 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_STRINGTABLE_H
-#define BOTC_STRINGTABLE_H
+#ifndef BOTC_EVENTS_H
+#define BOTC_EVENTS_H
 
-#include "main.h"
+#include "String.h"
 
-int get_string_table_index (const string& a);
-const string_list& get_string_table();
-int num_strings_in_table();
+struct EventDefinition
+{
+	String name;
+	int number;
+};
 
-#endif // BOTC_STRINGTABLE_H
+void AddEvent (EventDefinition* e);
+EventDefinition* FindEventByIndex (int idx);
+EventDefinition* FindEventByName (String a);
+
+#endif // BOTC_EVENTS_H

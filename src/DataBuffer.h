@@ -31,8 +31,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "main.h"
-#include "stringtable.h"
+#include "Main.h"
+#include "StringTable.h"
 
 #define MAX_MARKS 512
 
@@ -49,46 +49,45 @@
 //   is written to file, they are changed into their marks' current
 //   positions. Marks themselves are never written to files, only refs are
 //
-class data_buffer
+class DataBuffer
 {
-	PROPERTY (private, byte*,					buffer,			NO_OPS,		STOCK_WRITE)
-	PROPERTY (private, int,						allocated_size,	NUM_OPS,	STOCK_WRITE)
-	PROPERTY (private, byte*,					writepos,		NO_OPS,		STOCK_WRITE)
-	PROPERTY (private, list<byte_mark*>,		marks,			LIST_OPS,	STOCK_WRITE)
-	PROPERTY (private, list<mark_reference*>,	refs,			LIST_OPS,	STOCK_WRITE)
+	PROPERTY (private, byte*,					Buffer,			NO_OPS,		STOCK_WRITE)
+	PROPERTY (private, int,						AllocatedSize,	NUM_OPS,	STOCK_WRITE)
+	PROPERTY (private, byte*,					Position,		NO_OPS,		STOCK_WRITE)
+	PROPERTY (private, List<ByteMark*>,			Marks,			LIST_OPS,	STOCK_WRITE)
+	PROPERTY (private, List<MarkReference*>,	References,		LIST_OPS,	STOCK_WRITE)
 
 	public:
-		data_buffer (int size = 128);
-		~data_buffer();
+		DataBuffer (int size = 128);
+		~DataBuffer();
 
 		// ====================================================================
 		// Merge another data buffer into this one.
 		// Note: @other is destroyed in the process!
-		void merge_and_destroy (data_buffer* other);
+		void MergeAndDestroy (DataBuffer* other);
 
 		// Clones this databuffer to a new one and returns it.
-		data_buffer* clone ();
+		DataBuffer* Clone();
 
-		byte_mark* add_mark (string name);
+		ByteMark*		AddMark (String name);
+		MarkReference*	AddReference (ByteMark* mark, bool write_placeholder = true);
+		void			CheckSpace (int bytes);
+		void			DeleteMark (int marknum);
+		void			AdjustMark (ByteMark* mark);
+		void			OffsetMark (ByteMark* mark, int offset);
+		ByteMark*		FindMarkByName (const String& target);
+		void			Dump();
+		void			WriteFloat (float a);
+		void			WriteStringIndex (const String& a);
+		void			WriteString (const String& a);
+		void			WriteByte (int8_t data);
+		void			WriteWord (int16_t data);
+		void			WriteDWord (int32_t data);
+		void			CopyBuffer (const DataBuffer* buf);
 
-		mark_reference*	add_reference (byte_mark* mark, bool write_placeholder = true);
-		void			check_space (int bytes);
-		void			delete_mark (int marknum);
-		void			adjust_mark(byte_mark* mark);
-		void			offset_mark (byte_mark* mark, int offset);
-		byte_mark*		find_mark_by_name (const string& target);
-		void			dump();
-		void			write_float (float a);
-		void			write_string_index (const string& a);
-		void			write_string (const string& a);
-		void			write_byte (int8_t data);
-		void			write_word (int16_t data);
-		void			write_dword (int32_t data);
-		void			copy_buffer (const data_buffer* buf);
-
-		inline int get_write_size() const
+		inline int GetWrittenSize() const
 		{
-			return m_writepos - get_buffer();
+			return GetPosition() - GetBuffer();
 		}
 };
 

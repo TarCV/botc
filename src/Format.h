@@ -29,89 +29,88 @@
 #ifndef BOTC_FORMAT_H
 #define BOTC_FORMAT_H
 
-#include "str.h"
-#include "containers.h"
+#include "String.h"
+#include "Containers.h"
 
-class format_arg
+class FormatArgument
 {
 	public:
-		format_arg (const string& a) :
-			m_string (a) {}
+		FormatArgument (const String& a) :
+			mText (a) {}
 
-		format_arg (char a) :
-			m_string (a) {}
+		FormatArgument (char a) :
+			mText (a) {}
 
-		format_arg (int a) :
-			m_string (string::from_number (a)) {}
+		FormatArgument (int a) :
+			mText (String::FromNumber (a)) {}
 
-		format_arg (long a) :
-			m_string (string::from_number (a)) {}
+		FormatArgument (long a) :
+			mText (String::FromNumber (a)) {}
 
-		format_arg (const char* a) :
-			m_string (a) {}
+		FormatArgument (const char* a) :
+			mText (a) {}
 
-		format_arg (void* a)
+		FormatArgument (void* a)
 		{
-			m_string.sprintf ("%p", a);
+			mText.SPrintf ("%p", a);
 		}
 
-		format_arg (const void* a)
+		FormatArgument (const void* a)
 		{
-			m_string.sprintf ("%p", a);
+			mText.SPrintf ("%p", a);
 		}
 
-		template<class T> format_arg (const list<T>& list)
+		template<class T> FormatArgument (const List<T>& list)
 		{
-			if (list.is_empty())
+			if (list.IsEmpty())
 			{
-				m_string = "{}";
+				mText = "{}";
 				return;
 			}
 
-			m_string = "{ ";
+			mText = "{ ";
 
 			for (const T & a : list)
 			{
 				if (&a != &list[0])
-					m_string += ", ";
+					mText += ", ";
 
-				m_string += format_arg (a).as_string();
+				mText += FormatArgument (a).AsString();
 			}
 
-			m_string += " }";
+			mText += " }";
 		}
 
-		inline const string& as_string() const
+		inline const String& AsString() const
 		{
-			return m_string;
+			return mText;
 		}
 
 	private:
-		string m_string;
+		String mText;
 };
 
-template<class T> string custom_format (T a, const char* fmtstr)
+template<class T> String custom_format (T a, const char* fmtstr)
 {
-	string out;
-	out.sprintf (fmtstr, a);
+	String out;
+	out.SPrintf (fmtstr, a);
 	return out;
 }
 
-string format_args (const list<format_arg>& args);
-void print_args (FILE* fp, const list<format_arg>& args);
-void do_fatal (const list<format_arg>& args);
-void do_error (string msg);
+String FormatArgs (const List<FormatArgument>& args);
+void PrintArgs (FILE* fp, const List<FormatArgument>& args);
+void DoError (String msg);
 
 #ifndef IN_IDE_PARSER
-# define format(...) format_args({ __VA_ARGS__ })
-# define fprint(A, ...) print_args( A, { __VA_ARGS__ })
-# define print(...) print_args( stdout, { __VA_ARGS__ })
-# define error(...) do_error (format (__VA_ARGS__))
+# define Format(...) FormatArgs ({__VA_ARGS__})
+# define PrintTo(A, ...) PrintArgs (A, {__VA_ARGS__})
+# define Print(...) PrintArgs (stdout, {__VA_ARGS__})
+# define Error(...) DoError (Format (__VA_ARGS__))
 #else
-string format (void, ...);
-void fprint (FILE* fp, ...);
-void print (void, ...);
-void error (void, ...);
+String Format (void, ...);
+void PrintTo (FILE* fp, ...);
+void Print (void, ...);
+void Error (void, ...);
 #endif
 
 #ifndef IN_IDE_PARSER

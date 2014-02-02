@@ -2,23 +2,23 @@ cmake_minimum_required (VERSION 2.8)
 
 add_subdirectory (updaterevision)
 add_executable (botc
-	src/commands.cc
-	src/data_buffer.cc
-	src/events.cc
-	src/format.cc
-	src/lexer.cc
-	src/lexer_scanner.cc
-	src/main.cc
-	src/parser.cc
-	src/str.cc
-	src/stringtable.cc
-	src/variables.cc
+	src/Commands.cc
+	src/DataBuffer.cc
+	src/Events.cc
+	src/Format.cc
+	src/Lexer.cc
+	src/LexerScanner.cc
+	src/Main.cc
+	src/Parser.cc
+	src/String.cc
+	src/StringTable.cc
+	src/Variables.cc
 )
 
 get_target_property (UPDATEREVISION_EXE updaterevision LOCATION)
 
 add_custom_target (revision_check ALL
-    COMMAND ${UPDATEREVISION_EXE} src/gitinfo.h
+    COMMAND ${UPDATEREVISION_EXE} src/GitInformation.h
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     DEPENDS updaterevision)
 

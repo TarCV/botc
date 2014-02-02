@@ -26,97 +26,54 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include "main.h"
-#include "str.h"
-#include "commands.h"
-#include "lexer.h"
+#include "StringTable.h"
+#include "Variables.h"
+#include "Parser.h"
 
-static list<command_info*> g_commands;
+List<ScriptVariable> g_GlobalVariables;
+List<ScriptVariable> g_LocalVariables;
 
 // ============================================================================
-//
-void add_command_definition (command_info* comm)
+// Tries to declare a new global-scope variable. Returns pointer
+// to new global variable, null if declaration failed.
+ScriptVariable* DeclareGlobalVariable (EType type, String name)
 {
-	// Ensure that there is no conflicts
-	for (command_info* it : g_commands)
-		if (it->number == comm->number)
-			error ("Attempted to redefine command #%1 (%2) as %3",
-				g_commands[comm->number]->name, comm->name);
+	// Unfortunately the VM does not support string variables so yeah.
+	if (type == EStringType)
+		Error ("variables cannot be string\n");
 
-	g_commands << comm;
+	// Check that the variable is valid
+	if (FindCommandByName (name))
+		Error ("name of variable-to-be `%s` conflicts with that of a command", name.CString());
+
+	if (g_GlobalVariables.Size() >= gMaxGlobalVars)
+		Error ("too many global variables!");
+
+	for (int i = 0; i < g_GlobalVariables.Size(); i++)
+		if (g_GlobalVariables[i].name == name)
+			Error ("attempted redeclaration of global variable `%s`", name.CString());
+
+	ScriptVariable g;
+	g.index = g_GlobalVariables.Size();
+	g.name = name;
+	g.statename = "";
+	g.value = 0;
+	g.type = type;
+
+	g_GlobalVariables << g;
+	return &g_GlobalVariables[g.index];
 }
 
 // ============================================================================
-// Finds a command by name
-command_info* find_command_by_name (string fname)
+// Find a global variable by name
+ScriptVariable* FindGlobalVariable (String name)
 {
-	for (command_info* comm : g_commands)
-	{
-		if (fname.to_uppercase() == comm->name.to_uppercase())
-			return comm;
-	}
+	for (ScriptVariable& var : g_GlobalVariables)
+		if (var.name == name)
+			return &var;
 
 	return null;
-}
-
-// ============================================================================
-// Returns the prototype of the command
-string get_command_signature (command_info* comm)
-{
-	string text;
-	text += get_type_name (comm->returnvalue);
-	text += ' ';
-	text += comm->name;
-
-	if (comm->maxargs != 0)
-		text += ' ';
-
-	text += '(';
-
-	bool hasoptionals = false;
-
-	for (int i = 0; i < comm->maxargs; i++)
-	{
-		if (i == comm->numargs)
-		{
-			hasoptionals = true;
-			text += '[';
-		}
-
-		if (i)
-			text += ", ";
-
-		text += get_type_name (comm->args[i].type);
-		text += ' ';
-		text += comm->args[i].name;
-
-		if (i >= comm->numargs)
-		{
-			text += " = ";
-
-			bool is_string = comm->args[i].type == e_string_type;
-
-			if (is_string)
-				text += '"';
-
-			text += string::from_number (comm->args[i].defvalue);
-
-			if (is_string)
-				text += '"';
-		}
-	}
-
-	if (hasoptionals)
-		text += ']';
-
-	text += ')';
-	return text;
-}
-
-const list<command_info*> get_commands()
-{
-	return g_commands;
 }

@@ -28,51 +28,97 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "main.h"
-#include "str.h"
-#include "events.h"
-#include "lexer.h"
+#include <string.h>
+#include "Main.h"
+#include "String.h"
+#include "Commands.h"
+#include "Lexer.h"
 
-static void unlink_events();
-static list<event_info*> g_events;
+static List<CommandInfo*> gCommands;
 
 // ============================================================================
 //
-void add_event (event_info* e)
+void AddCommandDefinition (CommandInfo* comm)
 {
-	g_events << e;
+	// Ensure that there is no conflicts
+	for (CommandInfo* it : gCommands)
+		if (it->number == comm->number)
+			Error ("Attempted to redefine command #%1 (%2) as %3",
+				   gCommands[comm->number]->name, comm->name);
+
+	gCommands << comm;
 }
 
 // ============================================================================
-//
-// Delete event definitions recursively
-//
-static void unlink_events()
+// Finds a command by name
+CommandInfo* FindCommandByName (String fname)
 {
-	for (event_info* e : g_events)
-		delete e;
-
-	g_events.clear();
-}
-
-// ============================================================================
-//
-// Finds an event definition by index
-//
-event_info* find_event_by_index (int idx)
-{
-	return g_events[idx];
-}
-
-// ============================================================================
-//
-// Finds an event definition by name
-//
-event_info* find_event_by_name (string a)
-{
-	for (event_info* e : g_events)
-		if (a.to_uppercase() == e->name.to_uppercase())
-			return e;
+	for (CommandInfo* comm : gCommands)
+	{
+		if (fname.ToUppercase() == comm->name.ToUppercase())
+			return comm;
+	}
 
 	return null;
+}
+
+// ============================================================================
+//
+// Returns the prototype of the command
+//
+String CommandInfo::GetSignature()
+{
+	String text;
+	text += GetTypeName (returnvalue);
+	text += ' ';
+	text += name;
+
+	if (maxargs != 0)
+		text += ' ';
+
+	text += '(';
+
+	bool hasoptionals = false;
+
+	for (int i = 0; i < maxargs; i++)
+	{
+		if (i == numargs)
+		{
+			hasoptionals = true;
+			text += '[';
+		}
+
+		if (i)
+			text += ", ";
+
+		text += GetTypeName (args[i].type);
+		text += ' ';
+		text += args[i].name;
+
+		if (i >= numargs)
+		{
+			text += " = ";
+
+			bool is_string = args[i].type == EStringType;
+
+			if (is_string)
+				text += '"';
+
+			text += String::FromNumber (args[i].defvalue);
+
+			if (is_string)
+				text += '"';
+		}
+	}
+
+	if (hasoptionals)
+		text += ']';
+
+	text += ')';
+	return text;
+}
+
+const List<CommandInfo*>& GetCommands()
+{
+	return gCommands;
 }

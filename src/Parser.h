@@ -30,29 +30,36 @@
 #define BOTC_PARSER_H
 
 #include <stdio.h>
-#include "main.h"
-#include "commands.h"
-#include "lexer_scanner.h"
-#include "tokens.h"
+#include "Main.h"
+#include "Commands.h"
+#include "LexerScanner.h"
+#include "Tokens.h"
 
+// TODO: get rid of this
 #define MAX_SCOPE 32
+
+// TODO: get rid of this too?
 #define MAX_CASE 64
-#define MAX_MARKS 512 // TODO: get rid of this
 
-class data_buffer;
-class lexer;
-class script_variable;
+// TODO: get rid of this
+#define MAX_MARKS 512
 
-struct undefined_label
+class DataBuffer;
+class Lexer;
+class ScriptVariable;
+
+// ============================================================================
+//
+struct UndefinedLabel
 {
-	string		name;
-	byte_mark*	target;
+	String		name;
+	ByteMark*	target;
 };
 
 // ============================================================================
 // Operators
 //
-enum operator_e
+enum EOperator
 {
 	OPER_ADD,
 	OPER_SUBTRACT,
@@ -86,35 +93,35 @@ enum operator_e
 
 // ============================================================================
 //
-struct operator_info
+struct operatorInfo
 {
-	operator_e		opercode;
-	e_data_header	dataheader;
-	e_token			token;
+	EOperator		opercode;
+	EDataHeader		dataheader;
+	EToken			token;
 };
 
 // ============================================================================
 // Mark types
 //
-enum marktype_e
+enum eMarkType
 {
-	e_label_mark,
-	e_if_mark,
-	e_internal_mark, // internal structures
+	eLabelMark,
+	eIfMark,
+	eInternalMark, // internal structures
 };
 
 // ============================================================================
 // Scope types
 //
-enum scopetype_e
+enum EScopeType
 {
-	e_unknown_scope,
-	e_if_scope,
-	e_while_scope,
-	e_for_scope,
-	e_do_scope,
-	e_switch_scope,
-	e_else_scope,
+	eUnknownScope,
+	eIfScope,
+	eWhileScope,
+	eForScope,
+	eDoScope,
+	eSwitchScope,
+	eElseScope,
 };
 
 // ============================================================================
@@ -122,139 +129,137 @@ enum scopetype_e
 //
 struct ScopeInfo
 {
-	byte_mark*		mark1;
-	byte_mark*		mark2;
-	scopetype_e		type;
-	data_buffer*	buffer1;
+	ByteMark*		mark1;
+	ByteMark*		mark2;
+	EScopeType		type;
+	DataBuffer*		buffer1;
 
 	// switch-related stuff
 	// Which case are we at?
 	int				casecursor;
 
 	// Marks to case-blocks
-	byte_mark*		casemarks[MAX_CASE];
+	ByteMark*		casemarks[MAX_CASE];
 
 	// Numbers of the case labels
 	int				casenumbers[MAX_CASE];
 
 	// actual case blocks
-	data_buffer*	casebuffers[MAX_CASE];
+	DataBuffer*	casebuffers[MAX_CASE];
 
 	// What is the current buffer of the block?
-	data_buffer*	recordbuffer;
+	DataBuffer*	recordbuffer;
 };
 
 // ============================================================================
 //
-struct constant_info
+struct ConstantInfo
 {
-	string name;
-	type_e type;
-	string val;
+	String name;
+	EType type;
+	String val;
 };
 
 // ============================================================================
 //
-class botscript_parser
+class BotscriptParser
 {
+	PROPERTY (public, bool, ReadOnly, BOOL_OPS, STOCK_WRITE)
+
 	public:
 		// ====================================================================
 		// METHODS
-		botscript_parser();
-		~botscript_parser();
-		void			parse_botscript (string file_name);
-		data_buffer*	parse_command (command_info* comm);
-		data_buffer*	parse_expression (type_e reqtype);
-		data_buffer*	parse_assignment (script_variable* var);
-		int				parse_operator (bool peek = false);
-		data_buffer*	parse_expr_value (type_e reqtype);
-		string			parse_float();
-		void			push_scope();
-		data_buffer*	parse_statement();
-		void			add_switch_case (data_buffer* b);
-		void			check_toplevel();
-		void			check_not_toplevel();
-		bool			token_is (e_token a);
-		string			token_string();
-		string			describe_position() const;
-		void			write_to_file (string outfile);
+		BotscriptParser();
+		~BotscriptParser();
+		void			ParseBotscript (String fileName);
+		DataBuffer*		ParseCommand (CommandInfo* comm);
+		DataBuffer*		ParseExpression (EType reqtype);
+		DataBuffer*		ParseAssignment (ScriptVariable* var);
+		int				ParseOperator (bool peek = false);
+		DataBuffer*		ParseExprValue (EType reqtype);
+		String			ParseFloat();
+		void			PushScope();
+		DataBuffer*		ParseStatement();
+		void			AddSwitchCase (DataBuffer* b);
+		void			CheckToplevel();
+		void			CheckNotToplevel();
+		bool			TokenIs (EToken a);
+		String			GetTokenString();
+		String			DescribePosition() const;
+		void			WriteToFile (String outfile);
 
-		inline int get_num_events() const
+		inline int GetNumEvents() const
 		{
-			return m_num_events;
+			return mNumEvents;
 		}
 
-		inline int get_num_states() const
+		inline int GetNumStates() const
 		{
-			return m_num_states;
+			return mNumStates;
 		}
 
 	private:
-		// The lexer we're using.
-		lexer*					m_lx;
-
 		// The main buffer - the contents of this is what we
 		// write to file after parsing is complete
-		data_buffer*			m_main_buffer;
+		DataBuffer*				mMainBuffer;
 
 		// onenter buffer - the contents of the onenter{} block
 		// is buffered here and is merged further at the end of state
-		data_buffer*			m_on_enter_buffer;
+		DataBuffer*				mOnEnterBuffer;
 
 		// Mainloop buffer - the contents of the mainloop{} block
 		// is buffered here and is merged further at the end of state
-		data_buffer*			m_main_loop_buffer;
+		DataBuffer*				mMainLoopBuffer;
 
 		// Switch buffer - switch case data is recorded to this
 		// buffer initially, instead of into main buffer.
-		data_buffer*			m_switch_buffer;
+		DataBuffer*				mSwitchBuffer;
 
-		int						m_num_states;
-		int						m_num_events;
-		parsermode_e			m_current_mode;
-		string					m_current_state;
-		bool					m_state_spawn_defined;
-		bool					m_got_main_loop;
-		int						m_scope_cursor;
-		data_buffer*			m_if_expression;
-		bool					m_can_else;
-		list<undefined_label>	m_undefined_labels;
-		list<constant_info>		m_constants;
+		Lexer*					mLexer;
+		int						mNumStates;
+		int						mNumEvents;
+		EParserMode				mCurrentMode;
+		String					mCurrentState;
+		bool					mStateSpawnDefined;
+		bool					mGotMainLoop;
+		int						mScopeCursor;
+		DataBuffer*				mIfExpression;
+		bool					mCanElse;
+		List<UndefinedLabel>	mUndefinedLabels;
+		List<ConstantInfo>		mConstants;
 
 		// How many bytes have we written to file?
-		int				m_num_written_bytes;
+		int						mNumWrittenBytes;
 
 		// Scope data
-		// TODO: make a list
-		ScopeInfo		m_scope_stack[MAX_SCOPE];
+		// TODO: make a List
+		ScopeInfo				mScopeStack[MAX_SCOPE];
 
-		data_buffer*	buffer();
-		constant_info*	find_constant (const string& tok);
-		void			parse_state_block();
-		void			parse_event_block();
-		void			parse_mainloop();
-		void			parse_on_enter_exit();
-		void			parse_variable_declaration();
-		void			parse_goto();
-		void			parse_if();
-		void			parse_else();
-		void			parse_while_block();
-		void			parse_for_block();
-		void			parse_do_block();
-		void			parse_switch_block();
-		void			parse_switch_case();
-		void			parse_switch_default();
-		void			parse_break();
-		void			parse_continue();
-		void			parse_block_end();
-		void			parse_const();
-		void			parse_label();
-		void			parse_eventdef();
-		void			parse_funcdef();
-		void			write_member_buffers();
-		void			write_string_table();
+		DataBuffer*	buffer();
+		ConstantInfo*	FindConstant (const String& tok);
+		void			ParseStateBlock();
+		void			ParseEventBlock();
+		void			ParseMainloop();
+		void			ParseOnEnterExit();
+		void			ParseVariableDeclaration();
+		void			ParseGoto();
+		void			ParseIf();
+		void			ParseElse();
+		void			ParseWhileBlock();
+		void			ParseForBlock();
+		void			ParseDoBlock();
+		void			ParseSwitchBlock();
+		void			ParseSwitchCase();
+		void			ParseSwitchDefault();
+		void			ParseBreak();
+		void			ParseContinue();
+		void			ParseBlockEnd();
+		void			ParseConst();
+		void			ParseLabel();
+		void			ParseEventdef();
+		void			ParseFuncdef();
+		void			writeMemberBuffers();
+		void			WriteStringTable();
 };
-
-constant_info* find_constant (const string& tok);
 
 #endif // BOTC_PARSER_H
