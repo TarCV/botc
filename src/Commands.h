@@ -26,36 +26,33 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_VARIABLES_H
-#define BOTC_VARIABLES_H
+#ifndef BOTC_COMMANDS_H
+#define BOTC_COMMANDS_H
 
-#include "main.h"
+#include "Main.h"
+#include "String.h"
 
-class botscript_parser;
-
-struct script_variable
+struct CommandArgument
 {
-	string name;
-	string statename;
-	type_e type;
-	int value;
-	int index;
-
-	bool is_global() const
-	{
-		return statename.is_empty();
-	}
+	EType					type;
+	String					name;
+	int						defvalue;
 };
 
-extern list<script_variable> g_GlobalVariables;
-extern list<script_variable> g_LocalVariables;
+struct CommandInfo
+{
+	String					name;
+	int						number;
+	int						numargs;
+	int						maxargs;
+	EType					returnvalue;
+	List<CommandArgument>	args;
 
-#define ITERATE_GLOBAL_VARS(u) \
-	for (u = 0; u < MAX_SCRIPT_VARIABLES; u++)
-#define ITERATE_SCRIPT_VARS(g) \
-	for (g = g_ScriptVariable; g != null; g = g->next)
+	String	GetSignature();
+};
 
-script_variable* declare_global_variable (type_e type, string name);
-script_variable* find_global_variable (string name);
+void						AddCommandDefinition (CommandInfo* comm);
+CommandInfo*				FindCommandByName (String a);
+const List<CommandInfo*>&	GetCommands();
 
-#endif // BOTC_VARIABLES_H
+#endif // BOTC_COMMANDS_H

@@ -26,53 +26,61 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "stringtable.h"
+#ifndef BOTC_MAIN_H
+#define BOTC_MAIN_H
 
-static string_list g_string_table;
+#if !defined (__cplusplus) || __cplusplus < 201103L
+# error botc requires a C++11-compliant compiler to be built
+#endif
 
-// ============================================================================
-//
-const string_list& get_string_table()
+#include <cstdio>
+#include <cstdarg>
+#include <cstdint>
+#include "Property.h"
+#include "Types.h"
+#include "Containers.h"
+#include "String.h"
+#include "Format.h"
+#include "BotStuff.h"
+#include "Tokens.h"
+
+// Application name and version
+#define APPNAME "botc"
+#define VERSION_MAJOR	1
+#define VERSION_MINOR	0
+#define VERSION_PATCH 	0
+
+#define MAKE_VERSION_NUMBER(MAJ, MIN, PAT) ((MAJ * 10000) + (MIN * 100) + PAT)
+#define VERSION_NUMBER MAKE_VERSION_NUMBER (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+
+// On Windows, files are case-insensitive
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
+#define FILE_CASEINSENSITIVE
+#endif
+
+#define elif else if
+
+#define types public
+#define countof(A) ((int) (sizeof A / sizeof *A))
+
+// Shortcut for zeroing something
+#define ZERO(obj) memset (&obj, 0, sizeof (obj));
+
+enum EFormLength
 {
-	return g_string_table;
-}
+	ELongForm,
+	EShortForm
+};
 
-// ============================================================================
-// Potentially adds a string to the table and returns the index of it.
-//
-int get_string_table_index (const string& a)
-{
-	// Must not be too long.
-	if (a.length() >= g_max_string_length)
-		error ("string `%1` too long (%2 characters, max is %3)\n",
-			   a, a.length(), g_max_string_length);
+String MakeObjectFileName (String s);
+EType GetTypeByName (String token);
+String GetTypeName (EType type);
+String GetVersionString (EFormLength len);
+String MakeVersionString (int major, int minor, int patch);
 
-	// Find a free slot in the table.
-	int idx;
+#ifndef __GNUC__
+#define __attribute__(X)
+#endif
+#define deprecated __attribute__ ((deprecated))
 
-	for (idx = 0; idx < g_string_table.size(); idx++)
-	{
-		// String is already in the table, thus return it.
-		if (g_string_table[idx] == a)
-			return idx;
-	}
-
-	// Check if the table is already full
-	if (g_string_table.size() == g_max_stringlist_size - 1)
-		error ("too many strings!\n");
-
-	// Now, dump the string into the slot
-	g_string_table.push_back (a);
-	return (g_string_table.size() - 1);
-}
-
-// ============================================================================
-// Counts the amount of strings in the table.
-//
-int num_strings_in_table()
-{
-	return g_string_table.size();
-}
+#endif // BOTC_MAIN_H

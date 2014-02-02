@@ -30,12 +30,12 @@
 #define BOTC_LEXER_SCANNER_H
 
 #include <climits>
-#include "main.h"
+#include "Main.h"
 
-class lexer_scanner
+class LexerScanner
 {
 	types:
-		struct position_info
+		struct PositionInfo
 		{
 			char*	pos;
 			char*	line_break_pos;
@@ -45,14 +45,14 @@ class lexer_scanner
 		// Flags for check_string()
 		enum
 		{
-			f_check_word = (1 << 0),   // must be followed by whitespace
-			f_check_peek = (1 << 1),   // don't advance cursor
+			FCheckWord = (1 << 0),   // must be followed by whitespace
+			FCheckPeek = (1 << 1),   // don't advance cursor
 		};
 
 	public:
-		static inline bool is_symbol_char (char c, bool allow_numbers)
+		static inline bool IsSymbolChar (char c, bool allownumbers)
 		{
-			if (allow_numbers && (c >= '0' && c <= '9'))
+			if (allownumbers && (c >= '0' && c <= '9'))
 				return true;
 
 			return (c >= 'a' && c <= 'z') ||
@@ -60,55 +60,55 @@ class lexer_scanner
 				   (c == '_');
 		}
 
-		lexer_scanner (FILE* fp);
-		~lexer_scanner();
-		bool get_next_token();
-		string read_line();
+		LexerScanner (FILE* fp);
+		~LexerScanner();
+		bool GetNextToken();
+		String ReadLine();
 
-		inline const string& get_token_text() const
+		inline const String& GetTokenText() const
 		{
-			return m_token_text;
+			return mTokenText;
 		}
 
-		inline int get_line() const
+		inline int GetLine() const
 		{
-			return m_line;
+			return mLine;
 		}
 
-		inline int get_column() const
+		inline int GetColumn() const
 		{
-			return m_ptr - m_line_break_pos;
+			return mPosition - mLineBreakPosition;
 		}
 
-		inline e_token get_token_type() const
+		inline EToken GetTokenType() const
 		{
-			return m_token_type;
+			return mTokenType;
 		}
 
-		static string get_token_string (e_token a);
+		static String GetTokenString (EToken a);
 
 	private:
-		char*			m_data;
-		char*			m_ptr;
-		char*			m_line_break_pos;
-		string			m_token_text,
-						m_last_token;
-		e_token			m_token_type;
-		int				m_line;
+		char*			mData;
+		char*			mPosition;
+		char*			mLineBreakPosition;
+		String			mTokenText,
+						mLastToken;
+		EToken			mTokenType;
+		int				mLine;
 
-		bool			check_string (const char* c, int flags = 0);
+		bool			CheckString (const char* c, int flags = 0);
 
 		// Yields a copy of the current position information.
-		position_info	get_position() const;
+		PositionInfo	GetPosition() const;
 
 		// Sets the current position based on given data.
-		void			set_position (const position_info& a);
+		void			SetPosition (const PositionInfo& a);
 
 		// Skips one character
-		void			skip();
+		void			Skip();
 
 		// Skips many characters
-		void			skip (int chars);
+		void			Skip (int chars);
 };
 
 #endif // BOTC_LEXER_SCANNER_H

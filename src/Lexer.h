@@ -29,86 +29,86 @@
 #ifndef BOTC_LEXER_H
 #define BOTC_LEXER_H
 
-#include "main.h"
-#include "lexer_scanner.h"
+#include "Main.h"
+#include "LexerScanner.h"
 
-class lexer
+class Lexer
 {
 types:
-	struct token
+	struct Token
 	{
-		e_token		type;
-		string		text;
-		string		file;
+		EToken		type;
+		String		text;
+		String		file;
 		int			line;
 		int			column;
 	};
 
-	using token_list	= list<token>;
-	using iterator		= token_list::iterator;
+	using TokenList	= List<Token>;
+	using Iterator	= TokenList::Iterator;
 
 public:
-	lexer();
-	~lexer();
+	Lexer();
+	~Lexer();
 
-	void	process_file (string file_name);
-	bool	get_next (e_token req = tk_any);
-	void	must_get_next (e_token tok = tk_any);
-	void	must_get_any_of (const list<e_token>& toks);
-	int		get_one_symbol (const string_list& syms);
-	void	must_be (e_token tok);
-	bool	peek_next (token* tk = null);
+	void	ProcessFile (String file_name);
+	bool	GetNext (EToken req = tkAny);
+	void	MustGetNext (EToken tok = tkAny);
+	void	MustGetAnyOf (const List<EToken>& toks);
+	int		GetOneSymbol (const StringList& syms);
+	void	TokenMustBe (EToken tok);
+	bool	PeekNext (Token* tk = null);
 
-	inline bool has_valid_token() const
+	inline bool HasValidToken() const
 	{
-		return (m_token_position < m_tokens.end() && m_token_position >= m_tokens.begin());
+		return (mTokenPosition < mTokens.end() && mTokenPosition >= mTokens.begin());
 	}
 
-	inline token* get_token() const
+	inline Token* GetToken() const
 	{
-		assert (has_valid_token() == true);
-		return &(*m_token_position);
+		assert (HasValidToken() == true);
+		return &(*mTokenPosition);
 	}
 
-	inline bool is_at_end() const
+	inline bool IsAtEnd() const
 	{
-		return m_token_position == m_tokens.end();
+		return mTokenPosition == mTokens.end();
 	}
 
-	inline e_token get_token_type() const
+	inline EToken GetTokenType() const
 	{
-		return get_token()->type;
+		return GetToken()->type;
 	}
 
 	// If @tok is given, describes the token. If not, describes @tok_type.
-	static inline string describe_token_type (e_token tok_type)
+	static inline String DescribeTokenType (EToken toktype)
 	{
-		return describe_token_private (tok_type, null);
+		return DescribeTokenPrivate (toktype, null);
 	}
 
-	static inline string describe_token (token* tok)
+	static inline String DescribeToken (Token* tok)
 	{
-		return describe_token_private (tok->type, tok);
+		return DescribeTokenPrivate (tok->type, tok);
 	}
 
-	static lexer* get_current_lexer();
+	static Lexer* GetCurrentLexer();
 
-	inline void skip (int a = 1)
+	inline void Skip (int a = 1)
 	{
-		m_token_position += a;
+		mTokenPosition += a;
 	}
 
-	string peek_next_string (int a = 1);
+	String PeekNextString (int a = 1);
 
 private:
-	token_list		m_tokens;
-	iterator		m_token_position;
+	TokenList		mTokens;
+	Iterator		mTokenPosition;
 
 	// read a mandatory token from scanner
-	void must_get_next_from_scanner (lexer_scanner& sc, e_token tt = tk_any);
-	void check_file_header (lexer_scanner& sc);
+	void MustGetFromScanner (LexerScanner& sc, EToken tt = tkAny);
+	void CheckFileHeader (LexerScanner& sc);
 
-	static string describe_token_private (e_token tok_type, token* tok);
+	static String DescribeTokenPrivate (EToken tok_type, Token* tok);
 };
 
 #endif // BOTC_LEXER_H

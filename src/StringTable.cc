@@ -29,55 +29,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "stringtable.h"
-#include "variables.h"
-#include "parser.h"
+#include "StringTable.h"
 
-list<script_variable> g_GlobalVariables;
-list<script_variable> g_LocalVariables;
+static StringList gStringTable;
 
 // ============================================================================
-// Tries to declare a new global-scope variable. Returns pointer
-// to new global variable, null if declaration failed.
-script_variable* declare_global_variable (type_e type, string name)
+//
+const StringList& GetStringTable()
 {
-	// Unfortunately the VM does not support string variables so yeah.
-	if (type == e_string_type)
-		error ("variables cannot be string\n");
-
-	// Check that the variable is valid
-	if (find_command_by_name (name))
-		error ("name of variable-to-be `%s` conflicts with that of a command", name.chars());
-
-	if (g_GlobalVariables.size() >= g_max_global_vars)
-		error ("too many global variables!");
-
-	for (int i = 0; i < g_GlobalVariables.size(); i++)
-		if (g_GlobalVariables[i].name == name)
-			error ("attempted redeclaration of global variable `%s`", name.chars());
-
-	script_variable g;
-	g.index = g_GlobalVariables.size();
-	g.name = name;
-	g.statename = "";
-	g.value = 0;
-	g.type = type;
-
-	g_GlobalVariables << g;
-	return &g_GlobalVariables[g.index];
+	return gStringTable;
 }
 
 // ============================================================================
-// Find a global variable by name
-script_variable* find_global_variable (string name)
+//
+// Potentially adds a string to the table and returns the index of it.
+//
+int GetStringTableIndex (const String& a)
 {
-	for (int i = 0; i < g_GlobalVariables.size(); i++)
-	{
-		script_variable* g = &g_GlobalVariables[i];
+	// Find a free slot in the table.
+	int idx;
 
-		if (g->name == name)
-			return g;
+	for (idx = 0; idx < gStringTable.Size(); idx++)
+	{
+		// String is already in the table, thus return it.
+		if (gStringTable[idx] == a)
+			return idx;
 	}
 
-	return null;
+	// Must not be too long.
+	if (a.Length() >= gMaxStringLength)
+		Error ("string `%1` too long (%2 characters, max is %3)\n",
+			   a, a.Length(), gMaxStringLength);
+
+	// Check if the table is already full
+	if (gStringTable.Size() == gMaxStringlistSize - 1)
+		Error ("too many strings!\n");
+
+	// Now, dump the string into the slot
+	gStringTable.Append (a);
+	return (gStringTable.Size() - 1);
+}
+
+// ============================================================================
+//
+// Counts the amount of strings in the table.
+//
+int CountStringsInTable()
+{
+	return gStringTable.Size();
 }

@@ -26,15 +26,15 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "main.h"
-#include "events.h"
-#include "commands.h"
-#include "stringtable.h"
-#include "variables.h"
-#include "data_buffer.h"
-#include "parser.h"
-#include "lexer.h"
-#include "gitinfo.h"
+#include "Main.h"
+#include "Events.h"
+#include "Commands.h"
+#include "StringTable.h"
+#include "Variables.h"
+#include "DataBuffer.h"
+#include "Parser.h"
+#include "Lexer.h"
+#include "GitInformation.h"
 
 int main (int argc, char** argv)
 {
@@ -43,33 +43,37 @@ int main (int argc, char** argv)
 		// Intepret command-line parameters:
 		// -l: list commands
 		// I guess there should be a better way to do this.
-		if (argc == 2 && !strcmp (argv[1], "-l"))
+		if (argc == 2 && String (argv[1]) == "-l")
 		{
-			printf ("Begin list of commands:\n");
-			printf ("------------------------------------------------------\n");
+			Print ("Begin list of commands:\n");
+			Print ("------------------------------------------------------\n");
 
-			for (command_info* comm : get_commands())
-				print ("%1\n", get_command_signature (comm));
+			BotscriptParser parser;
+			parser.SetReadOnly (true);
+			parser.ParseBotscript ("botc_defs.bts");
 
-			printf ("------------------------------------------------------\n");
-			printf ("End of command list\n");
+			for (CommandInfo* comm : GetCommands())
+				Print ("%1\n", comm->GetSignature());
+
+			Print ("------------------------------------------------------\n");
+			Print ("End of command list\n");
 			exit (0);
 		}
 
 		// Print header
-		string header;
-		string headerline;
-		header = format (APPNAME " version %1", get_version_string (e_long_form));
+		String header;
+		String headerline;
+		header = Format (APPNAME " version %1", GetVersionString (ELongForm));
 
 #ifdef DEBUG
 		header += " (debug build)";
 #endif
 
-		for (int i = 0; i < header.length() / 2; ++i)
+		for (int i = 0; i < header.Length() / 2; ++i)
 			headerline += "-=";
 
 		headerline += '-';
-		print ("%2\n\n%1\n\n%2\n\n", header, headerline);
+		Print ("%2\n\n%1\n\n%2\n\n", header, headerline);
 
 		if (argc < 2)
 		{
@@ -78,30 +82,30 @@ int main (int argc, char** argv)
 			exit (1);
 		}
 
-		string outfile;
+		String outfile;
 
 		if (argc < 3)
-			outfile = make_object_file_name (argv[1]);
+			outfile = MakeObjectFileName (argv[1]);
 		else
 			outfile = argv[2];
 
 		// Prepare reader and writer
-		botscript_parser* parser = new botscript_parser;
+		BotscriptParser* parser = new BotscriptParser;
 
 		// We're set, begin parsing :)
-		print ("Parsing script...\n");
-		parser->parse_botscript (argv[1]);
-		print ("Script parsed successfully.\n");
+		Print ("Parsing script...\n");
+		parser->ParseBotscript (argv[1]);
+		Print ("Script parsed successfully.\n");
 
 		// Parse done, print statistics and write to file
-		int globalcount = g_GlobalVariables.size();
-		int stringcount = num_strings_in_table();
-		print ("%1 / %2 strings written\n", stringcount, g_max_stringlist_size);
-		print ("%1 / %2 global variables\n", globalcount, g_max_global_vars);
-		print ("%1 / %2 events\n", parser->get_num_events(), g_max_events);
-		print ("%1 state%s1\n", parser->get_num_states());
+		int globalcount = g_GlobalVariables.Size();
+		int stringcount = CountStringsInTable();
+		Print ("%1 / %2 strings written\n", stringcount, gMaxStringlistSize);
+		Print ("%1 / %2 global variables\n", globalcount, gMaxGlobalVars);
+		Print ("%1 / %2 events\n", parser->GetNumEvents(), gMaxEvents);
+		Print ("%1 state%s1\n", parser->GetNumStates());
 
-		parser->write_to_file (outfile);
+		parser->WriteToFile (outfile);
 
 		// Clear out the junk
 		delete parser;
@@ -109,9 +113,9 @@ int main (int argc, char** argv)
 		// Done!
 		exit (0);
 	}
-	catch (script_error& e)
+	catch (ScriptError& e)
 	{
-		fprint (stderr, "error: %1\n", e.what());
+		PrintTo (stderr, "error: %1\n", e.what());
 	}
 }
 
@@ -119,13 +123,13 @@ int main (int argc, char** argv)
 //
 // Mutates given filename to an object filename
 //
-string make_object_file_name (string s)
+String MakeObjectFileName (String s)
 {
 	// Locate the extension and chop it out
-	int extdot = s.last (".");
+	int extdot = s.LastIndexOf (".");
 
-	if (extdot >= s.length() - 4)
-		s -= (s.length() - extdot);
+	if (extdot >= s.Length() - 4)
+		s -= (s.Length() - extdot);
 
 	s += ".o";
 	return s;
@@ -133,14 +137,14 @@ string make_object_file_name (string s)
 
 // ============================================================================
 //
-type_e get_type_by_name (string t)
+EType GetTypeByName (String t)
 {
-	t = t.to_lowercase();
-	return	(t == "int") ? e_int_type :
-			(t == "str") ? e_string_type :
-			(t == "void") ? e_void_type :
-			(t == "bool") ? e_bool_type :
-			e_unknown_type;
+	t = t.ToLowercase();
+	return	(t == "int") ? EIntType :
+			(t == "str") ? EStringType :
+			(t == "void") ? EVoidType :
+			(t == "bool") ? EBoolType :
+			EUnknownType;
 }
 
 
@@ -148,15 +152,15 @@ type_e get_type_by_name (string t)
 //
 // Inverse operation - type name by value
 //
-string get_type_name (type_e type)
+String GetTypeName (EType type)
 {
 	switch (type)
 	{
-		case e_int_type: return "int"; break;
-		case e_string_type: return "str"; break;
-		case e_void_type: return "void"; break;
-		case e_bool_type: return "bool"; break;
-		case e_unknown_type: return "???"; break;
+		case EIntType: return "int"; break;
+		case EStringType: return "str"; break;
+		case EVoidType: return "void"; break;
+		case EBoolType: return "bool"; break;
+		case EUnknownType: return "???"; break;
 	}
 
 	return "";
@@ -164,9 +168,9 @@ string get_type_name (type_e type)
 
 // =============================================================================
 //
-string make_version_string (int major, int minor, int patch)
+String MakeVersionString (int major, int minor, int patch)
 {
-	string ver = format ("%1.%2", major, minor);
+	String ver = Format ("%1.%2", major, minor);
 
 	if (patch != 0)
 	{
@@ -179,13 +183,13 @@ string make_version_string (int major, int minor, int patch)
 
 // =============================================================================
 //
-string get_version_string (form_length_e len)
+String GetVersionString (EFormLength len)
 {
-	string tag (GIT_DESCRIPTION);
-	string version = tag;
+	String tag (GIT_DESCRIPTION);
+	String version = tag;
 
-	if (tag.ends_with ("-pre") && len == e_long_form)
-		version += "-" + string (GIT_HASH).mid (0, 8);
+	if (len == ELongForm && tag.EndsWith ("-pre"))
+		version += "-" + String (GIT_HASH).Mid (0, 8);
 
 	return version;
 }

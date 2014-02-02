@@ -26,58 +26,31 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_MAIN_H
-#define BOTC_MAIN_H
+#ifndef BOTC_VARIABLES_H
+#define BOTC_VARIABLES_H
 
-#if !defined (__cplusplus) || __cplusplus < 201103L
-# error botc requires a C++11-compliant compiler to be built
-#endif
+#include "Main.h"
 
-#include <cstdio>
-#include <cstdarg>
-#include <cstdint>
-#include "property.h"
-#include "types.h"
-#include "containers.h"
-#include "str.h"
-#include "format.h"
-#include "botstuff.h"
-#include "tokens.h"
+class BotscriptParser;
 
-// Application name and version
-#define APPNAME "botc"
-#define VERSION_MAJOR	1
-#define VERSION_MINOR	0
-#define VERSION_PATCH 	0
+struct ScriptVariable
+{
+	String	name;
+	String	statename;
+	EType	type;
+	int		value;
+	int		index;
 
-#define MAKE_VERSION_NUMBER(MAJ, MIN, PAT) ((MAJ * 10000) + (MIN * 100) + PAT)
-#define VERSION_NUMBER MAKE_VERSION_NUMBER (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+	inline bool IsGlobal() const
+	{
+		return statename.IsEmpty();
+	}
+};
 
-// On Windows, files are case-insensitive
-#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
-#define FILE_CASEINSENSITIVE
-#endif
+extern List<ScriptVariable> g_GlobalVariables;
+extern List<ScriptVariable> g_LocalVariables;
 
-#define elif else if
+ScriptVariable* DeclareGlobalVariable (EType type, String name);
+ScriptVariable* FindGlobalVariable (String name);
 
-#define types public
-#define countof(A) ((int) (sizeof A / sizeof *A))
-
-// Shortcut for zeroing something
-#define ZERO(obj) memset (&obj, 0, sizeof (obj));
-
-enum form_length_e { e_long_form, e_short_form };
-
-string make_object_file_name (string s);
-bool fexists (string path);
-type_e get_type_by_name (string token);
-string get_type_name (type_e type);
-string get_version_string (form_length_e len);
-string make_version_string (int major, int minor, int patch);
-
-#ifndef __GNUC__
-#define __attribute__(X)
-#endif
-#define deprecated __attribute__ ((deprecated))
-
-#endif // BOTC_MAIN_H
+#endif // BOTC_VARIABLES_H

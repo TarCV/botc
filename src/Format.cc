@@ -27,19 +27,19 @@
 */
 
 #include <cstdio>
-#include "main.h"
-#include "format.h"
-#include "lexer.h"
+#include "Main.h"
+#include "Format.h"
+#include "Lexer.h"
 
 // =============================================================================
 //
-static void draw_position (const string& fmt, int pos)
+static void DrawPosition (const String& fmt, int pos)
 {
-	string rep (fmt);
-	rep.replace ("\n", "↵");
-	rep.replace ("\t", "⇥");
+	String rep (fmt);
+	rep.Replace ("\n", "↵");
+	rep.Replace ("\t", "⇥");
 
-	fprintf (stderr, "%s\n", rep.chars());
+	fprintf (stderr, "%s\n", rep.CString());
 
 	for (int x = 0; x < pos; ++x)
 		fprintf (stderr, "-");
@@ -49,23 +49,23 @@ static void draw_position (const string& fmt, int pos)
 
 // =============================================================================
 //
-string format_args (const list<format_arg>& args)
+String FormatArgs (const List<FormatArgument>& args)
 {
-	const string& fmtstr = args[0].as_string();
-	assert (args.size() >= 1);
+	const String& fmtstr = args[0].AsString();
+	assert (args.Size() >= 1);
 
-	if (args.size() == 1)
-		return args[0].as_string();
+	if (args.Size() == 1)
+		return args[0].AsString();
 
-	string fmt = fmtstr;
-	string out;
+	String fmt = fmtstr;
+	String out;
 	int pos = 0;
 
-	while ((pos = fmt.first ("%", pos)) != -1)
+	while ((pos = fmt.FirstIndexOf ("%", pos)) != -1)
 	{
 		if (fmt[pos + 1] == '%')
 		{
-			fmt.replace (pos, 2, "%");
+			fmt.Replace (pos, 2, "%");
 			pos++;
 			continue;
 		}
@@ -84,30 +84,30 @@ string format_args (const list<format_arg>& args)
 		{
 			fprintf (stderr, "bad format string, expected digit with optional "
 				"modifier after '%%':\n");
-			draw_position (fmt, pos);
+			DrawPosition (fmt, pos);
 			return fmt;
 		}
 
 		int i = fmt[pos + ofs]  - '0';
 
-		if (i >= args.size())
+		if (i >= args.Size())
 		{
-			fprintf (stderr, "format arg #%d used but not defined: %s\n", i, fmtstr.chars());
+			fprintf (stderr, "format arg #%d used but not defined: %s\n", i, fmtstr.CString());
 			return fmt;
 		}
 
-		string repl = args[i].as_string();
+		String repl = args[i].AsString();
 
 		switch (mod)
 		{
 			case 's': repl = (repl == "1") ? "" : "s";			break;
-			case 'd': repl.sprintf ("%d", repl[0]);				break;
-			case 'x': repl.sprintf ("0x%X", repl.to_long());	break;
+			case 'd': repl.SPrintf ("%d", repl[0]);				break;
+			case 'x': repl.SPrintf ("0x%X", repl.ToLong());	break;
 			default: break;
 		}
 
-		fmt.replace (pos, 1 + ofs, repl);
-		pos += repl.length();
+		fmt.Replace (pos, 1 + ofs, repl);
+		pos += repl.Length();
 	}
 
 	return fmt;
@@ -115,24 +115,24 @@ string format_args (const list<format_arg>& args)
 
 // =============================================================================
 //
-void print_args (FILE* fp, const list<format_arg>& args)
+void PrintArgs (FILE* fp, const List<FormatArgument>& args)
 {
-	string out = format_args (args);
-	fprintf (fp, "%s", out.chars());
+	String out = FormatArgs (args);
+	fprintf (fp, "%s", out.CString());
 }
 
 // =============================================================================
 //
-void do_error (string msg)
+void DoError (String msg)
 {
-	lexer* lx = lexer::get_current_lexer();
-	string fileinfo;
+	Lexer* lx = Lexer::GetCurrentLexer();
+	String fileinfo;
 
-	if (lx != null && lx->has_valid_token())
+	if (lx != null && lx->HasValidToken())
 	{
-		lexer::token* tk = lx->get_token();
-		fileinfo = format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
+		Lexer::Token* tk = lx->GetToken();
+		fileinfo = Format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
 	}
 
-	throw script_error (fileinfo + msg);
+	throw ScriptError (fileinfo + msg);
 }

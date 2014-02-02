@@ -31,73 +31,78 @@
 
 #include <cstdlib>
 #include <stdexcept>
-#include "str.h"
+#include "String.h"
 
 static const std::nullptr_t null = nullptr;
 
+// =============================================================================
+//
 // Byte datatype
+//
 typedef int32_t word;
 typedef unsigned char byte;
 
+// =============================================================================
+//
 // Parser mode: where is the parser at?
-enum parsermode_e
+//
+enum EParserMode
 {
-	e_top_level_mode,	// at top level
-	e_event_mode,		// inside event definition
-	e_main_loop_mode,	// inside mainloop
-	e_onenter_mode,		// inside onenter
-	e_onexit_mode,		// inside onexit
+	ETopLevelMode,		// at top level
+	EEventMode,			// inside event definition
+	EMainLoopMode,		// inside mainloop
+	EOnenterMode,		// inside onenter
+	EOnexitMode,		// inside onexit
 };
 
-enum type_e
+// =============================================================================
+//
+enum EType
 {
-	e_unknown_type = 0,
-	e_void_type,
-	e_int_type,
-	e_string_type,
-	e_bool_type,
+	EUnknownType = 0,
+	EVoidType,
+	EIntType,
+	EStringType,
+	EBoolType,
 };
 
-// Script mark and reference
-struct byte_mark
+// =============================================================================
+//
+struct ByteMark
 {
-	string		name;
+	String		name;
 	int			pos;
 };
 
-struct mark_reference
+// =============================================================================
+//
+struct MarkReference
 {
-	byte_mark*	target;
+	ByteMark*	target;
 	int			pos;
 };
 
-class script_error : public std::exception
+// =============================================================================
+//
+class ScriptError : public std::exception
 {
 	public:
-		script_error (const string& msg) : m_msg (msg) {}
+		ScriptError (const String& msg) :
+			mMsg (msg) {}
 
 		inline const char* what() const throw()
 		{
-			return m_msg.c_str();
+			return mMsg;
 		}
 
 	private:
-		string m_msg;
+		String mMsg;
 };
 
-// ====================================================================
-// Generic union
-template <class T> union generic_union
-{
-	T as_t;
-	byte as_bytes[sizeof (T)];
-	char as_chars[sizeof (T)];
-	double as_double;
-	float as_float;
-	int as_int;
-	word as_word;
-};
-
+// =============================================================================
+//
+// Get absolute value of @a
+//
 template<class T> inline T abs (T a)
 {
 	return (a >= 0) ? a : -a;

@@ -26,32 +26,40 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_COMMANDS_H
-#define BOTC_COMMANDS_H
+#include <stdlib.h>
+#include <stdio.h>
+#include "Main.h"
+#include "String.h"
+#include "Events.h"
+#include "Lexer.h"
 
-#include "main.h"
-#include "str.h"
+static List<EventDefinition*> gEvents;
 
-struct command_argument
+// ============================================================================
+//
+void AddEvent (EventDefinition* e)
 {
-	type_e					type;
-	string					name;
-	int						defvalue;
-};
+	gEvents << e;
+}
 
-struct command_info
+// ============================================================================
+//
+// Finds an event definition by index
+//
+EventDefinition* FindEventByIndex (int idx)
 {
-	string					name;
-	int						number;
-	int						numargs;
-	int						maxargs;
-	type_e					returnvalue;
-	list<command_argument>	args;
-};
+	return gEvents[idx];
+}
 
-void						add_command_definition (command_info* comm);
-command_info*				find_command_by_name (string a);
-string						get_command_signature (command_info* comm);
-const list<command_info*>	get_commands();
+// ============================================================================
+//
+// Finds an event definition by name
+//
+EventDefinition* FindEventByName (String a)
+{
+	for (EventDefinition* e : gEvents)
+		if (a.ToUppercase() == e->name.ToUppercase())
+			return e;
 
-#endif // BOTC_COMMANDS_H
+	return null;
+}
