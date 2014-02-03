@@ -68,8 +68,6 @@ void DataBuffer::MergeAndDestroy (DataBuffer* other)
 		PushToReferences (ref);
 	}
 
-	ClearMarks();
-	ClearReferences();
 	delete other;
 }
 
