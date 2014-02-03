@@ -58,6 +58,10 @@ public:
 	int		GetOneSymbol (const StringList& syms);
 	void	TokenMustBe (EToken tok);
 	bool	PeekNext (Token* tk = null);
+	String	PeekNextString (int a = 1);
+	String	DescribePosition();
+
+	static Lexer* GetCurrentLexer();
 
 	inline bool HasValidToken() const
 	{
@@ -80,6 +84,21 @@ public:
 		return GetToken()->type;
 	}
 
+	inline void Skip (int a = 1)
+	{
+		mTokenPosition += a;
+	}
+
+	inline int GetPosition()
+	{
+		return mTokenPosition - mTokens.begin();
+	}
+
+	inline void SetPosition (int pos)
+	{
+		mTokenPosition = mTokens.begin() + pos;
+	}
+
 	// If @tok is given, describes the token. If not, describes @tok_type.
 	static inline String DescribeTokenType (EToken toktype)
 	{
@@ -90,16 +109,6 @@ public:
 	{
 		return DescribeTokenPrivate (tok->type, tok);
 	}
-
-	static Lexer* GetCurrentLexer();
-
-	inline void Skip (int a = 1)
-	{
-		mTokenPosition += a;
-	}
-
-	String PeekNextString (int a = 1);
-	String DescribePosition();
 
 private:
 	TokenList		mTokens;

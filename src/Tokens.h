@@ -35,13 +35,22 @@
 enum EToken
 {
 	// Non-word tokens
+	tkLeftShiftAssign,		//
+	tkRightShiftAssign,		//	
 	tkEquals,				// ----- 0
+	tkNotEquals,
 	tkBrackets,				// - 1
 	tkAddAssign,			// - 2
 	tkSubAssign,			// - 3
 	tkMultiplyAssign,		// - 4
 	tkDivideAssign,			// ----- 5
 	tkModulusAssign,		// - 6
+	tkLeftShift,			
+	tkRightShift,			
+	tkAtLeast,
+	tkAtMost,
+	tkDoubleAmperstand,
+	tkDoubleBar,
 	tkSingleQuote,			// - 7
 	tkDollarSign,			// - 8
 	tkParenStart,			// - 9
@@ -64,6 +73,10 @@ enum EToken
 	tkSemicolon,			// - 26
 	tkHash,					// - 27
 	tkExclamationMark,		// - 28
+	tkAmperstand,
+	tkBar,
+	tkCaret,
+	tkQuestionMark,
 	tkArrow,				// - 29
 
 	// --------------
@@ -91,6 +104,8 @@ enum EToken
 	tkStr,					// ----- 50
 	tkVoid,					// - 51
 	tkWhile,				// - 52
+	tkTrue,
+	tkFalse,
 
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F

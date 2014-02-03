@@ -171,12 +171,11 @@ class BotscriptParser
 		// METHODS
 		BotscriptParser();
 		~BotscriptParser();
+		ConstantInfo*	FindConstant (const String& tok);
 		void			ParseBotscript (String fileName);
 		DataBuffer*		ParseCommand (CommandInfo* comm);
-		DataBuffer*		ParseExpression (EType reqtype);
 		DataBuffer*		ParseAssignment (ScriptVariable* var);
 		int				ParseOperator (bool peek = false);
-		DataBuffer*		ParseExprValue (EType reqtype);
 		String			ParseFloat();
 		void			PushScope();
 		DataBuffer*		ParseStatement();
@@ -236,7 +235,6 @@ class BotscriptParser
 		ScopeInfo				mScopeStack[MAX_SCOPE];
 
 		DataBuffer*	buffer();
-		ConstantInfo*	FindConstant (const String& tok);
 		void			ParseStateBlock();
 		void			ParseEventBlock();
 		void			ParseMainloop();
@@ -260,6 +258,7 @@ class BotscriptParser
 		void			ParseFuncdef();
 		void			writeMemberBuffers();
 		void			WriteStringTable();
+		void ParseExpression (EType reqtype);
 };
 
 #endif // BOTC_PARSER_H

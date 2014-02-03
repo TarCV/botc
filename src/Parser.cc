@@ -34,6 +34,7 @@
 #include "Containers.h"
 #include "Lexer.h"
 #include "DataBuffer.h"
+#include "Expression.h"
 
 #define SCOPE(n) (mScopeStack[mScopeCursor - n])
 
@@ -1134,143 +1135,6 @@ static word GetDataHeaderByOperator (ScriptVariable* var, int oper)
 }
 
 // ============================================================================
-// Parses an expression, potentially recursively
-//
-DataBuffer* BotscriptParser::ParseExpression (EType reqtype)
-{
-	DataBuffer* retbuf = new DataBuffer (64);
-
-	// Parse first operand
-	retbuf->MergeAndDestroy (ParseExprValue (reqtype));
-
-	// Parse any and all operators we get
-	int oper;
-
-	while ( (oper = ParseOperator (true)) != -1)
-	{
-		// We peeked the operator, move forward now
-		mLexer->Skip();
-
-		// Can't be an assignement operator, those belong in assignments.
-		if (IsAssignmentOperator (oper))
-			Error ("assignment operator inside expression");
-
-		// Parse the right operand.
-		mLexer->MustGetNext();
-		DataBuffer* rb = ParseExprValue (reqtype);
-
-		if (oper == OPER_TERNARY)
-		{
-			// Ternary operator requires - naturally - a third operand.
-			mLexer->MustGetNext (tkColon);
-			mLexer->MustGetNext();
-			DataBuffer* tb = ParseExprValue (reqtype);
-
-			// It also is handled differently: there isn't a dataheader for ternary
-			// operator. Instead, we abuse PUSHNUMBER and IFNOTGOTO for this.
-			// Behold, big block of writing madness! :P
-			ByteMark* mark1 = retbuf->AddMark (""); // start of "else" case
-			ByteMark* mark2 = retbuf->AddMark (""); // end of expression
-			retbuf->WriteDWord (dhIfNotGoto); // if the first operand (condition)
-			retbuf->AddReference (mark1); // didn't eval true, jump into mark1
-			retbuf->MergeAndDestroy (rb); // otherwise, perform second operand (true case)
-			retbuf->WriteDWord (dhGoto); // afterwards, jump to the end, which is
-			retbuf->AddReference (mark2); // marked by mark2.
-			retbuf->AdjustMark (mark1); // move mark1 at the end of the true case
-			retbuf->MergeAndDestroy (tb); // perform third operand (false case)
-			retbuf->AdjustMark (mark2); // move the ending mark2 here
-		}
-		else
-		{
-			// write to buffer
-			retbuf->MergeAndDestroy (rb);
-			retbuf->WriteDWord (GetDataHeaderByOperator (null, oper));
-		}
-	}
-
-	return retbuf;
-}
-
-// ============================================================================
-// Parses an operator string. Returns the operator number code.
-//
-#define ISNEXT(C) (mLexer->PeekNextString (peek ? 1 : 0) == C)
-
-int BotscriptParser::ParseOperator (bool peek)
-{
-	String oper;
-
-	if (peek)
-		oper += mLexer->PeekNextString();
-	else
-		oper += GetTokenString();
-
-	if (-oper == "strlen")
-		return OPER_STRLEN;
-
-	// Check one-char operators
-	bool equalsnext = ISNEXT ("=");
-
-	int o =	(oper == "=" && !equalsnext) ? OPER_ASSIGN :
-			(oper == ">" && !equalsnext && !ISNEXT (">")) ? OPER_GREATERTHAN :
-			(oper == "<" && !equalsnext && !ISNEXT ("<")) ? OPER_LESSTHAN :
-			(oper == "&" && !ISNEXT ("&")) ? OPER_BITWISEAND :
-			(oper == "|" && !ISNEXT ("|")) ? OPER_BITWISEOR :
-			(oper == "+" && !equalsnext) ? OPER_ADD :
-			(oper == "-" && !equalsnext) ? OPER_SUBTRACT :
-			(oper == "*" && !equalsnext) ? OPER_MULTIPLY :
-			(oper == "/" && !equalsnext) ? OPER_DIVIDE :
-			(oper == "%" && !equalsnext) ? OPER_MODULUS :
-			(oper == "^") ? OPER_BITWISEEOR :
-			(oper == "?") ? OPER_TERNARY :
-			-1;
-
-	if (o != -1)
-	{
-		return o;
-	}
-
-	// Two-char operators
-	oper += mLexer->PeekNextString (peek ? 1 : 0);
-	equalsnext = mLexer->PeekNextString (peek ? 2 : 1) == ("=");
-
-	o =	(oper == "+=") ? OPER_ASSIGNADD :
-		(oper == "-=") ? OPER_ASSIGNSUB :
-		(oper == "*=") ? OPER_ASSIGNMUL :
-		(oper == "/=") ? OPER_ASSIGNDIV :
-		(oper == "%=") ? OPER_ASSIGNMOD :
-		(oper == "==") ? OPER_EQUALS :
-		(oper == "!=") ? OPER_NOTEQUALS :
-		(oper == ">=") ? OPER_GREATERTHANEQUALS :
-		(oper == "<=") ? OPER_LESSTHANEQUALS :
-		(oper == "&&") ? OPER_AND :
-		(oper == "||") ? OPER_OR :
-		(oper == "<<" && !equalsnext) ? OPER_LEFTSHIFT :
-		(oper == ">>" && !equalsnext) ? OPER_RIGHTSHIFT :
-		-1;
-
-	if (o != -1)
-	{
-		mLexer->MustGetNext();
-		return o;
-	}
-
-	// Three-char opers
-	oper += mLexer->PeekNextString (peek ? 2 : 1);
-	o =	oper == "<<=" ? OPER_ASSIGNLEFTSHIFT :
-		oper == ">>=" ? OPER_ASSIGNRIGHTSHIFT :
-		-1;
-
-	if (o != -1)
-	{
-		mLexer->MustGetNext();
-		mLexer->MustGetNext();
-	}
-
-	return o;
-}
-
-// ============================================================================
 //
 String BotscriptParser::ParseFloat()
 {
@@ -1288,124 +1152,6 @@ String BotscriptParser::ParseFloat()
 	}
 
 	return floatstring;
-}
-
-// ============================================================================
-// Parses a value in the expression and returns the data needed to push
-// it, contained in a data buffer. A value can be either a variable, a command,
-// a literal or an expression.
-//
-DataBuffer* BotscriptParser::ParseExprValue (EType reqtype)
-{
-	DataBuffer* b = new DataBuffer (16);
-	ScriptVariable* g;
-
-	// Prefixing "!" means negation.
-	bool negate = TokenIs (tkExclamationMark);
-
-	if (negate) // Jump past the "!"
-		mLexer->Skip();
-
-	if (TokenIs (tkParenStart))
-	{
-		// Expression
-		mLexer->MustGetNext();
-		DataBuffer* c = ParseExpression (reqtype);
-		b->MergeAndDestroy (c);
-		mLexer->MustGetNext (tkParenEnd);
-	}
-	else if (CommandInfo* comm = FindCommandByName (GetTokenString()))
-	{
-		delete b;
-
-		// Command
-		if (reqtype && comm->returnvalue != reqtype)
-			Error ("%1 returns an incompatible data type", comm->name);
-
-		b = ParseCommand (comm);
-	}
-	else if (ConstantInfo* constant = FindConstant (GetTokenString()))
-	{
-		// Type check
-		if (reqtype != constant->type)
-			Error ("constant `%1` is %2, expression requires %3\n",
-				constant->name, GetTypeName (constant->type),
-				GetTypeName (reqtype));
-
-		switch (constant->type)
-		{
-			case EBoolType:
-			case EIntType:
-			{
-				b->WriteDWord (dhPushNumber);
-				b->WriteDWord (constant->val.ToLong());
-				break;
-			}
-
-			case EStringType:
-			{
-				b->WriteStringIndex (constant->val);
-				break;
-			}
-
-			case EVoidType:
-			case EUnknownType:
-				break;
-		}
-	}
-	else if ((g = FindGlobalVariable (GetTokenString())))
-	{
-		// Global variable
-		b->WriteDWord (dhPushGlobalVar);
-		b->WriteDWord (g->index);
-	}
-	else
-	{
-		// If nothing else, check for literal
-		switch (reqtype)
-		{
-			case EVoidType:
-			case EUnknownType:
-			{
-				Error ("unknown identifier `%1` (expected keyword, function or variable)", GetTokenString());
-				break;
-			}
-
-			case EBoolType:
-			case EIntType:
-			{
-				mLexer->TokenMustBe (tkNumber);
-
-				// All values are written unsigned - thus we need to write the value's
-				// absolute value, followed by an unary minus for negatives.
-				b->WriteDWord (dhPushNumber);
-
-				long v = GetTokenString().ToLong();
-				b->WriteDWord (static_cast<word> (abs (v)));
-
-				if (v < 0)
-					b->WriteDWord (dhUnaryMinus);
-
-				break;
-			}
-
-			case EStringType:
-			{
-				// PushToStringTable either returns the string index of the
-				// string if it finds it in the table, or writes it to the
-				// table and returns it index if it doesn't find it there.
-				mLexer->TokenMustBe (tkString);
-				b->WriteStringIndex (GetTokenString());
-				break;
-			}
-		}
-	}
-
-	// Negate it now if desired
-	if (negate)
-		b->WriteDWord (dhNegateLogical);
-
-	return b;
 }
 
 // ============================================================================
@@ -1475,6 +1221,15 @@ void BotscriptParser::PushScope()
 		info->casebuffers[i] = null;
 		info->casenumbers[i] = -1;
 	}
+}
+
+// ============================================================================
+//
+void BotscriptParser::ParseExpression (EType reqtype)
+{
+	Expression expr (this, reqtype, mLexer);
+	expr.GetResult()->ConvertToBuffer();
+	buffer()->MergeAndDestroy (expr.GetResult()->GetBuffer());
 }
 
 // ============================================================================
