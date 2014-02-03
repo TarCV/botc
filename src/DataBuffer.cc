@@ -102,7 +102,7 @@ ByteMark* DataBuffer::AddMark (String name)
 
 // ============================================================================
 //
-MarkReference* DataBuffer::AddReference (ByteMark* mark, bool writePlaceholder)
+MarkReference* DataBuffer::AddReference (ByteMark* mark)
 {
 	MarkReference* ref = new MarkReference;
 	ref->target = mark;
@@ -110,8 +110,7 @@ MarkReference* DataBuffer::AddReference (ByteMark* mark, bool writePlaceholder)
 	PushToReferences (ref);
 
 	// Write a dummy placeholder for the reference
-	if (writePlaceholder)
-		WriteDWord (0xBEEFCAFE);
+	WriteDWord (0xBEEFCAFE);
 
 	return ref;
 }

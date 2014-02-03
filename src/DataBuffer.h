@@ -70,7 +70,7 @@ class DataBuffer
 		DataBuffer* Clone();
 
 		ByteMark*		AddMark (String name);
-		MarkReference*	AddReference (ByteMark* mark, bool write_placeholder = true);
+		MarkReference*	AddReference (ByteMark* mark);
 		void			CheckSpace (int bytes);
 		void			DeleteMark (int marknum);
 		void			AdjustMark (ByteMark* mark);
