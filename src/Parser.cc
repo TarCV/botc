@@ -82,16 +82,12 @@ void BotscriptParser::ParseBotscript (String fileName)
 	mCurrentMode = ETopLevelMode;
 	mNumStates = 0;
 	mNumEvents = 0;
-	mScopeCursor = 0;
+	mScopeCursor = -1;
 	mStateSpawnDefined = false;
 	mGotMainLoop = false;
 	mIfExpression = null;
 	mCanElse = false;
-
-	// Zero the entire block stack first
-	// TODO: this shouldn't be necessary
-	for (int i = 0; i < MAX_SCOPE; i++)
-		ZERO (mScopeStack[i]);
+	PushScope();
 
 	while (mLexer->GetNext())
 	{
@@ -419,12 +415,7 @@ void BotscriptParser::ParseElse()
 {
 	CheckNotToplevel();
 	mLexer->MustGetNext (tkBraceStart);
-
-	// Don't use PushScope as it resets the scope
-	mScopeCursor++;
-
-	if (mScopeCursor >= MAX_SCOPE)
-		Error ("too deep scope");
+	PushScope (eNoReset);
 
 	if (SCOPE (0).type != eIfScope)
 		Error ("else without preceding if");
@@ -576,14 +567,15 @@ void BotscriptParser::ParseSwitchCase()
 	if (SCOPE (0).type != eSwitchScope)
 		Error ("case label outside switch");
 
-	// Get the literal (Zandronum does not support expressions here)
+	// Get a literal value for the case block. Zandronum does not support
+	// expressions here.
 	mLexer->MustGetNext (tkNumber);
 	int num = mLexer->GetToken()->text.ToLong();
 	mLexer->MustGetNext (tkColon);
 
-	for (int i = 0; i < MAX_CASE; i++)
-		if (SCOPE (0).casenumbers[i] == num)
-			Error ("multiple case %d labels in one switch", num);
+	for (const CaseInfo& info : SCOPE(0).cases)
+		if (info.number == num)
+			Error ("multiple case %1 labels in one switch", num);
 
 	// Write down the expression and case-go-to. This builds
 	// the case tree. The closing event will write the actual
@@ -599,7 +591,7 @@ void BotscriptParser::ParseSwitchCase()
 	buffer()->WriteDWord (dhCaseGoto);
 	buffer()->WriteDWord (num);
 	AddSwitchCase (null);
-	SCOPE (0).casenumbers[SCOPE (0).casecursor] = num;
+	SCOPE (0).casecursor->number = num;
 }
 
 // ============================================================================
@@ -609,7 +601,7 @@ void BotscriptParser::ParseSwitchDefault()
 	if (SCOPE (0).type != eSwitchScope)
 		Error ("default label outside switch");
 
-	if (SCOPE (0).buffer1)
+	if (SCOPE (0).buffer1 != null)
 		Error ("multiple default labels in one switch");
 
 	mLexer->MustGetNext (tkColon);
@@ -621,11 +613,11 @@ void BotscriptParser::ParseSwitchDefault()
 	// and is only popped when case succeeds, we have
 	// to pop it with dhDrop manually if we end up in
 	// a default.
-	DataBuffer* b = new DataBuffer;
-	SCOPE (0).buffer1 = b;
-	b->WriteDWord (dhDrop);
-	b->WriteDWord (dhGoto);
-	AddSwitchCase (b);
+	DataBuffer* buf = new DataBuffer;
+	SCOPE (0).buffer1 = buf;
+	buf->WriteDWord (dhDrop);
+	buf->WriteDWord (dhGoto);
+	AddSwitchCase (buf);
 }
 
 // ============================================================================
@@ -750,8 +742,8 @@ void BotscriptParser::ParseBlockEnd()
 			{
 				// Switch closes. Move down to the record buffer of
 				// the lower block.
-				if (SCOPE (1).casecursor != -1)
-					mSwitchBuffer = SCOPE (1).casebuffers[SCOPE (1).casecursor];
+				if (SCOPE (1).casecursor != SCOPE (1).cases.begin() - 1)
+					mSwitchBuffer = SCOPE (1).casecursor->data;
 				else
 					mSwitchBuffer = null;
 
@@ -769,13 +761,10 @@ void BotscriptParser::ParseBlockEnd()
 
 				// Go through all of the buffers we
 				// recorded down and write them.
-				for (int u = 0; u < MAX_CASE; u++)
+				for (CaseInfo& info : SCOPE (0).cases)
 				{
-					if (SCOPE (0).casebuffers[u] == null)
-						continue;
-
-					buffer()->AdjustMark (SCOPE (0).casemarks[u]);
-					buffer()->MergeAndDestroy (SCOPE (0).casebuffers[u]);
+					buffer()->AdjustMark (info.mark);
+					buffer()->MergeAndDestroy (info.data);
 				}
 
 				// Move the closing mark here
@@ -1186,25 +1175,29 @@ DataBuffer* BotscriptParser::ParseAssignment (ScriptVariable* var)
 
 // ============================================================================
 //
-void BotscriptParser::PushScope()
+void BotscriptParser::PushScope (EReset reset)
 {
 	mScopeCursor++;
 
-	if (mScopeCursor >= MAX_SCOPE)
-		Error ("too deep scope");
+	Print ("%1 <-> %2\n", mScopeStack.Size(), mScopeCursor + 1);
 
-	ScopeInfo* info = &SCOPE (0);
-	info->type = eUnknownScope;
-	info->mark1 = null;
-	info->mark2 = null;
-	info->buffer1 = null;
-	info->casecursor = -1;
-
-	for (int i = 0; i < MAX_CASE; i++)
+	if (mScopeStack.Size() < mScopeCursor + 1)
 	{
-		info->casemarks[i] = null;
-		info->casebuffers[i] = null;
-		info->casenumbers[i] = -1;
+		Print ("Adding a scope\n");
+		ScopeInfo newscope;
+		mScopeStack << newscope;
+		reset = eResetScope;
+	}
+
+	if (reset == eResetScope)
+	{
+		ScopeInfo* info = &SCOPE (0);
+		info->type = eUnknownScope;
+		info->mark1 = null;
+		info->mark2 = null;
+		info->buffer1 = null;
+		info->cases.Clear();
+		info->casecursor = info->cases.begin() - 1;
 	}
 }
 
@@ -1240,29 +1233,27 @@ DataBuffer* BotscriptParser::ParseStatement()
 
 // ============================================================================
 //
-void BotscriptParser::AddSwitchCase (DataBuffer* b)
+void BotscriptParser::AddSwitchCase (DataBuffer* casebuffer)
 {
 	ScopeInfo* info = &SCOPE (0);
-
-	info->casecursor++;
-
-	if (info->casecursor >= MAX_CASE)
-		Error ("too many cases in one switch");
+	CaseInfo casedata;
 
 	// Init a mark for the case buffer
 	ByteMark* casemark = buffer()->AddMark ("");
-	info->casemarks[info->casecursor] = casemark;
+	casedata.mark = casemark;
 
 	// Add a reference to the mark. "case" and "default" both
 	// add the necessary bytecode before the reference.
-	if (b)
-		b->AddReference (casemark);
+	if (casebuffer != null)
+		casebuffer->AddReference (casemark);
 	else
 		buffer()->AddReference (casemark);
 
 	// Init a buffer for the case block and tell the object
 	// writer to record all written data to it.
-	info->casebuffers[info->casecursor] = mSwitchBuffer = new DataBuffer;
+	casedata.data = mSwitchBuffer = new DataBuffer;
+	SCOPE(0).cases << casedata;
+	info->casecursor++;
 }
 
 // ============================================================================
@@ -1373,8 +1364,8 @@ void BotscriptParser::WriteToFile (String outfile)
 	for (MarkReference* ref : mMainBuffer->GetReferences())
 	{
 		// Substitute the placeholder with the mark position
-		for (int v = 0; v < 4; v++)
-			mMainBuffer->GetBuffer()[ref->pos + v] = ((ref->target->pos) << (8 * v)) & 0xFF;
+		for (int i = 0; i < 4; ++i)
+			mMainBuffer->GetBuffer()[ref->pos + i] = (ref->target->pos >> (8 * i)) & 0xFF;
 
 		Print ("reference at %1 resolved to mark at %2\n", ref->pos, ref->target->pos);
 	}

@@ -35,9 +35,6 @@
 #include "LexerScanner.h"
 #include "Tokens.h"
 
-// TODO: get rid of this
-#define MAX_SCOPE 32
-
 // TODO: get rid of this too?
 #define MAX_CASE 64
 
@@ -91,30 +88,28 @@ enum EAssignmentOperator
 };
 
 // ============================================================================
+//
+struct CaseInfo
+{
+	ByteMark*		mark;
+	int				number;
+	DataBuffer*		data;
+};
+
+// ============================================================================
+//
 // Meta-data about scopes
 //
 struct ScopeInfo
 {
-	ByteMark*		mark1;
-	ByteMark*		mark2;
-	EScopeType		type;
-	DataBuffer*		buffer1;
+	ByteMark*					mark1;
+	ByteMark*					mark2;
+	EScopeType					type;
+	DataBuffer*					buffer1;
 
 	// switch-related stuff
-	// Which case are we at?
-	int				casecursor;
-
-	// Marks to case-blocks
-	ByteMark*		casemarks[MAX_CASE];
-
-	// Numbers of the case labels
-	int				casenumbers[MAX_CASE];
-
-	// actual case blocks
-	DataBuffer*	casebuffers[MAX_CASE];
-
-	// What is the current buffer of the block?
-	DataBuffer*	recordbuffer;
+	List<CaseInfo>::Iterator	casecursor;
+	List<CaseInfo>				cases;
 };
 
 // ============================================================================
@@ -133,8 +128,12 @@ class BotscriptParser
 	PROPERTY (public, bool, ReadOnly, BOOL_OPS, STOCK_WRITE)
 
 	public:
-		// ====================================================================
-		// METHODS
+		enum EReset
+		{
+			eNoReset,
+			eResetScope,
+		};
+
 		BotscriptParser();
 		~BotscriptParser();
 		ConstantInfo*			FindConstant (const String& tok);
@@ -143,7 +142,7 @@ class BotscriptParser
 		DataBuffer*				ParseAssignment (ScriptVariable* var);
 		EAssignmentOperator		ParseAssignmentOperator ();
 		String					ParseFloat();
-		void					PushScope();
+		void					PushScope (EReset reset = eResetScope);
 		DataBuffer*				ParseStatement();
 		void					AddSwitchCase (DataBuffer* b);
 		void					CheckToplevel();
@@ -197,8 +196,7 @@ class BotscriptParser
 		int						mNumWrittenBytes;
 
 		// Scope data
-		// TODO: make a List
-		ScopeInfo				mScopeStack[MAX_SCOPE];
+		List<ScopeInfo>			mScopeStack;
 
 		DataBuffer*	buffer();
 		void			ParseStateBlock();
