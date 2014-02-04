@@ -235,6 +235,14 @@ void Expression::AdjustOperators()
 //
 void Expression::TryVerifyValue (bool* verified, SymbolList::Iterator it)
 {
+	// If it's an unary operator we skip to its value. The actual operator will
+	// be verified separately.
+	if ((*it)->GetType() == eOperatorSymbol &&
+		gOperators[static_cast<ExpressionOperator*> (*it)->GetID()].numoperands == 1)
+	{
+		++it;
+	}
+
 	int i = it - mSymbols.begin();
 
 	// Ensure it's an actual value
@@ -414,10 +422,12 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 	ExpressionValue* newval = new ExpressionValue (mType);
 
 	if (isconstexpr == false)
+	{
+		// This is not a constant expression so we'll have to use databuffers
+		// to convey the expression to bytecode. Actual value cannot be evaluated
+		// until Zandronum processes it at run-time.
 		newval->SetBuffer (new DataBuffer);
 
-	if (isconstexpr == false)
-	{
 		if (op->GetID() == opTernary)
 		{
 			// There isn't a dataheader for ternary operator. Instead, we use dhIfNotGoto
