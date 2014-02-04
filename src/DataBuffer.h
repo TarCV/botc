@@ -66,17 +66,16 @@ class DataBuffer
 		// Note: @other is destroyed in the process!
 		void MergeAndDestroy (DataBuffer* other);
 
-		// Clones this databuffer to a new one and returns it.
-		DataBuffer* Clone();
-
 		ByteMark*		AddMark (String name);
 		MarkReference*	AddReference (ByteMark* mark);
 		void			CheckSpace (int bytes);
+		DataBuffer*		Clone();
 		void			DeleteMark (int marknum);
 		void			AdjustMark (ByteMark* mark);
 		void			OffsetMark (ByteMark* mark, int offset);
 		ByteMark*		FindMarkByName (const String& target);
 		void			Dump();
+		void			TransferMarks (DataBuffer* other);
 		void			WriteFloat (float a);
 		void			WriteStringIndex (const String& a);
 		void			WriteString (const String& a);

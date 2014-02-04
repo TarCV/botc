@@ -52,30 +52,23 @@ void DataBuffer::MergeAndDestroy (DataBuffer* other)
 	if (!other)
 		return;
 
-	int oldsize = GetWrittenSize();
+	// Note: We transfer the marks before the buffer is copied, so that the
+	// offset uses the proper value (which is the written size of @other, which
+	// we don't want our written size to be added to yet).
+	other->TransferMarks (this);
 	CopyBuffer (other);
-
-	// Assimilate in its marks and references
-	for (ByteMark* mark : other->GetMarks())
-	{
-		mark->pos += oldsize;
-		PushToMarks (mark);
-	}
-
-	for (MarkReference* ref : other->GetReferences())
-	{
-		ref->pos += oldsize;
-		PushToReferences (ref);
-	}
-
 	delete other;
 }
 
 // ============================================================================
 //
+// Clones this databuffer to a new one and returns it. Note that the original
+// transfers its marks and references and loses them in the process.
+//
 DataBuffer* DataBuffer::Clone()
 {
 	DataBuffer* other = new DataBuffer;
+	TransferMarks (other);
 	other->CopyBuffer (this);
 	return other;
 }
@@ -87,6 +80,28 @@ void DataBuffer::CopyBuffer (const DataBuffer* buf)
 	CheckSpace (buf->GetWrittenSize());
 	memcpy (mPosition, buf->GetBuffer(), buf->GetWrittenSize());
 	mPosition += buf->GetWrittenSize();
+}
+
+// ============================================================================
+//
+void DataBuffer::TransferMarks (DataBuffer* other)
+{
+	int offset = other->GetWrittenSize();
+
+	for (ByteMark* mark : GetMarks())
+	{
+		mark->pos += offset;
+		other->PushToMarks (mark);
+	}
+
+	for (MarkReference* ref : GetReferences())
+	{
+		ref->pos += offset;
+		other->PushToReferences (ref);
+	}
+
+	ClearMarks();
+	ClearReferences();
 }
 
 // ============================================================================
