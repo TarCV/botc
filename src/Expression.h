@@ -38,6 +38,15 @@ enum EOperator
 class Expression final
 {
 	public:
+		enum ESymbolType
+		{
+			eOperatorSymbol,
+			eValueSymbol,
+			eColonSymbol,
+		};
+
+		using SymbolList = List<ExpressionSymbol*>;
+
 		Expression (BotscriptParser* parser, Lexer* lx, EType reqtype);
 		~Expression();
 		ExpressionValue*		GetResult();
@@ -45,7 +54,7 @@ class Expression final
 	private:
 		BotscriptParser*		mParser;
 		Lexer*					mLexer;
-		List<ExpressionSymbol*>	mSymbols;
+		SymbolList				mSymbols;
 		EType					mType;
 		ExpressionValue*		mResult;
 
@@ -54,6 +63,7 @@ class Expression final
 		String					GetTokenString();
 		void					AdjustOperators();
 		void					Verify(); // Ensure the expr is valid
+		void					TryVerifyValue (bool* verified, SymbolList::Iterator it);
 };
 
 // =============================================================================
@@ -61,24 +71,17 @@ class Expression final
 class ExpressionSymbol
 {
 	public:
-		enum EExpressionSymbolType
-		{
-			eOperatorSymbol,
-			eValueSymbol,
-			eColonSymbol,
-		};
-
-		ExpressionSymbol (EExpressionSymbolType type) :
+		ExpressionSymbol (Expression::ESymbolType type) :
 			mType (type) {}
 
-	PROPERTY (private,	EExpressionSymbolType,	Type,	NO_OPS,	STOCK_WRITE)
+	PROPERTY (private, Expression::ESymbolType, Type, NO_OPS, STOCK_WRITE)
 };
 
 // =============================================================================
 //
 class ExpressionOperator final : public ExpressionSymbol
 {
-	PROPERTY (public,	EOperator,	ID,	NO_OPS,	STOCK_WRITE)
+	PROPERTY (public, EOperator, ID, NO_OPS, STOCK_WRITE)
 
 	public:
 		ExpressionOperator (EOperator id);
@@ -88,9 +91,9 @@ class ExpressionOperator final : public ExpressionSymbol
 //
 class ExpressionValue final : public ExpressionSymbol
 {
-	PROPERTY (public,	int,			Value,		NUM_OPS,	STOCK_WRITE)
-	PROPERTY (public,	DataBuffer*,	Buffer,		NO_OPS,		STOCK_WRITE)
-	PROPERTY (public,	EType,			ValueType,	NO_OPS,		STOCK_WRITE)
+	PROPERTY (public, int,			Value,		NUM_OPS,	STOCK_WRITE)
+	PROPERTY (public, DataBuffer*,	Buffer,		NO_OPS,		STOCK_WRITE)
+	PROPERTY (public, EType,		ValueType,	NO_OPS,		STOCK_WRITE)
 
 	public:
 		ExpressionValue (EType valuetype);
@@ -114,7 +117,7 @@ class ExpressionColon final : public ExpressionSymbol
 {
 	public:
 		ExpressionColon() :
-			ExpressionSymbol (eColonSymbol) {}
+			ExpressionSymbol (Expression::eColonSymbol) {}
 };
 
 #endif // BOTC_EXPRESSION_H
