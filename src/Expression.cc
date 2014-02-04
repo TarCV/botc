@@ -403,6 +403,7 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 											   const List<ExpressionValue*>& values)
 {
 	const OperatorInfo* info = &gOperators[op->GetID()];
+	Print ("Process operator %1\n", info - gOperators);
 	bool isconstexpr = true;
 
 	for (ExpressionValue* val : values)
@@ -449,6 +450,11 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 			buf->AdjustMark (mark1); // move mark1 at the end of the true case
 			buf->MergeAndDestroy (b2); // perform third operand (false case)
 			buf->AdjustMark (mark2); // move the ending mark2 here
+
+			Print ("Mark positions: %1 %2\n", mark1->pos, mark2->pos);
+
+			for (int i = 0; i < 3; ++i)
+				values[i]->SetBuffer (null);
 		}
 		else
 		{
