@@ -5,6 +5,7 @@ add_executable (botc
 	src/Commands.cc
 	src/DataBuffer.cc
 	src/Events.cc
+	src/Expression.cc
 	src/Format.cc
 	src/Lexer.cc
 	src/LexerScanner.cc

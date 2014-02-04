@@ -54,7 +54,7 @@ static const OperatorInfo gOperators[] =
 
 // =============================================================================
 //
-Expression::Expression (BotscriptParser* parser, EType reqtype, Lexer* lx) :
+Expression::Expression (BotscriptParser* parser, Lexer* lx, EType reqtype) :
 	mParser (parser),
 	mLexer (lx),
 	mType (reqtype),
@@ -68,8 +68,46 @@ Expression::Expression (BotscriptParser* parser, EType reqtype, Lexer* lx) :
 	if (mSymbols.IsEmpty())
 		Error ("Expected expression");
 
+	AdjustOperators();
+
+	for (ExpressionSymbol* sym : mSymbols)
+	{
+		switch (sym->GetType())
+		{
+			case ExpressionSymbol::eOperatorSymbol:
+			{
+				Print ("\t- Operator: %1\n", static_cast<ExpressionOperator*> (sym)->GetID());
+				break;
+			}
+
+			case ExpressionSymbol::eValueSymbol:
+			{
+				ExpressionValue* val = static_cast<ExpressionValue*> (sym);
+
+				if (val->IsConstexpr())
+					Print ("\t- Constant expression value: %1\n", val->GetValue());
+				else
+				{
+					Print ("\t- Databuffer value:\n");
+					val->GetBuffer()->Dump();
+				}
+				break;
+			}
+
+			case ExpressionSymbol::eColonSymbol:
+			{
+				Print ("\t- Colon");
+				break;
+			}
+		}
+	}
+
+	exit (0);
+
+	/*
 	Verify();
 	mResult = Evaluate();
+	*/
 }
 
 // =============================================================================
@@ -98,24 +136,25 @@ ExpressionSymbol* Expression::ParseSymbol()
 		ScriptVariable* globalvar;
 		mLexer->MustGetNext();
 
+		Print ("Token type: %1\n", mLexer->DescribeTokenType (mLexer->GetTokenType()));
+
 		if (mLexer->GetTokenType() == tkColon)
 			return new ExpressionColon;
 
 		// Check for operator
-		for (const OperatorInfo* op : gOperators)
-			if (mLexer->GetTokenType() == op->token)
-				return new ExpressionOperator (op - gOperators);
+		for (const OperatorInfo& op : gOperators)
+			if (mLexer->GetTokenType() == op.token)
+				return new ExpressionOperator ((EOperator) (&op - &gOperators[0]));
 
 		// Check sub-expression
 		if (mLexer->GetTokenType() == tkParenStart)
 		{
-			mLexer->MustGetNext();
 			Expression expr (mParser, mLexer, mType);
 			mLexer->MustGetNext (tkParenEnd);
 			return expr.GetResult();
 		}
 
-		op = new ExpressionValue;
+		op = new ExpressionValue (mType);
 
 		// Check function
 		if (CommandInfo* comm = FindCommandByName (GetTokenString()))
@@ -171,28 +210,36 @@ ExpressionSymbol* Expression::ParseSymbol()
 		{
 			case EVoidType:
 			case EUnknownType:
+			{
 				Error ("unknown identifier `%1` (expected keyword, function or variable)", GetTokenString());
 				break;
+			}
 
 			case EBoolType:
+			{
 				if ((tt = mLexer->GetTokenType()) == tkTrue || tt == tkFalse)
 				{
 					op->SetValue (tt == tkTrue ? 1 : 0);
 					return op;
 				}
+			}
 			case EIntType:
-				if (!mLexer->GetTokenType() != tkNumber)
+			{
+				if (mLexer->GetTokenType() != tkNumber)
 					throw failed;
 
 				op->SetValue (GetTokenString().ToLong());
 				return op;
+			}
 
 			case EStringType:
-				if (!mLexer->GetTokenType() != tkString)
+			{
+				if (mLexer->GetTokenType() != tkString)
 					throw failed;
 
 				op->SetValue (GetStringTableIndex (GetTokenString()));
 				return op;
+			}
 		}
 
 		assert (false);
@@ -203,11 +250,39 @@ ExpressionSymbol* Expression::ParseSymbol()
 		// We use a local enum here since catch(...) would catch Error() calls.
 		mLexer->SetPosition (pos);
 		delete op;
-		return false;
+		return null;
 	}
 
 	assert (false);
-	return false;
+	return null;
+}
+
+// =============================================================================
+//
+// The symbol parsing process only does token-based checking for operators. Thus
+// ALL minus operators are actually unary minuses simply because both have
+// tkMinus as their token and the unary minus is prior to the binary minus in
+// the operator table. Now that we have all symbols present, we can correct
+// cases like this.
+//
+void Expression::AdjustOperators()
+{
+	for (auto it = mSymbols.begin() + 1; it != mSymbols.end(); ++it)
+	{
+		if ((*it)->GetType() != ExpressionSymbol::eOperatorSymbol)
+			continue;
+
+		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
+
+		// Unary minus with a value as the previous symbol cannot really be
+		// unary; replace with binary minus.
+		if (op->GetID() == opUnaryMinus && (*(it - 1))->GetType() == ExpressionSymbol::eValueSymbol)
+		{
+			Print ("Changing symbol operator #%1 from %2 to %3\n",
+				it - mSymbols.begin(), op->GetID(), opSubtraction);
+			op->SetID (opSubtraction);
+		}
+	}
 }
 
 // =============================================================================
@@ -233,16 +308,23 @@ String Expression::GetTokenString()
 
 // =============================================================================
 //
-ExpressionOperator::ExpressionOperator (int id) :
-	mID (id),
-	mType (eOperator) {}
+ExpressionOperator::ExpressionOperator (EOperator id) :
+	ExpressionSymbol (eOperatorSymbol),
+	mID (id) {}
 
 // =============================================================================
 //
-ExpressionValue::ExpressionValue(EType valuetype) :
+ExpressionValue::ExpressionValue (EType valuetype) :
+	ExpressionSymbol (eValueSymbol),
 	mBuffer (null),
-	mType (eOperand),
 	mValueType (valuetype) {}
+
+// =============================================================================
+//
+ExpressionValue::~ExpressionValue()
+{
+	delete mBuffer;
+}
 
 // =============================================================================
 //

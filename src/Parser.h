@@ -57,50 +57,6 @@ struct UndefinedLabel
 };
 
 // ============================================================================
-// Operators
-//
-enum EOperator
-{
-	OPER_ADD,
-	OPER_SUBTRACT,
-	OPER_MULTIPLY,
-	OPER_DIVIDE,
-	OPER_MODULUS,
-	OPER_ASSIGN,
-	OPER_ASSIGNADD,
-	OPER_ASSIGNSUB,
-	OPER_ASSIGNMUL,
-	OPER_ASSIGNDIV,
-	OPER_ASSIGNMOD, // -- 10
-	OPER_EQUALS,
-	OPER_NOTEQUALS,
-	OPER_LESSTHAN,
-	OPER_GREATERTHAN,
-	OPER_LESSTHANEQUALS,
-	OPER_GREATERTHANEQUALS,
-	OPER_LEFTSHIFT,
-	OPER_RIGHTSHIFT,
-	OPER_ASSIGNLEFTSHIFT,
-	OPER_ASSIGNRIGHTSHIFT, // -- 20
-	OPER_OR,
-	OPER_AND,
-	OPER_BITWISEOR,
-	OPER_BITWISEAND,
-	OPER_BITWISEEOR,
-	OPER_TERNARY,
-	OPER_STRLEN,
-};
-
-// ============================================================================
-//
-struct operatorInfo
-{
-	EOperator		opercode;
-	EDataHeader		dataheader;
-	EToken			token;
-};
-
-// ============================================================================
 // Mark types
 //
 enum eMarkType
@@ -122,6 +78,16 @@ enum EScopeType
 	eDoScope,
 	eSwitchScope,
 	eElseScope,
+};
+
+enum EAssignmentOperator
+{
+	EAssign,
+	EAssignAdd,
+	EAssignSub,
+	EAssignMul,
+	EAssignDiv,
+	EAssignMod,
 };
 
 // ============================================================================
@@ -171,21 +137,21 @@ class BotscriptParser
 		// METHODS
 		BotscriptParser();
 		~BotscriptParser();
-		ConstantInfo*	FindConstant (const String& tok);
-		void			ParseBotscript (String fileName);
-		DataBuffer*		ParseCommand (CommandInfo* comm);
-		DataBuffer*		ParseAssignment (ScriptVariable* var);
-		int				ParseOperator (bool peek = false);
-		String			ParseFloat();
-		void			PushScope();
-		DataBuffer*		ParseStatement();
-		void			AddSwitchCase (DataBuffer* b);
-		void			CheckToplevel();
-		void			CheckNotToplevel();
-		bool			TokenIs (EToken a);
-		String			GetTokenString();
-		String			DescribePosition() const;
-		void			WriteToFile (String outfile);
+		ConstantInfo*			FindConstant (const String& tok);
+		void					ParseBotscript (String fileName);
+		DataBuffer*				ParseCommand (CommandInfo* comm);
+		DataBuffer*				ParseAssignment (ScriptVariable* var);
+		EAssignmentOperator		ParseAssignmentOperator ();
+		String					ParseFloat();
+		void					PushScope();
+		DataBuffer*				ParseStatement();
+		void					AddSwitchCase (DataBuffer* b);
+		void					CheckToplevel();
+		void					CheckNotToplevel();
+		bool					TokenIs (EToken a);
+		String					GetTokenString();
+		String					DescribePosition() const;
+		void					WriteToFile (String outfile);
 
 		inline int GetNumEvents() const
 		{
@@ -258,7 +224,8 @@ class BotscriptParser
 		void			ParseFuncdef();
 		void			writeMemberBuffers();
 		void			WriteStringTable();
-		void ParseExpression (EType reqtype);
+		DataBuffer*		ParseExpression (EType reqtype, bool fromhere = false);
+		EDataHeader		GetAssigmentDataHeader (EAssignmentOperator op, ScriptVariable* var);
 };
 
 #endif // BOTC_PARSER_H
