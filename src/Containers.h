@@ -164,9 +164,10 @@ class List
 
 		// =====================================================================
 		//
-		T& operator<< (const T& value)
+		SelfType& operator<< (const T& value)
 		{
-			return Append (value);
+			Append (value);
+			return *this;
 		}
 
 		// =====================================================================

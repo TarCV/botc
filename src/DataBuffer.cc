@@ -219,12 +219,11 @@ void DataBuffer::WriteDWord (int32_t data)
 //
 void DataBuffer::WriteString (const String& a)
 {
-	CheckSpace (a.Length() + 1);
+	CheckSpace (a.Length() + 4);
+	WriteDWord (a.Length());
 
 	for (char c : a)
 		WriteByte (c);
-
-	WriteByte ('\0');
 }
 
 
