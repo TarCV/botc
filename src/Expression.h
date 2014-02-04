@@ -8,23 +8,51 @@ class ExpressionValue;
 
 // =============================================================================
 //
+enum EOperator
+{
+	opNegateLogical,
+	opUnaryMinus,
+	opMultiplication,
+	opDivision,
+	opModulus,
+	opAddition,
+	opSubtraction,
+	opLeftShift,
+	opRightShift,
+	opCompareLesser,
+	opCompareGreater,
+	opCompareAtLeast,
+	opCompareAtMost,
+	opCompareEquals,
+	opCompareNotEquals,
+	opBitwiseAnd,
+	opBitwiseXOr,
+	opBitwiseOr,
+	opLogicalAnd,
+	opLogicalOr,
+	opTernary,
+};
+
+// =============================================================================
+//
 class Expression final
 {
 	public:
-		Expression (BotscriptParser* parser, EType reqtype, Lexer* lx);
+		Expression (BotscriptParser* parser, Lexer* lx, EType reqtype);
 		~Expression();
 		ExpressionValue*		GetResult();
 
 	private:
+		BotscriptParser*		mParser;
 		Lexer*					mLexer;
 		List<ExpressionSymbol*>	mSymbols;
 		EType					mType;
 		ExpressionValue*		mResult;
-		BotscriptParser*		mParser;
 
 		ExpressionValue*		Evaluate(); // Process the expression and yield a result
 		ExpressionSymbol*		ParseSymbol();
 		String					GetTokenString();
+		void					AdjustOperators();
 		void					Verify(); // Ensure the expr is valid
 };
 
@@ -35,10 +63,13 @@ class ExpressionSymbol
 	public:
 		enum EExpressionSymbolType
 		{
-			eOperator,
-			eOperand,
-			eColon,
+			eOperatorSymbol,
+			eValueSymbol,
+			eColonSymbol,
 		};
+
+		ExpressionSymbol (EExpressionSymbolType type) :
+			mType (type) {}
 
 	PROPERTY (private,	EExpressionSymbolType,	Type,	NO_OPS,	STOCK_WRITE)
 };
@@ -47,22 +78,23 @@ class ExpressionSymbol
 //
 class ExpressionOperator final : public ExpressionSymbol
 {
-	PROPERTY (public,	int,	ID,	NO_OPS,	STOCK_WRITE)
+	PROPERTY (public,	EOperator,	ID,	NO_OPS,	STOCK_WRITE)
 
 	public:
-		ExpressionOperator (int id);
+		ExpressionOperator (EOperator id);
 };
 
 // =============================================================================
 //
 class ExpressionValue final : public ExpressionSymbol
 {
-	PROPERTY (public,	int,			Value,		BOOL_OPS,	STOCK_WRITE)
+	PROPERTY (public,	int,			Value,		NUM_OPS,	STOCK_WRITE)
 	PROPERTY (public,	DataBuffer*,	Buffer,		NO_OPS,		STOCK_WRITE)
 	PROPERTY (public,	EType,			ValueType,	NO_OPS,		STOCK_WRITE)
 
 	public:
 		ExpressionValue (EType valuetype);
+		~ExpressionValue();
 
 		void ConvertToBuffer();
 
@@ -82,7 +114,7 @@ class ExpressionColon final : public ExpressionSymbol
 {
 	public:
 		ExpressionColon() :
-			mType (eColon) {}
+			ExpressionSymbol (eColonSymbol) {}
 };
 
 #endif // BOTC_EXPRESSION_H

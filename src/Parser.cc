@@ -393,7 +393,6 @@ void BotscriptParser::ParseIf()
 	mLexer->MustGetNext (tkParenStart);
 
 	// Read the expression and write it.
-	mLexer->MustGetNext();
 	DataBuffer* c = ParseExpression (EIntType);
 	buffer()->MergeAndDestroy (c);
 
@@ -459,7 +458,6 @@ void BotscriptParser::ParseWhileBlock()
 
 	// Condition
 	mLexer->MustGetNext (tkParenStart);
-	mLexer->MustGetNext();
 	DataBuffer* expr = ParseExpression (EIntType);
 	mLexer->MustGetNext (tkParenEnd);
 	mLexer->MustGetNext (tkBraceStart);
@@ -495,7 +493,6 @@ void BotscriptParser::ParseForBlock()
 	mLexer->MustGetNext (tkSemicolon);
 
 	// Condition
-	mLexer->MustGetNext();
 	DataBuffer* cond = ParseExpression (EIntType);
 
 	if (cond == null)
@@ -563,7 +560,6 @@ void BotscriptParser::ParseSwitchBlock()
 	CheckNotToplevel();
 	PushScope();
 	mLexer->MustGetNext (tkParenStart);
-	mLexer->MustGetNext();
 	buffer()->MergeAndDestroy (ParseExpression (EIntType));
 	mLexer->MustGetNext (tkParenEnd);
 	mLexer->MustGetNext (tkBraceStart);
@@ -739,7 +735,6 @@ void BotscriptParser::ParseBlockEnd()
 			{
 				mLexer->MustGetNext (tkWhile);
 				mLexer->MustGetNext (tkParenStart);
-				mLexer->MustGetNext();
 				DataBuffer* expr = ParseExpression (EIntType);
 				mLexer->MustGetNext (tkParenEnd);
 				mLexer->MustGetNext (tkSemicolon);
@@ -1019,7 +1014,7 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 			Error ("too many arguments passed to %1\n\tusage is: %2",
 				comm->name, comm->GetSignature());
 
-		r->MergeAndDestroy (ParseExpression (comm->args[curarg].type));
+		r->MergeAndDestroy (ParseExpression (comm->args[curarg].type, true));
 		mLexer->MustGetNext();
 
 		if (curarg < comm->numargs - 1)
@@ -1061,80 +1056,6 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 }
 
 // ============================================================================
-// Is the given operator an assignment operator?
-//
-static bool IsAssignmentOperator (int oper)
-{
-	switch (oper)
-	{
-		case OPER_ASSIGNADD:
-		case OPER_ASSIGNSUB:
-		case OPER_ASSIGNMUL:
-		case OPER_ASSIGNDIV:
-		case OPER_ASSIGNMOD:
-		case OPER_ASSIGNLEFTSHIFT:
-		case OPER_ASSIGNRIGHTSHIFT:
-		case OPER_ASSIGN:
-			return true;
-	}
-
-	return false;
-}
-
-// ============================================================================
-// Finds an operator's corresponding dataheader
-//
-static word GetDataHeaderByOperator (ScriptVariable* var, int oper)
-{
-	if (IsAssignmentOperator (oper))
-	{
-		if (var == null)
-			Error ("operator %d requires left operand to be a variable\n", oper);
-
-		// TODO: At the moment, vars only are global
-		// OPER_ASSIGNLEFTSHIFT and OPER_ASSIGNRIGHTSHIFT do not
-		// have data headers, instead they are expanded out in
-		// the operator Parser
-		switch (oper)
-		{
-			case OPER_ASSIGNADD: return dhAddGlobalVar;
-			case OPER_ASSIGNSUB: return dhSubtractGlobalVar;
-			case OPER_ASSIGNMUL: return dhMultiplyGlobalVar;
-			case OPER_ASSIGNDIV: return dhDivideGlobalVar;
-			case OPER_ASSIGNMOD: return dhModGlobalVar;
-			case OPER_ASSIGN: return dhAssignGlobalVar;
-
-			default: Error ("bad assignment operator!\n");
-		}
-	}
-
-	switch (oper)
-	{
-		case OPER_ADD: return dhAdd;
-		case OPER_SUBTRACT: return dhSubtract;
-		case OPER_MULTIPLY: return dhMultiply;
-		case OPER_DIVIDE: return dhDivide;
-		case OPER_MODULUS: return dhModulus;
-		case OPER_EQUALS: return dhEquals;
-		case OPER_NOTEQUALS: return dhNotEquals;
-		case OPER_LESSTHAN: return dhLessThan;
-		case OPER_GREATERTHAN: return dhGreaterThan;
-		case OPER_LESSTHANEQUALS: return dhAtMost;
-		case OPER_GREATERTHANEQUALS: return dhAtLeast;
-		case OPER_LEFTSHIFT: return dhLeftShift;
-		case OPER_RIGHTSHIFT: return dhRightShift;
-		case OPER_OR: return dhOrLogical;
-		case OPER_AND: return dhAndLogical;
-		case OPER_BITWISEOR: return dhOrBitwise;
-		case OPER_BITWISEEOR: return dhEorBitwise;
-		case OPER_BITWISEAND: return dhAndBitwise;
-	}
-
-	Error ("DataHeaderByOperator: couldn't find dataheader for operator %d!\n", oper);
-	return 0;
-}
-
-// ============================================================================
 //
 String BotscriptParser::ParseFloat()
 {
@@ -1155,6 +1076,71 @@ String BotscriptParser::ParseFloat()
 }
 
 // ============================================================================
+//
+// Parses an assignment operator.
+//
+EAssignmentOperator BotscriptParser::ParseAssignmentOperator()
+{
+	const List<EToken> tokens =
+	{
+		tkAssign,
+		tkAddAssign,
+		tkSubAssign,
+		tkMultiplyAssign,
+		tkDivideAssign,
+		tkModulusAssign
+	};
+
+	mLexer->MustGetAnyOf (tokens);
+
+	switch (mLexer->GetTokenType())
+	{
+		case tkAssign:			return EAssign;
+		case tkAddAssign:		return EAssignAdd;
+		case tkSubAssign:		return EAssignSub;
+		case tkMultiplyAssign:	return EAssignMul;
+		case tkDivideAssign:	return EAssignDiv;
+		case tkModulusAssign:	return EAssignMod;
+		default: break;
+	}
+
+	assert (false);
+	return (EAssignmentOperator) 0;
+}
+
+// ============================================================================
+//
+EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, ScriptVariable* var)
+{
+	if (var->IsGlobal())
+	{
+		switch (op)
+		{
+			case EAssign:		return dhAssignGlobalVar;
+			case EAssignAdd:	return dhAddGlobalVar;
+			case EAssignSub:	return dhSubtractGlobalVar;
+			case EAssignMul:	return dhMultiplyGlobalVar;
+			case EAssignDiv:	return dhDivideGlobalVar;
+			case EAssignMod:	return dhModGlobalVar;
+		}
+	}
+
+	switch (op)
+	{
+		case EAssign:		return dhAssignLocalVar;
+		case EAssignAdd:	return dhAddLocalVar;
+		case EAssignSub:	return dhSubtractLocalVar;
+		case EAssignMul:	return dhMultiplyLocalVar;
+		case EAssignDiv:	return dhDivideLocalVar;
+		case EAssignMod:	return dhModLocalVar;
+	}
+
+	assert (false);
+	return (EDataHeader) 0;
+}
+
+// ============================================================================
+//
 // Parses an assignment. An assignment starts with a variable name, followed
 // by an assignment operator, followed by an expression value. Expects current
 // token to be the name of the variable, and expects the variable to be given.
@@ -1162,20 +1148,16 @@ String BotscriptParser::ParseFloat()
 DataBuffer* BotscriptParser::ParseAssignment (ScriptVariable* var)
 {
 	// Get an operator
-	mLexer->MustGetNext();
-	int oper = ParseOperator();
-
-	if (IsAssignmentOperator (oper) == false)
-		Error ("expected assignment operator");
+	EAssignmentOperator oper = ParseAssignmentOperator();
 
 	if (mCurrentMode == ETopLevelMode)
 		Error ("can't alter variables at top level");
 
 	// Parse the right operand
-	mLexer->MustGetNext();
 	DataBuffer* retbuf = new DataBuffer;
 	DataBuffer* expr = ParseExpression (var->type);
 
+#if 0
 	// <<= and >>= do not have data headers. Solution: expand them.
 	// a <<= b -> a = a << b
 	// a >>= b -> a = a >> b
@@ -1190,11 +1172,14 @@ DataBuffer* BotscriptParser::ParseAssignment (ScriptVariable* var)
 	}
 	else
 	{
+#endif
 		retbuf->MergeAndDestroy (expr);
-		long dh = GetDataHeaderByOperator (var, oper);
+		EDataHeader dh = GetAssigmentDataHeader (oper, var);
 		retbuf->WriteDWord (dh);
 		retbuf->WriteDWord (var->index);
+#if 0
 	}
+#endif
 
 	return retbuf;
 }
@@ -1225,11 +1210,18 @@ void BotscriptParser::PushScope()
 
 // ============================================================================
 //
-void BotscriptParser::ParseExpression (EType reqtype)
+DataBuffer* BotscriptParser::ParseExpression (EType reqtype, bool fromhere)
 {
-	Expression expr (this, reqtype, mLexer);
+	// hehe
+	if (fromhere == true)
+		mLexer->Skip (-1);
+
+	Expression expr (this, mLexer, reqtype);
 	expr.GetResult()->ConvertToBuffer();
-	buffer()->MergeAndDestroy (expr.GetResult()->GetBuffer());
+
+	// The buffer will be destroyed once the function ends so we need to
+	// clone it now.
+	return expr.GetResult()->GetBuffer()->Clone();
 }
 
 // ============================================================================
