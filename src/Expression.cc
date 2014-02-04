@@ -6,8 +6,8 @@
 struct OperatorInfo
 {
 	EToken		token;
-	int			numoperands;
 	int			priority;
+	int			numoperands;
 	EDataHeader	header;
 };
 
@@ -74,13 +74,13 @@ Expression::Expression (BotscriptParser* parser, Lexer* lx, EType reqtype) :
 	{
 		switch (sym->GetType())
 		{
-			case ExpressionSymbol::eOperatorSymbol:
+			case eOperatorSymbol:
 			{
 				Print ("\t- Operator: %1\n", static_cast<ExpressionOperator*> (sym)->GetID());
 				break;
 			}
 
-			case ExpressionSymbol::eValueSymbol:
+			case eValueSymbol:
 			{
 				ExpressionValue* val = static_cast<ExpressionValue*> (sym);
 
@@ -94,7 +94,7 @@ Expression::Expression (BotscriptParser* parser, Lexer* lx, EType reqtype) :
 				break;
 			}
 
-			case ExpressionSymbol::eColonSymbol:
+			case eColonSymbol:
 			{
 				Print ("\t- Colon");
 				break;
@@ -102,10 +102,10 @@ Expression::Expression (BotscriptParser* parser, Lexer* lx, EType reqtype) :
 		}
 	}
 
+	Verify();
 	exit (0);
 
 	/*
-	Verify();
 	mResult = Evaluate();
 	*/
 }
@@ -269,20 +269,146 @@ void Expression::AdjustOperators()
 {
 	for (auto it = mSymbols.begin() + 1; it != mSymbols.end(); ++it)
 	{
-		if ((*it)->GetType() != ExpressionSymbol::eOperatorSymbol)
+		if ((*it)->GetType() != eOperatorSymbol)
 			continue;
 
 		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
 
 		// Unary minus with a value as the previous symbol cannot really be
 		// unary; replace with binary minus.
-		if (op->GetID() == opUnaryMinus && (*(it - 1))->GetType() == ExpressionSymbol::eValueSymbol)
+		if (op->GetID() == opUnaryMinus && (*(it - 1))->GetType() == eValueSymbol)
 		{
 			Print ("Changing symbol operator #%1 from %2 to %3\n",
 				it - mSymbols.begin(), op->GetID(), opSubtraction);
 			op->SetID (opSubtraction);
 		}
 	}
+}
+
+// =============================================================================
+//
+// Verifies a single value. Helper function for Expression::Verify.
+//
+void Expression::TryVerifyValue (bool* verified, SymbolList::Iterator it)
+{
+	int i = it - mSymbols.begin();
+
+	// Ensure it's an actual value
+	if ((*it)->GetType() != eValueSymbol)
+		Error ("malformed expression (symbol #%1 is not a value)", i);
+
+	verified[i] = true;
+}
+
+// =============================================================================
+//
+// Ensures the expression is valid and well-formed and not OMGWTFBBQ. Throws an
+// error if this is not the case.
+//
+void Expression::Verify()
+{
+	if (mSymbols.Size() == 1)
+	{
+		if (mSymbols[0]->GetType() != eValueSymbol)
+			Error ("bad expression");
+
+		Print ("Expression speedy-verified (1 expr symbol)");
+		return;
+	}
+
+	bool* verified = new bool[mSymbols.Size()];
+	memset (verified, 0, mSymbols.Size() * sizeof (decltype (*verified)));
+	const auto last = mSymbols.end() - 1;
+	const auto first = mSymbols.begin();
+
+	for (auto it = mSymbols.begin(); it != mSymbols.end(); ++it)
+	{
+		int i = (it - first);
+
+		if ((*it)->GetType() != eOperatorSymbol)
+			continue;
+
+		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
+		int numoperands = gOperators[op->GetID()].numoperands;
+
+		switch (numoperands)
+		{
+			case 1:
+			{
+				// Ensure that:
+				// -	unary operator is not the last symbol
+				// -	unary operator is succeeded by a value symbol
+				// -	neither symbol overlaps with something already verified
+				TryVerifyValue (verified, it + 1);
+
+				if (it == last || verified[i] == true)
+					Error ("malformed expression");
+
+				verified[i] = true;
+				break;
+			}
+
+			case 2:
+			{
+				// Ensure that:
+				// -	binary operator is not the first or last symbol
+				// -	is preceded and succeeded by values
+				// -	none of the three tokens are already verified
+				//
+				// Basically similar logic as above.
+				if (it == first || it == last || verified[i] == true)
+					Error ("malformed expression");
+
+				TryVerifyValue (verified, it + 1);
+				TryVerifyValue (verified, it - 1);
+				verified[i] = true;
+				break;
+			}
+
+			case 3:
+			{
+				// Ternary operator case. This goes a bit nuts.
+				// This time we have the following:
+				//
+				// (VALUE) ? (VALUE) : (VALUE)
+				//         ^
+				// --------/ we are here
+				//
+				// Check that the:
+				// -	questionmark operator is not misplaced (first or last)
+				// -	the value behind the operator (-1) is valid
+				// -	the value after the operator (+1) is valid
+				// -	the value after the colon (+3) is valid
+				// -	none of the five tokens are verified
+				//
+				TryVerifyValue (verified, it - 1);
+				TryVerifyValue (verified, it + 1);
+				TryVerifyValue (verified, it + 3);
+
+				if (it == first ||
+					it >= mSymbols.end() - 3 ||
+					verified[i] == true ||
+					verified[i + 2] == true ||
+					(*(it + 2))->GetType() != eColonSymbol)
+				{
+					Error ("malformed expression");
+				}
+
+				verified[i] = true;
+				verified[i + 2] = true;
+				break;
+			}
+
+			default:
+				Error ("WTF operator with %1 operands", numoperands);
+		}
+	}
+
+	for (int i = 0; i < mSymbols.Size(); ++i)
+		if (verified[i] == false)
+			Error ("malformed expression: expr symbol #%1 is was left unverified", i);
+
+	Print ("Expression verified.\n");
 }
 
 // =============================================================================
@@ -309,13 +435,13 @@ String Expression::GetTokenString()
 // =============================================================================
 //
 ExpressionOperator::ExpressionOperator (EOperator id) :
-	ExpressionSymbol (eOperatorSymbol),
+	ExpressionSymbol (Expression::eOperatorSymbol),
 	mID (id) {}
 
 // =============================================================================
 //
 ExpressionValue::ExpressionValue (EType valuetype) :
-	ExpressionSymbol (eValueSymbol),
+	ExpressionSymbol (Expression::eValueSymbol),
 	mBuffer (null),
 	mValueType (valuetype) {}
 
