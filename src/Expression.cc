@@ -36,29 +36,12 @@ static const OperatorInfo gOperators[] =
 	{ tkQuestionMark,		110,	3,	(EDataHeader) 0		},
 };
 
-/*
-	// There isn't a dataheader for ternary operator. Instead, we use dhIfNotGoto
-	// to create an "if-block" inside an expression.
-	// Behold, big block of writing madness! :P
-	ByteMark* mark1 = retbuf->AddMark (""); // start of "else" case
-	ByteMark* mark2 = retbuf->AddMark (""); // end of expression
-	retbuf->WriteDWord (dhIfNotGoto); // if the first operand (condition)
-	retbuf->AddReference (mark1); // didn't eval true, jump into mark1
-	retbuf->MergeAndDestroy (rb); // otherwise, perform second operand (true case)
-	retbuf->WriteDWord (dhGoto); // afterwards, jump to the end, which is
-	retbuf->AddReference (mark2); // marked by mark2.
-	retbuf->AdjustMark (mark1); // move mark1 at the end of the true case
-	retbuf->MergeAndDestroy (tb); // perform third operand (false case)
-	retbuf->AdjustMark (mark2); // move the ending mark2 here
-*/
-
 // =============================================================================
 //
 Expression::Expression (BotscriptParser* parser, Lexer* lx, EType reqtype) :
 	mParser (parser),
 	mLexer (lx),
-	mType (reqtype),
-	mResult (null)
+	mType (reqtype)
 {
 	ExpressionSymbol* sym;
 
@@ -69,45 +52,8 @@ Expression::Expression (BotscriptParser* parser, Lexer* lx, EType reqtype) :
 		Error ("Expected expression");
 
 	AdjustOperators();
-
-	for (ExpressionSymbol* sym : mSymbols)
-	{
-		switch (sym->GetType())
-		{
-			case eOperatorSymbol:
-			{
-				Print ("\t- Operator: %1\n", static_cast<ExpressionOperator*> (sym)->GetID());
-				break;
-			}
-
-			case eValueSymbol:
-			{
-				ExpressionValue* val = static_cast<ExpressionValue*> (sym);
-
-				if (val->IsConstexpr())
-					Print ("\t- Constant expression value: %1\n", val->GetValue());
-				else
-				{
-					Print ("\t- Databuffer value:\n");
-					val->GetBuffer()->Dump();
-				}
-				break;
-			}
-
-			case eColonSymbol:
-			{
-				Print ("\t- Colon");
-				break;
-			}
-		}
-	}
-
 	Verify();
-	exit (0);
-
-	/*
-	mResult = Evaluate();
-	*/
+	Evaluate();
 }
 
 // =============================================================================
@@ -116,8 +62,6 @@ Expression::~Expression()
 {
 	for (ExpressionSymbol* sym : mSymbols)
 		delete sym;
-
-	delete mResult;
 }
 
 // =============================================================================
@@ -151,7 +95,7 @@ ExpressionSymbol* Expression::ParseSymbol()
 		{
 			Expression expr (mParser, mLexer, mType);
 			mLexer->MustGetNext (tkParenEnd);
-			return expr.GetResult();
+			return expr.GetResult()->Clone();
 		}
 
 		op = new ExpressionValue (mType);
@@ -312,9 +256,12 @@ void Expression::Verify()
 		if (mSymbols[0]->GetType() != eValueSymbol)
 			Error ("bad expression");
 
-		Print ("Expression speedy-verified (1 expr symbol)");
+		Print ("Expression speedy-verified (1 expr symbol)\n");
 		return;
 	}
+
+	if (mType == EStringType)
+		Error ("Cannot perform operations on strings");
 
 	bool* verified = new bool[mSymbols.Size()];
 	memset (verified, 0, mSymbols.Size() * sizeof (decltype (*verified)));
@@ -409,20 +356,235 @@ void Expression::Verify()
 			Error ("malformed expression: expr symbol #%1 is was left unverified", i);
 
 	Print ("Expression verified.\n");
+	delete verified;
+}
+
+
+// =============================================================================
+//
+// Which operator to evaluate?
+//
+Expression::SymbolList::Iterator Expression::FindPrioritizedOperator()
+{
+	SymbolList::Iterator	best = mSymbols.end();
+	int						bestpriority = INT_MAX;
+
+	for (SymbolList::Iterator it = mSymbols.begin(); it != mSymbols.end(); ++it)
+	{
+		if ((*it)->GetType() != eOperatorSymbol)
+			continue;
+
+		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
+		const OperatorInfo* info = &gOperators[op->GetID()];
+
+		if (info->priority < bestpriority)
+		{
+			best = it;
+			bestpriority = info->priority;
+		}
+	}
+
+	return best;
+}
+
+// =============================================================================
+//
+// Process the given operator and values into a new value.
+//
+ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
+											   const List<ExpressionValue*>& values)
+{
+	const OperatorInfo* info = &gOperators[op->GetID()];
+	bool isconstexpr = true;
+
+	for (ExpressionValue* val : values)
+	{
+		if (val->IsConstexpr() == false)
+		{
+			isconstexpr = false;
+			break;
+		}
+	}
+
+	// If not all of the values are constant expressions, none of them shall be.
+	if (isconstexpr == false)
+		for (ExpressionValue* val : values)
+			val->ConvertToBuffer();
+
+	ExpressionValue* newval = new ExpressionValue (mType);
+
+	if (isconstexpr == false)
+		newval->SetBuffer (new DataBuffer);
+
+	if (isconstexpr == false)
+	{
+		if (op->GetID() == opTernary)
+		{
+			// There isn't a dataheader for ternary operator. Instead, we use dhIfNotGoto
+			// to create an "if-block" inside an expression.
+			// Behold, big block of writing madness! :P
+			//
+			DataBuffer* buf = newval->GetBuffer();
+			DataBuffer* b0 = values[0]->GetBuffer();
+			DataBuffer* b1 = values[1]->GetBuffer();
+			DataBuffer* b2 = values[2]->GetBuffer();
+			ByteMark* mark1 = buf->AddMark (""); // start of "else" case
+			ByteMark* mark2 = buf->AddMark (""); // end of expression
+			buf->MergeAndDestroy (b0);
+			buf->WriteDWord (dhIfNotGoto); // if the first operand (condition)
+			buf->AddReference (mark1); // didn't eval true, jump into mark1
+			buf->MergeAndDestroy (b1); // otherwise, perform second operand (true case)
+			buf->WriteDWord (dhGoto); // afterwards, jump to the end, which is
+			buf->AddReference (mark2); // marked by mark2.
+			buf->AdjustMark (mark1); // move mark1 at the end of the true case
+			buf->MergeAndDestroy (b2); // perform third operand (false case)
+			buf->AdjustMark (mark2); // move the ending mark2 here
+		}
+		else
+		{
+			// Generic case: write all arguments and apply the operator's
+			// data header.
+			for (ExpressionValue* val : values)
+			{
+				newval->GetBuffer()->MergeAndDestroy (val->GetBuffer());
+
+				// Null the pointer out so that the value's destructor will not
+				// attempt to double-free it.
+				val->SetBuffer (null);
+			}
+
+			newval->GetBuffer()->WriteDWord (info->header);
+		}
+	}
+	else
+	{
+		// We have a constant expression. We know all the values involved and
+		// can thus compute the result of this expression on compile-time.
+		List<int> nums;
+		int a;
+
+		for (ExpressionValue* val : values)
+			nums << val->GetValue();
+
+		switch (op->GetID())
+		{
+			case opAddition:			a = nums[0] + nums[1];					break;
+			case opSubtraction:			a = nums[0] - nums[1];					break;
+			case opMultiplication:		a = nums[0] * nums[1];					break;
+			case opUnaryMinus:			a = -nums[0];							break;
+			case opNegateLogical:		a = !nums[0];							break;
+			case opLeftShift:			a = nums[0] << nums[1];					break;
+			case opRightShift:			a = nums[0] >> nums[1];					break;
+			case opCompareLesser:		a = (nums[0] < nums[1]) ? 1 : 0;		break;
+			case opCompareGreater:		a = (nums[0] > nums[1]) ? 1 : 0;		break;
+			case opCompareAtLeast:		a = (nums[0] <= nums[1]) ? 1 : 0;		break;
+			case opCompareAtMost:		a = (nums[0] >= nums[1]) ? 1 : 0;		break;
+			case opCompareEquals:		a = (nums[0] == nums[1]) ? 1 : 0;		break;
+			case opCompareNotEquals:	a = (nums[0] != nums[1]) ? 1 : 0;		break;
+			case opBitwiseAnd:			a = nums[0] & nums[1];					break;
+			case opBitwiseOr:			a = nums[0] | nums[1];					break;
+			case opBitwiseXOr:			a = nums[0] ^ nums[1];					break;
+			case opLogicalAnd:			a = (nums[0] && nums[1]) ? 1 : 0;		break;
+			case opLogicalOr:			a = (nums[0] || nums[1]) ? 1 : 0;		break;
+			case opTernary:				a = (nums[0] != 0) ? nums[1] : nums[2];	break;
+
+			case opDivision:
+				if (nums[1] == 0)
+					Error ("division by zero in constant expression");
+
+				a = nums[0] / nums[1];
+				break;
+
+			case opModulus:
+				if (nums[1] == 0)
+					Error ("modulus by zero in constant expression");
+
+				a = nums[0] % nums[1];
+				break;
+		}
+
+		newval->SetValue (a);
+	}
+
+	// The new value has been generated. We don't need the old stuff anymore.
+	for (ExpressionValue* val : values)
+		delete val;
+
+	delete op;
+	return newval;
 }
 
 // =============================================================================
 //
 ExpressionValue* Expression::Evaluate()
 {
-	
+	SymbolList::Iterator it;
+
+	while ((it = FindPrioritizedOperator()) != mSymbols.end())
+	{
+		int i = it - mSymbols.begin();
+		List<SymbolList::Iterator> operands;
+		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
+		const OperatorInfo* info = &gOperators[op->GetID()];
+		int lower, upper; // Boundaries of area to replace
+
+		switch (info->numoperands)
+		{
+			case 1:
+			{
+				lower = i;
+				upper = i + 1;
+				operands << it + 1;
+				break;
+			}
+
+			case 2:
+			{
+				lower = i - 1;
+				upper = i + 1;
+				operands << it - 1
+				         << it + 1;
+				break;
+			}
+
+			case 3:
+			{
+				lower = i - 1;
+				upper = i + 3;
+				operands << it - 1
+				         << it + 1
+				         << it + 3;
+				break;
+			}
+
+			default:
+				assert (false);
+		}
+
+		List<ExpressionValue*> values;
+
+		for (auto it : operands)
+			values << static_cast<ExpressionValue*> (*it);
+
+		// Note: @op and all of @values are invalid after this call.
+		ExpressionValue* newvalue = EvaluateOperator (op, values);
+
+		for (int i = upper; i >= lower; --i)
+			mSymbols.RemoveAt (i);
+
+		mSymbols.Insert (lower, newvalue);
+	}
+
+	assert (mSymbols.Size() == 1 && mSymbols.First()->GetType() == eValueSymbol);
+	ExpressionValue* val = static_cast<ExpressionValue*> (mSymbols.First());
+	return val;
 }
 
 // =============================================================================
 //
 ExpressionValue* Expression::GetResult()
 {
-	return mResult;
+	return static_cast<ExpressionValue*> (mSymbols.First());
 }
 
 // =============================================================================

@@ -5,6 +5,7 @@
 class DataBuffer;
 class ExpressionSymbol;
 class ExpressionValue;
+class ExpressionOperator;
 
 // =============================================================================
 //
@@ -56,7 +57,6 @@ class Expression final
 		Lexer*					mLexer;
 		SymbolList				mSymbols;
 		EType					mType;
-		ExpressionValue*		mResult;
 
 		ExpressionValue*		Evaluate(); // Process the expression and yield a result
 		ExpressionSymbol*		ParseSymbol();
@@ -64,6 +64,9 @@ class Expression final
 		void					AdjustOperators();
 		void					Verify(); // Ensure the expr is valid
 		void					TryVerifyValue (bool* verified, SymbolList::Iterator it);
+		ExpressionValue*		EvaluateOperator (const ExpressionOperator* op,
+												  const List<ExpressionValue*>& values);
+		SymbolList::Iterator	FindPrioritizedOperator();
 };
 
 // =============================================================================
@@ -99,7 +102,12 @@ class ExpressionValue final : public ExpressionSymbol
 		ExpressionValue (EType valuetype);
 		~ExpressionValue();
 
-		void ConvertToBuffer();
+		void				ConvertToBuffer();
+
+		inline ExpressionValue* Clone() const
+		{
+			return new ExpressionValue (*this);
+		}
 
 		inline bool IsConstexpr() const
 		{
