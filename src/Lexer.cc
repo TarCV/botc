@@ -321,7 +321,14 @@ String Lexer::PeekNextString (int a)
 
 // =============================================================================
 //
-String Lexer::DescribePosition()
+String Lexer::DescribeCurrentPosition()
+{
+	return GetToken()->file + ":" + GetToken()->line;
+}
+
+// =============================================================================
+//
+String Lexer::DescribeTokenPosition()
 {
 	return Format ("%1 / %2", mTokenPosition - mTokens.begin(), mTokens.Size());
 }

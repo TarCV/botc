@@ -13,7 +13,6 @@ add_executable (botc
 	src/Parser.cc
 	src/String.cc
 	src/StringTable.cc
-	src/Variables.cc
 )
 
 get_target_property (UPDATEREVISION_EXE updaterevision LOCATION)
