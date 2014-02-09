@@ -164,13 +164,13 @@ bool Lexer::GetNext (EToken req)
 
 // =============================================================================
 //
-void Lexer::MustGetNext (EToken tt)
+void Lexer::MustGetNext (EToken tok)
 {
 	if (!GetNext())
 		Error ("unexpected EOF");
 
-	if (tt != tkAny)
-		TokenMustBe (tt);
+	if (tok != tkAny)
+		TokenMustBe (tok);
 }
 
 // =============================================================================

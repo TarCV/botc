@@ -374,7 +374,7 @@ void BotscriptParser::ParseGoto()
 	CheckNotToplevel();
 
 	// Get the name of the label
-	mLexer->MustGetNext();
+	mLexer->MustGetNext (tkAny);
 
 	// Find the mark this goto statement points to
 	String target = GetTokenString();
@@ -492,7 +492,7 @@ void BotscriptParser::ParseForBlock()
 
 	// Initializer
 	mLexer->MustGetNext (tkParenStart);
-	mLexer->MustGetNext();
+	mLexer->MustGetNext (tkAny);
 	DataBuffer* init = ParseStatement();
 
 	if (init == null)
@@ -509,7 +509,7 @@ void BotscriptParser::ParseForBlock()
 	mLexer->MustGetNext (tkSemicolon);
 
 	// Incrementor
-	mLexer->MustGetNext();
+	mLexer->MustGetNext (tkAny);
 	DataBuffer* incr = ParseStatement();
 
 	if (incr == null)
@@ -948,7 +948,7 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 		Error ("command call at top level");
 
 	mLexer->MustGetNext (tkParenStart);
-	mLexer->MustGetNext();
+	mLexer->MustGetNext (tkAny);
 
 	int curarg = 0;
 
@@ -969,12 +969,12 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 				comm->name, comm->GetSignature());
 
 		r->MergeAndDestroy (ParseExpression (comm->args[curarg].type, true));
-		mLexer->MustGetNext();
+		mLexer->MustGetNext (tkAny);
 
 		if (curarg < comm->minargs - 1)
 		{
 			mLexer->TokenMustBe (tkComma);
-			mLexer->MustGetNext();
+			mLexer->MustGetNext (tkAny);
 		}
 		else if (curarg < comm->args.Size() - 1)
 		{
@@ -987,7 +987,7 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 			else
 			{
 				mLexer->TokenMustBe (tkComma);
-				mLexer->MustGetNext();
+				mLexer->MustGetNext (tkAny);
 			}
 		}
 
