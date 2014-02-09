@@ -116,15 +116,6 @@ struct ScopeInfo
 
 // ============================================================================
 //
-struct ConstantInfo
-{
-	String name;
-	EType type;
-	String val;
-};
-
-// ============================================================================
-//
 class BotscriptParser
 {
 	PROPERTY (public, bool, ReadOnly, BOOL_OPS, STOCK_WRITE)
@@ -138,7 +129,6 @@ class BotscriptParser
 
 		BotscriptParser();
 		~BotscriptParser();
-		ConstantInfo*			FindConstant (const String& tok);
 		void					ParseBotscript (String fileName);
 		DataBuffer*				ParseCommand (CommandInfo* comm);
 		DataBuffer*				ParseAssignment (ScriptVariable* var);
@@ -192,7 +182,6 @@ class BotscriptParser
 		DataBuffer*				mIfExpression;
 		bool					mCanElse;
 		List<UndefinedLabel>	mUndefinedLabels;
-		List<ConstantInfo>		mConstants;
 
 		// How many bytes have we written to file?
 		int						mNumWrittenBytes;
@@ -205,7 +194,7 @@ class BotscriptParser
 		void			ParseEventBlock();
 		void			ParseMainloop();
 		void			ParseOnEnterExit();
-		void			ParseVariableDeclaration();
+		void			ParseVar();
 		void			ParseGoto();
 		void			ParseIf();
 		void			ParseElse();
@@ -218,7 +207,6 @@ class BotscriptParser
 		void			ParseBreak();
 		void			ParseContinue();
 		void			ParseBlockEnd();
-		void			ParseConst();
 		void			ParseLabel();
 		void			ParseEventdef();
 		void			ParseFuncdef();

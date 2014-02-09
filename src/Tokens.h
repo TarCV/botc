@@ -104,6 +104,7 @@ enum EToken
 	tkState,
 	tkSwitch,
 	tkStr,
+	tkVar,
 	tkVoid,
 	tkWhile,
 	tkTrue,

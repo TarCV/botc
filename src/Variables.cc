@@ -60,7 +60,6 @@ ScriptVariable* DeclareGlobalVariable (EType type, String name)
 	g.index = g_GlobalVariables.Size();
 	g.name = name;
 	g.statename = "";
-	g.value = 0;
 	g.type = type;
 
 	g_GlobalVariables << g;
