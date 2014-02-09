@@ -43,7 +43,7 @@
 
 class DataBuffer;
 class Lexer;
-class ScriptVariable;
+class Variable;
 
 // ============================================================================
 //
@@ -91,6 +91,31 @@ enum EAssignmentOperator
 
 // ============================================================================
 //
+struct Variable
+{
+	enum EWritability
+	{
+		WRITE_Mutable,		// normal read-many-write-many variable
+		WRITE_Const,		// write-once const variable
+		WRITE_Constexpr,	// const variable whose value is known to compiler
+	};
+
+	String			name;
+	String			statename;
+	EType			type;
+	int				index;
+	EWritability	writelevel;
+	int				value;
+	String			origin;
+
+	inline bool IsGlobal() const
+	{
+		return statename.IsEmpty();
+	}
+};
+
+// ============================================================================
+//
 struct CaseInfo
 {
 	ByteMark*		mark;
@@ -108,10 +133,14 @@ struct ScopeInfo
 	ByteMark*					mark2;
 	EScopeType					type;
 	DataBuffer*					buffer1;
+	int							globalVarIndexBase;
+	int							localVarIndexBase;
 
 	// switch-related stuff
 	List<CaseInfo>::Iterator	casecursor;
 	List<CaseInfo>				cases;
+	List<Variable*>				localVariables;
+	List<Variable*>				globalVariables;
 };
 
 // ============================================================================
@@ -131,7 +160,7 @@ class BotscriptParser
 		~BotscriptParser();
 		void					ParseBotscript (String fileName);
 		DataBuffer*				ParseCommand (CommandInfo* comm);
-		DataBuffer*				ParseAssignment (ScriptVariable* var);
+		DataBuffer*				ParseAssignment (Variable* var);
 		EAssignmentOperator		ParseAssignmentOperator ();
 		String					ParseFloat();
 		void					PushScope (EReset reset = eResetScope);
@@ -143,6 +172,13 @@ class BotscriptParser
 		String					GetTokenString();
 		String					DescribePosition() const;
 		void					WriteToFile (String outfile);
+		Variable*				FindVariable (const String& name);
+		bool					IsInGlobalState() const;
+
+		inline ScopeInfo& GetScope (int offset)
+		{
+			return mScopeStack[mScopeCursor - offset];
+		}
 
 		inline int GetNumEvents() const
 		{
@@ -179,7 +215,6 @@ class BotscriptParser
 		bool					mStateSpawnDefined;
 		bool					mGotMainLoop;
 		int						mScopeCursor;
-		DataBuffer*				mIfExpression;
 		bool					mCanElse;
 		List<UndefinedLabel>	mUndefinedLabels;
 
@@ -213,7 +248,7 @@ class BotscriptParser
 		void			writeMemberBuffers();
 		void			WriteStringTable();
 		DataBuffer*		ParseExpression (EType reqtype, bool fromhere = false);
-		EDataHeader		GetAssigmentDataHeader (EAssignmentOperator op, ScriptVariable* var);
+		EDataHeader		GetAssigmentDataHeader (EAssignmentOperator op, Variable* var);
 };
 
 #endif // BOTC_PARSER_H

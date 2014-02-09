@@ -144,10 +144,10 @@ class List
 
 		// =====================================================================
 		//
-		void Merge (const SelfType& vals)
+		void Merge (const SelfType& other)
 		{
-			for (const T & val : vals)
-				Append (val);
+			m_data.resize (Size() + other.Size());
+			std::copy (other.begin(), other.end(), begin() + other.Size());
 		}
 
 		// =====================================================================
@@ -331,6 +331,15 @@ class List
 		inline bool Contains (const ValueType& a) const
 		{
 			return Find (a) != -1;
+		}
+
+		// =====================================================================
+		//
+		SelfType operator+ (const SelfType& other) const
+		{
+			SelfType out (*this);
+			out.Merge (other);
+			return out;
 		}
 
 	private:

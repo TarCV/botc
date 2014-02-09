@@ -74,7 +74,7 @@ String FormatArgs (const List<FormatArgument>& args)
 		char mod = '\0';
 
 		// handle modifiers
-		if (fmt[pos + ofs] == 's' || fmt[pos + ofs] == 'x')
+		if (fmt[pos + ofs] == 's' || fmt[pos + ofs] == 'x' || fmt[pos + ofs] == 'd')
 		{
 			mod = fmt[pos + ofs];
 			ofs++;

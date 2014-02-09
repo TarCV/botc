@@ -1,7 +1,6 @@
 #include "Expression.h"
 #include "DataBuffer.h"
 #include "Lexer.h"
-#include "Variables.h"
 
 struct OperatorInfo
 {
@@ -107,17 +106,16 @@ ExpressionSymbol* Expression::ParseSymbol()
 			return op;
 		}
 
-		// Check global variable
-		// TODO: handle locals too when they're implemented
+		// Check for variables
 		if (mLexer->GetTokenType() == tkDollarSign)
 		{
 			mLexer->MustGetNext (tkSymbol);
-			ScriptVariable* globalvar = FindGlobalVariable (GetTokenString());
+			Variable* globalvar = mParser->FindVariable (GetTokenString());
 
 			if (globalvar == null)
 				Error ("unknown variable %1", GetTokenString());
 
-			if (globalvar->writelevel == ScriptVariable::WRITE_Constexpr)
+			if (globalvar->writelevel == Variable::WRITE_Constexpr)
 				op->SetValue (globalvar->value);
 			else
 			{

@@ -60,7 +60,8 @@ public:
 	bool	PeekNext (Token* tk = null);
 	bool	PeekNextType (EToken req);
 	String	PeekNextString (int a = 1);
-	String	DescribePosition();
+	String	DescribeCurrentPosition();
+	String	DescribeTokenPosition();
 
 	static Lexer* GetCurrentLexer();
 

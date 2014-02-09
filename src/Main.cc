@@ -30,7 +30,6 @@
 #include "Events.h"
 #include "Commands.h"
 #include "StringTable.h"
-#include "Variables.h"
 #include "DataBuffer.h"
 #include "Parser.h"
 #include "Lexer.h"
@@ -98,24 +97,21 @@ int main (int argc, char** argv)
 		Print ("Script parsed successfully.\n");
 
 		// Parse done, print statistics and write to file
-		int globalcount = g_GlobalVariables.Size();
+		int globalcount = parser->GetScope (0).globalVariables.Size();
 		int stringcount = CountStringsInTable();
-		Print ("%1 / %2 strings written\n", stringcount, gMaxStringlistSize);
-		Print ("%1 / %2 global variables\n", globalcount, gMaxGlobalVars);
+		Print ("%1 / %2 strings\n", stringcount, gMaxStringlistSize);
+		Print ("%1 / %2 global variable indices\n", globalcount, gMaxGlobalVars);
 		Print ("%1 / %2 events\n", parser->GetNumEvents(), gMaxEvents);
 		Print ("%1 state%s1\n", parser->GetNumStates());
 
 		parser->WriteToFile (outfile);
-
-		// Clear out the junk
 		delete parser;
-
-		// Done!
-		exit (0);
+		return 0;
 	}
 	catch (ScriptError& e)
 	{
 		PrintTo (stderr, "error: %1\n", e.what());
+		return 1;
 	}
 }
 

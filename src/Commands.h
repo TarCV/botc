@@ -46,6 +46,7 @@ struct CommandInfo
 	int						minargs;
 	EType					returnvalue;
 	List<CommandArgument>	args;
+	String					origin;
 
 	String	GetSignature();
 };

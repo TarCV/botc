@@ -30,7 +30,6 @@
 #include "Events.h"
 #include "Commands.h"
 #include "StringTable.h"
-#include "Variables.h"
 #include "Containers.h"
 #include "Lexer.h"
 #include "DataBuffer.h"
@@ -42,7 +41,17 @@
 //
 BotscriptParser::BotscriptParser() :
 	mReadOnly (false),
-	mLexer (new Lexer) {}
+	mMainBuffer (new DataBuffer),
+	mOnEnterBuffer (new DataBuffer),
+	mMainLoopBuffer (new DataBuffer),
+	mLexer (new Lexer),
+	mNumStates (0),
+	mNumEvents (0),
+	mCurrentMode (ETopLevelMode),
+	mStateSpawnDefined (false),
+	mGotMainLoop (false),
+	mScopeCursor (-1),
+	mCanElse (false) {}
 
 // ============================================================================
 //
@@ -75,18 +84,6 @@ void BotscriptParser::ParseBotscript (String fileName)
 {
 	// Lex and preprocess the file
 	mLexer->ProcessFile (fileName);
-
-	mMainBuffer = new DataBuffer;
-	mOnEnterBuffer = new DataBuffer;
-	mMainLoopBuffer = new DataBuffer;
-	mCurrentMode = ETopLevelMode;
-	mNumStates = 0;
-	mNumEvents = 0;
-	mScopeCursor = -1;
-	mStateSpawnDefined = false;
-	mGotMainLoop = false;
-	mIfExpression = null;
-	mCanElse = false;
 	PushScope();
 
 	while (mLexer->GetNext())
@@ -325,37 +322,50 @@ void BotscriptParser::ParseOnEnterExit()
 //
 void BotscriptParser::ParseVar()
 {
+	Variable* var = new Variable;
+	var->origin = mLexer->DescribeCurrentPosition();
 	const bool isconst = mLexer->GetNext (tkConst);
+	const bool isglobal = true;
 	mLexer->MustGetAnyOf ({tkInt, tkStr, tkVoid});
 
-	// TODO
-	if (mCurrentMode != ETopLevelMode || mCurrentState.IsEmpty() == false)
-		Error ("variables must only be global for now");
-
-	EType type =	(TokenIs (tkInt)) ? EIntType :
+	EType vartype =	(TokenIs (tkInt)) ? EIntType :
 					(TokenIs (tkStr)) ? EStringType :
 					EBoolType;
 
 	mLexer->MustGetNext (tkSymbol);
-	String varname = GetTokenString();
+	String name = GetTokenString();
 
-	if (varname[0] >= '0' && varname[0] <= '9')
-		Error ("variable name must not start with a number");
+	/*
+	 * TODO
+	if (isglobal && mScopeStack[0].globalVariables.Size() >= gMaxGlobalVars)
+		Error ("too many global variables!");
+	*/
 
-	ScriptVariable* var = DeclareGlobalVariable (type, varname);
+	for (Variable* var : SCOPE(0).globalVariables + SCOPE(0).localVariables)
+	{
+		if (var->name == name)
+			Error ("Variable $%1 is already declared on this scope; declared at %2",
+				var->name, var->origin);
+	}
+
+	var->name = name;
+	var->statename = "";
+	var->type = vartype;
 
 	if (isconst == false)
 	{
-		var->writelevel = ScriptVariable::WRITE_Mutable;
+		var->writelevel = Variable::WRITE_Mutable;
 	}
 	else
 	{
 		mLexer->MustGetNext (tkAssign);
-		Expression expr (this, mLexer, type);
+		Expression expr (this, mLexer, vartype);
 
+		// If the expression was constexpr, we know its value and thus
+		// can store it in the variable.
 		if (expr.GetResult()->IsConstexpr())
 		{
-			var->writelevel = ScriptVariable::WRITE_Constexpr;
+			var->writelevel = Variable::WRITE_Constexpr;
 			var->value = expr.GetResult()->GetValue();
 		}
 		else
@@ -365,7 +375,28 @@ void BotscriptParser::ParseVar()
 		}
 	}
 
+	// Assign an index for the variable if it is not constexpr. Constexpr
+	// variables can simply be substituted out for their value when used
+	// so they need no index.
+	if (var->writelevel != Variable::WRITE_Constexpr)
+	{
+		bool isglobal = IsInGlobalState();
+		var->index = isglobal ? SCOPE(0).globalVarIndexBase++ : SCOPE(0).localVarIndexBase++;
+
+		if ((isglobal == true && var->index >= gMaxGlobalVars) ||
+			(isglobal == false && var->index >= gMaxStateVars))
+		{
+			Error ("too many %1 variables", isglobal ? "global" : "state-local");
+		}
+	}
+
+	if (IsInGlobalState())
+		SCOPE(0).globalVariables << var;
+	else
+		SCOPE(0).localVariables << var;
+
 	mLexer->MustGetNext (tkSemicolon);
+	Print ("Declared %3 variable #%1 $%2\n", var->index, var->name, IsInGlobalState() ? "global" : "state-local");
 }
 
 // ============================================================================
@@ -714,30 +745,36 @@ void BotscriptParser::ParseBlockEnd()
 		switch (SCOPE (0).type)
 		{
 			case eIfScope:
+			{
 				// Adjust the closing mark.
 				buffer()->AdjustMark (SCOPE (0).mark1);
 
-				// We're returning from if, thus else can be next
+				// We're returning from `if`, thus `else` follow
 				mCanElse = true;
 				break;
+			}
 
 			case eElseScope:
+			{
 				// else instead uses mark1 for itself (so if expression
 				// fails, jump to else), mark2 means end of else
 				buffer()->AdjustMark (SCOPE (0).mark2);
 				break;
+			}
 
 			case eForScope:
-				// write the incrementor at the end of the loop block
+			{	// write the incrementor at the end of the loop block
 				buffer()->MergeAndDestroy (SCOPE (0).buffer1);
+			}
 			case eWhileScope:
-				// write down the instruction to go back to the start of the loop
+			{	// write down the instruction to go back to the start of the loop
 				buffer()->WriteDWord (dhGoto);
 				buffer()->AddReference (SCOPE (0).mark1);
 
 				// Move the closing mark here since we're at the end of the while loop
 				buffer()->AdjustMark (SCOPE (0).mark2);
 				break;
+			}
 
 			case eDoScope:
 			{
@@ -821,13 +858,6 @@ void BotscriptParser::ParseLabel()
 	String labelName = GetTokenString();
 	ByteMark* mark = null;
 
-	// want no conflicts..
-	if (FindCommandByName (labelName))
-		Error ("label name `%1` conflicts with command name\n", labelName);
-
-	if (FindGlobalVariable (labelName))
-		Error ("label name `%1` conflicts with variable\n", labelName);
-
 	// See if a mark already exists for this label
 	for (UndefinedLabel& label : mUndefinedLabels)
 	{
@@ -871,6 +901,7 @@ void BotscriptParser::ParseEventdef()
 void BotscriptParser::ParseFuncdef()
 {
 	CommandInfo* comm = new CommandInfo;
+	comm->origin = mLexer->DescribeCurrentPosition();
 
 	// Return value
 	mLexer->MustGetAnyOf ({tkInt, tkVoid, tkBool, tkStr});
@@ -1067,7 +1098,7 @@ EAssignmentOperator BotscriptParser::ParseAssignmentOperator()
 
 // ============================================================================
 //
-EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, ScriptVariable* var)
+EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, Variable* var)
 {
 	if (var->IsGlobal())
 	{
@@ -1106,9 +1137,9 @@ EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, Scr
 // by an assignment operator, followed by an expression value. Expects current
 // token to be the name of the variable, and expects the variable to be given.
 //
-DataBuffer* BotscriptParser::ParseAssignment (ScriptVariable* var)
+DataBuffer* BotscriptParser::ParseAssignment (Variable* var)
 {
-	if (var->writelevel != ScriptVariable::WRITE_Mutable)
+	if (var->writelevel != Variable::WRITE_Mutable)
 	{
 		Error ("cannot alter read-only variable $%1", var->name);
 	}
@@ -1168,6 +1199,16 @@ void BotscriptParser::PushScope (EReset reset)
 		info->cases.Clear();
 		info->casecursor = info->cases.begin() - 1;
 	}
+
+	// Reset variable stuff in any case
+	SCOPE(0).globalVarIndexBase = (mScopeCursor == 0) ? 0 : SCOPE(1).globalVarIndexBase;
+	SCOPE(0).localVarIndexBase = (mScopeCursor == 0) ? 0 : SCOPE(1).localVarIndexBase;
+
+	for (Variable* var : SCOPE(0).globalVariables + SCOPE(0).localVariables)
+		delete var;
+
+	SCOPE(0).localVariables.Clear();
+	SCOPE(0).globalVariables.Clear();
 }
 
 // ============================================================================
@@ -1194,7 +1235,7 @@ DataBuffer* BotscriptParser::ParseStatement()
 	if (mLexer->GetNext (tkDollarSign))
 	{
 		mLexer->MustGetNext (tkSymbol);
-		ScriptVariable* var = FindGlobalVariable (GetTokenString());
+		Variable* var = FindVariable (GetTokenString());
 
 		if (var == null)
 			Error ("unknown variable $%1", var->name);
@@ -1325,16 +1366,39 @@ void BotscriptParser::WriteToFile (String outfile)
 
 	// First, resolve references
 	for (MarkReference* ref : mMainBuffer->GetReferences())
-	{
-		// Substitute the placeholder with the mark position
 		for (int i = 0; i < 4; ++i)
 			mMainBuffer->GetBuffer()[ref->pos + i] = (ref->target->pos >> (8 * i)) & 0xFF;
-
-		// Print ("reference at %1 resolved to mark at %2\n", ref->pos, ref->target->pos);
-	}
 
 	// Then, dump the main buffer to the file
 	fwrite (mMainBuffer->GetBuffer(), 1, mMainBuffer->GetWrittenSize(), fp);
 	Print ("-- %1 byte%s1 written to %2\n", mMainBuffer->GetWrittenSize(), outfile);
 	fclose (fp);
+}
+
+// ============================================================================
+//
+// Attempt to find the variable by the given name. Looks from current scope
+// downwards.
+//
+Variable* BotscriptParser::FindVariable (const String& name)
+{
+	for (int i = mScopeCursor; i >= 0; --i)
+	{
+		for (Variable* var : mScopeStack[i].globalVariables + mScopeStack[i].localVariables)
+		{
+			if (var->name == name)
+				return var;
+		}
+	}
+
+	return null;
+}
+
+// ============================================================================
+//
+// Is the parser currently in global state (i.e. not in any specific state)?
+//
+bool BotscriptParser::IsInGlobalState() const
+{
+	return mCurrentState.IsEmpty();
 }
