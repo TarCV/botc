@@ -80,8 +80,6 @@ ExpressionSymbol* Expression::ParseSymbol()
 		ScriptVariable* globalvar;
 		mLexer->MustGetNext();
 
-		Print ("Token type: %1\n", mLexer->DescribeTokenType (mLexer->GetTokenType()));
-
 		if (mLexer->GetTokenType() == tkColon)
 			return new ExpressionColon;
 
@@ -221,11 +219,7 @@ void Expression::AdjustOperators()
 		// Unary minus with a value as the previous symbol cannot really be
 		// unary; replace with binary minus.
 		if (op->GetID() == opUnaryMinus && (*(it - 1))->GetType() == eValueSymbol)
-		{
-			Print ("Changing symbol operator #%1 from %2 to %3\n",
-				it - mSymbols.begin(), op->GetID(), opSubtraction);
 			op->SetID (opSubtraction);
-		}
 	}
 }
 
@@ -264,7 +258,6 @@ void Expression::Verify()
 		if (mSymbols[0]->GetType() != eValueSymbol)
 			Error ("bad expression");
 
-		Print ("Expression speedy-verified (1 expr symbol)\n");
 		return;
 	}
 
@@ -363,7 +356,6 @@ void Expression::Verify()
 		if (verified[i] == false)
 			Error ("malformed expression: expr symbol #%1 is was left unverified", i);
 
-	Print ("Expression verified.\n");
 	delete verified;
 }
 
@@ -403,7 +395,6 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 											   const List<ExpressionValue*>& values)
 {
 	const OperatorInfo* info = &gOperators[op->GetID()];
-	Print ("Process operator %1\n", info - gOperators);
 	bool isconstexpr = true;
 
 	for (ExpressionValue* val : values)
@@ -450,8 +441,6 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 			buf->AdjustMark (mark1); // move mark1 at the end of the true case
 			buf->MergeAndDestroy (b2); // perform third operand (false case)
 			buf->AdjustMark (mark2); // move the ending mark2 here
-
-			Print ("Mark positions: %1 %2\n", mark1->pos, mark2->pos);
 
 			for (int i = 0; i < 3; ++i)
 				values[i]->SetBuffer (null);
