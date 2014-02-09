@@ -77,7 +77,7 @@ ExpressionSymbol* Expression::ParseSymbol()
 
 	try
 	{
-		mLexer->MustGetNext();
+		mLexer->MustGetNext (tkAny);
 
 		if (mLexer->GetTokenType() == tkColon)
 			return new ExpressionColon;
