@@ -335,7 +335,7 @@ void BotscriptParser::ParseVar()
 					(TokenIs (tkStr)) ? EStringType :
 					EBoolType;
 
-	mLexer->MustGetNext();
+	mLexer->MustGetNext (tkSymbol);
 	String varname = GetTokenString();
 
 	if (varname[0] >= '0' && varname[0] <= '9')
