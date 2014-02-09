@@ -47,8 +47,11 @@ Expression::Expression (BotscriptParser* parser, Lexer* lx, EType reqtype) :
 	while ((sym = ParseSymbol()) != null)
 		mSymbols << sym;
 
+	// If we were unable to get any expression symbols, something's wonky with
+	// the script. Report an error. mBadTokenText is set to the token that
+	// ParseSymbol ends at when it returns false.
 	if (mSymbols.IsEmpty())
-		Error ("Expected expression");
+		Error ("unknown identifier '%1'", mBadTokenText);
 
 	AdjustOperators();
 	Verify();
@@ -173,6 +176,7 @@ ExpressionSymbol* Expression::ParseSymbol()
 	catch (ELocalException&)
 	{
 		// We use a local enum here since catch(...) would catch Error() calls.
+		mBadTokenText = mLexer->GetToken()->text;
 		mLexer->SetPosition (pos);
 		delete op;
 		return null;

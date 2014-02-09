@@ -174,6 +174,8 @@ class BotscriptParser
 		void					WriteToFile (String outfile);
 		Variable*				FindVariable (const String& name);
 		bool					IsInGlobalState() const;
+		void					SuggestHighestVarIndex (bool global, int index);
+		int						GetHighestVarIndex (bool global);
 
 		inline ScopeInfo& GetScope (int offset)
 		{
@@ -217,6 +219,8 @@ class BotscriptParser
 		int						mScopeCursor;
 		bool					mCanElse;
 		List<UndefinedLabel>	mUndefinedLabels;
+		int						mHighestGlobalVarIndex;
+		int						mHighestStateVarIndex;
 
 		// How many bytes have we written to file?
 		int						mNumWrittenBytes;
