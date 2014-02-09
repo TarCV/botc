@@ -1173,11 +1173,8 @@ void BotscriptParser::PushScope (EReset reset)
 {
 	mScopeCursor++;
 
-	Print ("%1 <-> %2\n", mScopeStack.Size(), mScopeCursor + 1);
-
 	if (mScopeStack.Size() < mScopeCursor + 1)
 	{
-		Print ("Adding a scope\n");
 		ScopeInfo newscope;
 		mScopeStack << newscope;
 		reset = eResetScope;
