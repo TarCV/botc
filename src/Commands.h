@@ -43,8 +43,7 @@ struct CommandInfo
 {
 	String					name;
 	int						number;
-	int						numargs;
-	int						maxargs;
+	int						minargs;
 	EType					returnvalue;
 	List<CommandArgument>	args;
 

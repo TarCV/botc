@@ -73,16 +73,16 @@ String CommandInfo::GetSignature()
 	text += ' ';
 	text += name;
 
-	if (maxargs != 0)
+	if (args.IsEmpty() == false)
 		text += ' ';
 
 	text += '(';
 
 	bool hasoptionals = false;
 
-	for (int i = 0; i < maxargs; i++)
+	for (int i = 0; i < args.Size(); i++)
 	{
-		if (i == numargs)
+		if (i == minargs)
 		{
 			hasoptionals = true;
 			text += '[';
@@ -95,7 +95,7 @@ String CommandInfo::GetSignature()
 		text += ' ';
 		text += args[i].name;
 
-		if (i >= numargs)
+		if (i >= minargs)
 		{
 			text += " = ";
 

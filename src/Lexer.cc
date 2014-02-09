@@ -286,6 +286,20 @@ bool Lexer::PeekNext (Lexer::Token* tk)
 
 // =============================================================================
 //
+bool Lexer::PeekNextType (EToken req)
+{
+	Iterator pos = mTokenPosition;
+	bool result = false;
+
+	if (GetNext() && GetTokenType() == req)
+		result = true;
+
+	mTokenPosition = pos;
+	return result;
+}
+
+// =============================================================================
+//
 Lexer* Lexer::GetCurrentLexer()
 {
 	return gMainLexer;
