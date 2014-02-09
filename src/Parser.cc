@@ -1077,7 +1077,9 @@ EAssignmentOperator BotscriptParser::ParseAssignmentOperator()
 		tkSubAssign,
 		tkMultiplyAssign,
 		tkDivideAssign,
-		tkModulusAssign
+		tkModulusAssign,
+		tkDoublePlus,
+		tkDoubleMinus,
 	};
 
 	mLexer->MustGetAnyOf (tokens);
@@ -1090,6 +1092,8 @@ EAssignmentOperator BotscriptParser::ParseAssignmentOperator()
 		case tkMultiplyAssign:	return EAssignMul;
 		case tkDivideAssign:	return EAssignDiv;
 		case tkModulusAssign:	return EAssignMod;
+		case tkDoublePlus:		return EAssignIncrement;
+		case tkDoubleMinus:		return EAssignDecrement;
 		default: break;
 	}
 
@@ -1105,23 +1109,27 @@ EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, Scr
 	{
 		switch (op)
 		{
-			case EAssign:		return dhAssignGlobalVar;
-			case EAssignAdd:	return dhAddGlobalVar;
-			case EAssignSub:	return dhSubtractGlobalVar;
-			case EAssignMul:	return dhMultiplyGlobalVar;
-			case EAssignDiv:	return dhDivideGlobalVar;
-			case EAssignMod:	return dhModGlobalVar;
+			case EAssign:			return dhAssignGlobalVar;
+			case EAssignAdd:		return dhAddGlobalVar;
+			case EAssignSub:		return dhSubtractGlobalVar;
+			case EAssignMul:		return dhMultiplyGlobalVar;
+			case EAssignDiv:		return dhDivideGlobalVar;
+			case EAssignMod:		return dhModGlobalVar;
+			case EAssignIncrement:	return dhIncreaseGlobalVar;
+			case EAssignDecrement:	return dhDecreaseGlobalVar;
 		}
 	}
 
 	switch (op)
 	{
-		case EAssign:		return dhAssignLocalVar;
-		case EAssignAdd:	return dhAddLocalVar;
-		case EAssignSub:	return dhSubtractLocalVar;
-		case EAssignMul:	return dhMultiplyLocalVar;
-		case EAssignDiv:	return dhDivideLocalVar;
-		case EAssignMod:	return dhModLocalVar;
+		case EAssign:			return dhAssignLocalVar;
+		case EAssignAdd:		return dhAddLocalVar;
+		case EAssignSub:		return dhSubtractLocalVar;
+		case EAssignMul:		return dhMultiplyLocalVar;
+		case EAssignDiv:		return dhDivideLocalVar;
+		case EAssignMod:		return dhModLocalVar;
+		case EAssignIncrement:	return dhIncreaseLocalVar;
+		case EAssignDecrement:	return dhDecreaseLocalVar;
 	}
 
 	assert (false);
@@ -1138,38 +1146,33 @@ DataBuffer* BotscriptParser::ParseAssignment (ScriptVariable* var)
 {
 	// Get an operator
 	EAssignmentOperator oper = ParseAssignmentOperator();
+	DataBuffer* retbuf = new DataBuffer;
 
 	if (mCurrentMode == ETopLevelMode)
 		Error ("can't alter variables at top level");
 
 	// Parse the right operand
-	DataBuffer* retbuf = new DataBuffer;
-	DataBuffer* expr = ParseExpression (var->type);
+	if (oper != EAssignIncrement && oper != EAssignDecrement)
+	{
+		DataBuffer* expr = ParseExpression (var->type);
+		retbuf->MergeAndDestroy (expr);
+	}
 
 #if 0
 	// <<= and >>= do not have data headers. Solution: expand them.
 	// a <<= b -> a = a << b
 	// a >>= b -> a = a >> b
-	if (oper == OPER_ASSIGNLEFTSHIFT || oper == OPER_ASSIGNRIGHTSHIFT)
-	{
-		retbuf->WriteDWord (var->IsGlobal() ? dhPushGlobalVar : dhPushLocalVar);
-		retbuf->WriteDWord (var->index);
-		retbuf->MergeAndDestroy (expr);
-		retbuf->WriteDWord ((oper == OPER_ASSIGNLEFTSHIFT) ? dhLeftShift : dhRightShift);
-		retbuf->WriteDWord (var->IsGlobal() ? dhAssignGlobalVar : dhAssignLocalVar);
-		retbuf->WriteDWord (var->index);
-	}
-	else
-	{
-#endif
-		retbuf->MergeAndDestroy (expr);
-		EDataHeader dh = GetAssigmentDataHeader (oper, var);
-		retbuf->WriteDWord (dh);
-		retbuf->WriteDWord (var->index);
-#if 0
-	}
+	retbuf->WriteDWord (var->IsGlobal() ? dhPushGlobalVar : dhPushLocalVar);
+	retbuf->WriteDWord (var->index);
+	retbuf->MergeAndDestroy (expr);
+	retbuf->WriteDWord ((oper == OPER_ASSIGNLEFTSHIFT) ? dhLeftShift : dhRightShift);
+	retbuf->WriteDWord (var->IsGlobal() ? dhAssignGlobalVar : dhAssignLocalVar);
+	retbuf->WriteDWord (var->index);
 #endif
 
+	EDataHeader dh = GetAssigmentDataHeader (oper, var);
+	retbuf->WriteDWord (dh);
+	retbuf->WriteDWord (var->index);
 	return retbuf;
 }
 
@@ -1367,7 +1370,7 @@ void BotscriptParser::WriteToFile (String outfile)
 		for (int i = 0; i < 4; ++i)
 			mMainBuffer->GetBuffer()[ref->pos + i] = (ref->target->pos >> (8 * i)) & 0xFF;
 
-		Print ("reference at %1 resolved to mark at %2\n", ref->pos, ref->target->pos);
+		// Print ("reference at %1 resolved to mark at %2\n", ref->pos, ref->target->pos);
 	}
 
 	// Then, dump the main buffer to the file
