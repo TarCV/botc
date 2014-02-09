@@ -85,6 +85,8 @@ enum EAssignmentOperator
 	EAssignMul,
 	EAssignDiv,
 	EAssignMod,
+	EAssignIncrement,
+	EAssignDecrement,
 };
 
 // ============================================================================

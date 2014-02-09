@@ -35,89 +35,91 @@
 enum EToken
 {
 	// Non-word tokens
-	tkLeftShiftAssign,		//
-	tkRightShiftAssign,		//	
-	tkEquals,				// ----- 0
+	tkLeftShiftAssign,
+	tkRightShiftAssign,
+	tkEquals,
 	tkNotEquals,
-	tkBrackets,				// - 1
-	tkAddAssign,			// - 2
-	tkSubAssign,			// - 3
-	tkMultiplyAssign,		// - 4
-	tkDivideAssign,			// ----- 5
-	tkModulusAssign,		// - 6
-	tkLeftShift,			
-	tkRightShift,			
+	tkBrackets,
+	tkAddAssign,
+	tkSubAssign,
+	tkMultiplyAssign,
+	tkDivideAssign,
+	tkModulusAssign,
+	tkLeftShift,
+	tkRightShift,
 	tkAtLeast,
 	tkAtMost,
 	tkDoubleAmperstand,
 	tkDoubleBar,
-	tkSingleQuote,			// - 7
-	tkDollarSign,			// - 8
-	tkParenStart,			// - 9
-	tkParenEnd,				// ----- 10
-	tkBracketStart,			// - 11
-	tkBracketEnd,			// - 12
-	tkBraceStart,			// - 13
-	tkBraceEnd,				// - 14
-	tkAssign,				// ----- 15
-	tkPlus,					// - 16
-	tkMinus,				// - 17
-	tkMultiply,				// - 18
-	tkDivide,				// - 19
-	tkModulus,				// ----- 20
-	tkComma,				// - 21
-	tkLesser,				// - 22
-	tkGreater,				// - 23
-	tkDot,					// - 24
-	tkColon,				// ----- 25
-	tkSemicolon,			// - 26
-	tkHash,					// - 27
-	tkExclamationMark,		// - 28
+	tkDoublePlus,
+	tkDoubleMinus,
+	tkSingleQuote,
+	tkDollarSign,
+	tkParenStart,
+	tkParenEnd,
+	tkBracketStart,
+	tkBracketEnd,
+	tkBraceStart,
+	tkBraceEnd,
+	tkAssign,
+	tkPlus,
+	tkMinus,
+	tkMultiply,
+	tkDivide,
+	tkModulus,
+	tkComma,
+	tkLesser,
+	tkGreater,
+	tkDot,
+	tkColon,
+	tkSemicolon,
+	tkHash,
+	tkExclamationMark,
 	tkAmperstand,
 	tkBar,
 	tkCaret,
 	tkQuestionMark,
-	tkArrow,				// - 29
+	tkArrow,
 
 	// --------------
 	// Named tokens
-	tkBool,					// ----- 30
-	tkBreak,				// - 31
-	tkCase,					// - 32
-	tkContinue,				// - 33
-	tkConst,				// - 34
-	tkDefault,				// ----- 35
-	tkDo,					// - 36
-	tkElse,					// - 37
-	tkEvent,				// - 38
-	tkEventdef,				// - 39
-	tkFor,					// ----- 40
-	tkFuncdef,				// - 41
-	tkGoto,					// - 42
-	tkIf,					// - 43
-	tkInt,					// - 44
-	tkMainloop,				// ----- 45
-	tkOnenter,				// - 46
-	tkOnexit,				// - 47
-	tkState,				// - 48
-	tkSwitch,				// - 49
-	tkStr,					// ----- 50
-	tkVoid,					// - 51
-	tkWhile,				// - 52
+	tkBool,
+	tkBreak,
+	tkCase,
+	tkContinue,
+	tkConst,
+	tkDefault,
+	tkDo,
+	tkElse,
+	tkEvent,
+	tkEventdef,
+	tkFor,
+	tkFuncdef,
+	tkGoto,
+	tkIf,
+	tkInt,
+	tkMainloop,
+	tkOnenter,
+	tkOnexit,
+	tkState,
+	tkSwitch,
+	tkStr,
+	tkVoid,
+	tkWhile,
 	tkTrue,
 	tkFalse,
 
 	// These ones aren't implemented yet but I plan to do so, thus they are
 	// reserved. Also serves as a to-do list of sorts for me. >:F
-	tkEnum,					// - 53
-	tkFunc,					// - 54
-	tkReturn,				// ----- 55
+	tkEnum,
+	tkFunc,
+	tkReturn,
 
 	// --------------
 	// Generic tokens
-	tkSymbol,				// - 56
-	tkNumber,				// - 57
-	tkString,				// - 58
+	tkSymbol,
+	tkNumber,
+	tkString,
 
 	tkFirstNamedToken		= tkBool,
 	tkLastNamedToken		= (int) tkSymbol - 1,
