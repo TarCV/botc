@@ -97,10 +97,12 @@ int main (int argc, char** argv)
 		Print ("Script parsed successfully.\n");
 
 		// Parse done, print statistics and write to file
-		int globalcount = parser->GetScope (0).globalVariables.Size();
+		int globalcount = parser->GetHighestVarIndex (true) + 1;
+		int statelocalcount = parser->GetHighestVarIndex (false) + 1;
 		int stringcount = CountStringsInTable();
 		Print ("%1 / %2 strings\n", stringcount, gMaxStringlistSize);
 		Print ("%1 / %2 global variable indices\n", globalcount, gMaxGlobalVars);
+		Print ("%1 / %2 state variable indices\n", statelocalcount, gMaxGlobalVars);
 		Print ("%1 / %2 events\n", parser->GetNumEvents(), gMaxEvents);
 		Print ("%1 state%s1\n", parser->GetNumStates());
 
@@ -108,7 +110,7 @@ int main (int argc, char** argv)
 		delete parser;
 		return 0;
 	}
-	catch (ScriptError& e)
+	catch (std::exception& e)
 	{
 		PrintTo (stderr, "error: %1\n", e.what());
 		return 1;

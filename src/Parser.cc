@@ -51,7 +51,9 @@ BotscriptParser::BotscriptParser() :
 	mStateSpawnDefined (false),
 	mGotMainLoop (false),
 	mScopeCursor (-1),
-	mCanElse (false) {}
+	mCanElse (false),
+	mHighestGlobalVarIndex (0),
+	mHighestStateVarIndex (0) {}
 
 // ============================================================================
 //
@@ -77,9 +79,11 @@ void BotscriptParser::CheckNotToplevel()
 }
 
 // ============================================================================
-// Main Parser code. Begins read of the script file, checks the syntax of it
+//
+// Main compiler code. Begins read of the script file, checks the syntax of it
 // and writes the data to the object file via Objwriter - which also takes care
 // of necessary buffering so stuff is written in the correct order.
+//
 void BotscriptParser::ParseBotscript (String fileName)
 {
 	// Lex and preprocess the file
@@ -325,7 +329,6 @@ void BotscriptParser::ParseVar()
 	Variable* var = new Variable;
 	var->origin = mLexer->DescribeCurrentPosition();
 	const bool isconst = mLexer->GetNext (tkConst);
-	const bool isglobal = true;
 	mLexer->MustGetAnyOf ({tkInt, tkStr, tkVoid});
 
 	EType vartype =	(TokenIs (tkInt)) ? EIntType :
@@ -334,12 +337,6 @@ void BotscriptParser::ParseVar()
 
 	mLexer->MustGetNext (tkSymbol);
 	String name = GetTokenString();
-
-	/*
-	 * TODO
-	if (isglobal && mScopeStack[0].globalVariables.Size() >= gMaxGlobalVars)
-		Error ("too many global variables!");
-	*/
 
 	for (Variable* var : SCOPE(0).globalVariables + SCOPE(0).localVariables)
 	{
@@ -395,6 +392,7 @@ void BotscriptParser::ParseVar()
 	else
 		SCOPE(0).localVariables << var;
 
+	SuggestHighestVarIndex (IsInGlobalState(), var->index);
 	mLexer->MustGetNext (tkSemicolon);
 	Print ("Declared %3 variable #%1 $%2\n", var->index, var->name, IsInGlobalState() ? "global" : "state-local");
 }
@@ -1359,7 +1357,7 @@ void BotscriptParser::WriteStringTable()
 //
 void BotscriptParser::WriteToFile (String outfile)
 {
-	FILE* fp = fopen (outfile, "w");
+	FILE* fp = fopen (outfile, "wb");
 
 	if (fp == null)
 		Error ("couldn't open %1 for writing: %2", outfile, strerror (errno));
@@ -1401,4 +1399,24 @@ Variable* BotscriptParser::FindVariable (const String& name)
 bool BotscriptParser::IsInGlobalState() const
 {
 	return mCurrentState.IsEmpty();
+}
+
+// ============================================================================
+//
+void BotscriptParser::SuggestHighestVarIndex (bool global, int index)
+{
+	if (global)
+		mHighestGlobalVarIndex = max (mHighestGlobalVarIndex, index);
+	else
+		mHighestStateVarIndex = max (mHighestStateVarIndex, index);
+}
+
+// ============================================================================
+//
+int BotscriptParser::GetHighestVarIndex (bool global)
+{
+	if (global)
+		return mHighestGlobalVarIndex;
+
+	return mHighestStateVarIndex;
 }

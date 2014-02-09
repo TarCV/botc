@@ -57,6 +57,7 @@ class Expression final
 		Lexer*					mLexer;
 		SymbolList				mSymbols;
 		EType					mType;
+		String					mBadTokenText;
 
 		ExpressionValue*		Evaluate(); // Process the expression and yield a result
 		ExpressionSymbol*		ParseSymbol();
