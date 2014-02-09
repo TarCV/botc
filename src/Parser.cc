@@ -117,10 +117,8 @@ void BotscriptParser::ParseBotscript (String fileName)
 				ParseOnEnterExit();
 				break;
 
-			case tkInt:
-			case tkStr:
-			case tkVoid:
-				ParseVariableDeclaration();
+			case tkVar:
+				ParseVar();
 				break;
 
 			case tkGoto:
@@ -169,10 +167,6 @@ void BotscriptParser::ParseBotscript (String fileName)
 
 			case tkBraceEnd:
 				ParseBlockEnd();
-				break;
-
-			case tkConst:
-				ParseConst();
 				break;
 
 			case tkEventdef:
@@ -328,9 +322,12 @@ void BotscriptParser::ParseOnEnterExit()
 
 // ============================================================================
 //
-void BotscriptParser::ParseVariableDeclaration()
+void BotscriptParser::ParseVar()
 {
-	// For now, only globals are supported
+	const bool isconst = mLexer->GetNext (tkConst);
+	mLexer->MustGetAnyOf ({tkInt, tkStr, tkVoid});
+
+	// TODO
 	if (mCurrentMode != ETopLevelMode || mCurrentState.IsEmpty() == false)
 		Error ("variables must only be global for now");
 
@@ -341,12 +338,32 @@ void BotscriptParser::ParseVariableDeclaration()
 	mLexer->MustGetNext();
 	String varname = GetTokenString();
 
-	// Var name must not be a number
-	if (varname.IsNumeric())
-		Error ("variable name must not be a number");
+	if (varname[0] >= '0' && varname[0] <= '9')
+		Error ("variable name must not start with a number");
 
 	ScriptVariable* var = DeclareGlobalVariable (type, varname);
-	(void) var;
+
+	if (isconst == false)
+	{
+		var->writelevel = ScriptVariable::WRITE_Mutable;
+	}
+	else
+	{
+		mLexer->MustGetNext (tkAssign);
+		Expression expr (this, mLexer, type);
+
+		if (expr.GetResult()->IsConstexpr())
+		{
+			var->writelevel = ScriptVariable::WRITE_Constexpr;
+			var->value = expr.GetResult()->GetValue();
+		}
+		else
+		{
+			// TODO: might need a VM-wise oninit for this...
+			Error ("const variables must be constexpr for now");
+		}
+	}
+
 	mLexer->MustGetNext (tkSemicolon);
 }
 
@@ -799,49 +816,6 @@ void BotscriptParser::ParseBlockEnd()
 
 // ============================================================================
 //
-void BotscriptParser::ParseConst()
-{
-	ConstantInfo info;
-
-	// Get the type
-	mLexer->MustGetNext();
-	String typestring = GetTokenString();
-	info.type = GetTypeByName (typestring);
-
-	if (info.type == EUnknownType || info.type == EVoidType)
-		Error ("unknown type `%1` for constant", typestring);
-
-	mLexer->MustGetNext();
-	info.name = GetTokenString();
-
-	mLexer->MustGetNext (tkAssign);
-
-	switch (info.type)
-	{
-		case EBoolType:
-		case EIntType:
-		{
-			mLexer->MustGetNext (tkNumber);
-		} break;
-
-		case EStringType:
-		{
-			mLexer->MustGetNext (tkString);
-		} break;
-
-		case EUnknownType:
-		case EVoidType:
-			break;
-	}
-
-	info.val = mLexer->GetToken()->text;
-	mConstants << info;
-
-	mLexer->MustGetNext (tkSemicolon);
-}
-
-// ============================================================================
-//
 void BotscriptParser::ParseLabel()
 {
 	CheckNotToplevel();
@@ -970,7 +944,7 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 {
 	DataBuffer* r = new DataBuffer (64);
 
-	if (mCurrentMode == ETopLevelMode)
+	if (mCurrentMode == ETopLevelMode && comm->returnvalue == EVoidType)
 		Error ("command call at top level");
 
 	mLexer->MustGetNext (tkParenStart);
@@ -1135,6 +1109,11 @@ EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, Scr
 //
 DataBuffer* BotscriptParser::ParseAssignment (ScriptVariable* var)
 {
+	if (var->writelevel != ScriptVariable::WRITE_Mutable)
+	{
+		Error ("cannot alter read-only variable $%1", var->name);
+	}
+
 	// Get an operator
 	EAssignmentOperator oper = ParseAssignmentOperator();
 	DataBuffer* retbuf = new DataBuffer;
@@ -1212,12 +1191,17 @@ DataBuffer* BotscriptParser::ParseExpression (EType reqtype, bool fromhere)
 //
 DataBuffer* BotscriptParser::ParseStatement()
 {
-	if (FindConstant (GetTokenString())) // There should not be constants here.
-		Error ("invalid use for constant\n");
-
 	// If it's a variable, expect assignment.
-	if (ScriptVariable* var = FindGlobalVariable (GetTokenString()))
+	if (TokenIs (tkDollarSign))
+	{
+		mLexer->MustGetNext (tkSymbol);
+		ScriptVariable* var = FindGlobalVariable (GetTokenString());
+
+		if (var == null)
+			Error ("unknown variable $%1", var->name);
+
 		return ParseAssignment (var);
+	}
 
 	return null;
 }
@@ -1245,17 +1229,6 @@ void BotscriptParser::AddSwitchCase (DataBuffer* casebuffer)
 	casedata.data = mSwitchBuffer = new DataBuffer;
 	SCOPE(0).cases << casedata;
 	info->casecursor++;
-}
-
-// ============================================================================
-//
-ConstantInfo* BotscriptParser::FindConstant (const String& tok)
-{
-	for (int i = 0; i < mConstants.Size(); i++)
-		if (mConstants[i].name == tok)
-			return &mConstants[i];
-
-	return null;
 }
 
 // ============================================================================

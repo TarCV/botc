@@ -102,6 +102,7 @@ static const String gTokenStrings[] =
 	"state",
 	"switch",
 	"str",
+	"var",
 	"void",
 	"while",
 	"true",

@@ -77,7 +77,6 @@ ExpressionSymbol* Expression::ParseSymbol()
 
 	try
 	{
-		ScriptVariable* globalvar;
 		mLexer->MustGetNext();
 
 		if (mLexer->GetTokenType() == tkColon)
@@ -108,40 +107,26 @@ ExpressionSymbol* Expression::ParseSymbol()
 			return op;
 		}
 
-		// Check constant
-		if (ConstantInfo* constant = mParser->FindConstant (GetTokenString()))
+		// Check global variable
+		// TODO: handle locals too when they're implemented
+		if (mLexer->GetTokenType() == tkDollarSign)
 		{
-			if (mType != constant->type)
-				Error ("constant `%1` is %2, expression requires %3\n",
-					constant->name, GetTypeName (constant->type),
-						GetTypeName (mType));
+			mLexer->MustGetNext (tkSymbol);
+			ScriptVariable* globalvar = FindGlobalVariable (GetTokenString());
 
-			switch (constant->type)
+			if (globalvar == null)
+				Error ("unknown variable %1", GetTokenString());
+
+			if (globalvar->writelevel == ScriptVariable::WRITE_Constexpr)
+				op->SetValue (globalvar->value);
+			else
 			{
-				case EBoolType:
-				case EIntType:
-					op->SetValue (constant->val.ToLong());
-					break;
-
-				case EStringType:
-					op->SetValue (GetStringTableIndex (constant->val));
-					break;
-
-				case EVoidType:
-				case EUnknownType:
-					break;
+				DataBuffer* buf = new DataBuffer (8);
+				buf->WriteDWord (dhPushGlobalVar);
+				buf->WriteDWord (globalvar->index);
+				op->SetBuffer (buf);
 			}
 
-			return op;
-		}
-
-		// Check global variable
-		if ((globalvar = FindGlobalVariable (GetTokenString())))
-		{
-			DataBuffer* buf = new DataBuffer (8);
-			buf->WriteDWord (dhPushGlobalVar);
-			buf->WriteDWord (globalvar->index);
-			op->SetBuffer (buf);
 			return op;
 		}
 

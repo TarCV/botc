@@ -31,15 +31,24 @@
 
 #include "Main.h"
 
+class ExpressionValue;
 class BotscriptParser;
 
 struct ScriptVariable
 {
-	String	name;
-	String	statename;
-	EType	type;
-	int		value;
-	int		index;
+	enum EWritability
+	{
+		WRITE_Mutable,		// normal read-many-write-many variable
+		WRITE_Const,		// write-once const variable
+		WRITE_Constexpr,	// const variable whose value is known to compiler
+	};
+
+	String			name;
+	String			statename;
+	EType			type;
+	int				index;
+	EWritability	writelevel;
+	int				value;
 
 	inline bool IsGlobal() const
 	{
