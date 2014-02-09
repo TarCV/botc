@@ -58,6 +58,7 @@ public:
 	int		GetOneSymbol (const StringList& syms);
 	void	TokenMustBe (EToken tok);
 	bool	PeekNext (Token* tk = null);
+	bool	PeekNextType (EToken req);
 	String	PeekNextString (int a = 1);
 	String	DescribePosition();
 

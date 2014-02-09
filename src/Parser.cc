@@ -899,6 +899,11 @@ void BotscriptParser::ParseFuncdef()
 {
 	CommandInfo* comm = new CommandInfo;
 
+	// Return value
+	mLexer->MustGetAnyOf ({tkInt, tkVoid, tkBool, tkStr});
+	comm->returnvalue = GetTypeByName (mLexer->GetToken()->text); // TODO
+	assert (comm->returnvalue != -1);
+
 	// Number
 	mLexer->MustGetNext (tkNumber);
 	comm->number = mLexer->GetToken()->text.ToLong();
@@ -907,41 +912,27 @@ void BotscriptParser::ParseFuncdef()
 	// Name
 	mLexer->MustGetNext (tkSymbol);
 	comm->name = mLexer->GetToken()->text;
-	mLexer->MustGetNext (tkColon);
 
-	// Return value
-	mLexer->MustGetAnyOf ({tkInt, tkVoid, tkBool, tkStr});
-	comm->returnvalue = GetTypeByName (mLexer->GetToken()->text); // TODO
-	assert (comm->returnvalue != -1);
-	mLexer->MustGetNext (tkColon);
+	// Arguments
+	mLexer->MustGetNext (tkParenStart);
+	comm->minargs = 0;
 
-	// Num args
-	mLexer->MustGetNext (tkNumber);
-	comm->numargs = mLexer->GetToken()->text.ToLong();
-	mLexer->MustGetNext (tkColon);
-
-	// Max args
-	mLexer->MustGetNext (tkNumber);
-	comm->maxargs = mLexer->GetToken()->text.ToLong();
-
-	// Argument types
-	int curarg = 0;
-
-	while (curarg < comm->maxargs)
+	while (mLexer->PeekNextType (tkParenEnd) == false)
 	{
+		if (comm->args.IsEmpty() == false)
+			mLexer->MustGetNext (tkComma);
+
 		CommandArgument arg;
-		mLexer->MustGetNext (tkColon);
 		mLexer->MustGetAnyOf ({tkInt, tkBool, tkStr});
-		EType type = GetTypeByName (mLexer->GetToken()->text);
+		EType type = GetTypeByName (mLexer->GetToken()->text); // TODO
 		assert (type != -1 && type != EVoidType);
 		arg.type = type;
 
-		mLexer->MustGetNext (tkParenStart);
 		mLexer->MustGetNext (tkSymbol);
 		arg.name = mLexer->GetToken()->text;
 
 		// If this is an optional parameter, we need the default value.
-		if (curarg >= comm->numargs)
+		if (comm->minargs < comm->args.Size() || mLexer->PeekNextType (tkAssign))
 		{
 			mLexer->MustGetNext (tkAssign);
 
@@ -953,8 +944,7 @@ void BotscriptParser::ParseFuncdef()
 					break;
 
 				case EStringType:
-					mLexer->MustGetNext (tkString);
-					break;
+					Error ("string arguments cannot have default values");
 
 				case EUnknownType:
 				case EVoidType:
@@ -963,12 +953,13 @@ void BotscriptParser::ParseFuncdef()
 
 			arg.defvalue = mLexer->GetToken()->text.ToLong();
 		}
+		else
+			comm->minargs++;
 
-		mLexer->MustGetNext (tkParenEnd);
 		comm->args << arg;
-		curarg++;
 	}
 
+	mLexer->MustGetNext (tkParenEnd);
 	mLexer->MustGetNext (tkSemicolon);
 	AddCommandDefinition (comm);
 }
@@ -987,11 +978,11 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 
 	int curarg = 0;
 
-	while (1)
+	for (;;)
 	{
 		if (TokenIs (tkParenEnd))
 		{
-			if (curarg < comm->numargs)
+			if (curarg < comm->minargs)
 				Error ("too few arguments passed to %1\n\tusage is: %2",
 					comm->name, comm->GetSignature());
 
@@ -999,19 +990,19 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 			curarg++;
 		}
 
-		if (curarg >= comm->maxargs)
+		if (curarg >= comm->args.Size())
 			Error ("too many arguments passed to %1\n\tusage is: %2",
 				comm->name, comm->GetSignature());
 
 		r->MergeAndDestroy (ParseExpression (comm->args[curarg].type, true));
 		mLexer->MustGetNext();
 
-		if (curarg < comm->numargs - 1)
+		if (curarg < comm->minargs - 1)
 		{
 			mLexer->TokenMustBe (tkComma);
 			mLexer->MustGetNext();
 		}
-		else if (curarg < comm->maxargs - 1)
+		else if (curarg < comm->args.Size() - 1)
 		{
 			// Can continue, but can terminate as well.
 			if (TokenIs (tkParenEnd))
@@ -1030,7 +1021,7 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 	}
 
 	// If the script skipped any optional arguments, fill in defaults.
-	while (curarg < comm->maxargs)
+	while (curarg < comm->args.Size())
 	{
 		r->WriteDWord (dhPushNumber);
 		r->WriteDWord (comm->args[curarg].defvalue);
@@ -1039,7 +1030,7 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 
 	r->WriteDWord (dhCommand);
 	r->WriteDWord (comm->number);
-	r->WriteDWord (comm->maxargs);
+	r->WriteDWord (comm->args.Size());
 
 	return r;
 }
