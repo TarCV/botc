@@ -201,6 +201,7 @@ void BotscriptParser::ParseBotscript (String fileName)
 				}
 
 				// If nothing else, parse it as a statement
+				mLexer->Skip (-1);
 				DataBuffer* b = ParseStatement();
 
 				if (b == false)
@@ -374,7 +375,7 @@ void BotscriptParser::ParseGoto()
 	CheckNotToplevel();
 
 	// Get the name of the label
-	mLexer->MustGetNext (tkAny);
+	mLexer->MustGetNext (tkSymbol);
 
 	// Find the mark this goto statement points to
 	String target = GetTokenString();
@@ -492,7 +493,6 @@ void BotscriptParser::ParseForBlock()
 
 	// Initializer
 	mLexer->MustGetNext (tkParenStart);
-	mLexer->MustGetNext (tkAny);
 	DataBuffer* init = ParseStatement();
 
 	if (init == null)
@@ -509,7 +509,6 @@ void BotscriptParser::ParseForBlock()
 	mLexer->MustGetNext (tkSemicolon);
 
 	// Incrementor
-	mLexer->MustGetNext (tkAny);
 	DataBuffer* incr = ParseStatement();
 
 	if (incr == null)
@@ -1192,7 +1191,7 @@ DataBuffer* BotscriptParser::ParseExpression (EType reqtype, bool fromhere)
 DataBuffer* BotscriptParser::ParseStatement()
 {
 	// If it's a variable, expect assignment.
-	if (TokenIs (tkDollarSign))
+	if (mLexer->GetNext (tkDollarSign))
 	{
 		mLexer->MustGetNext (tkSymbol);
 		ScriptVariable* var = FindGlobalVariable (GetTokenString());
