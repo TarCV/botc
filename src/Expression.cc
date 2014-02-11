@@ -75,114 +75,121 @@ ExpressionSymbol* Expression::ParseSymbol()
 {
 	int pos = mLexer->GetPosition();
 	ExpressionValue* op = null;
-	enum ELocalException { failed };
 
-	try
+	if (mLexer->GetNext (tkColon))
+		return new ExpressionColon;
+
+	// Check for operator
+	for (const OperatorInfo& op : gOperators)
+		if (mLexer->GetNext (op.token))
+			return new ExpressionOperator ((EOperator) (&op - &gOperators[0]));
+
+	// Check sub-expression
+	if (mLexer->GetNext (tkParenStart))
 	{
-		mLexer->MustGetNext (tkAny);
+		Expression expr (mParser, mLexer, mType);
+		mLexer->MustGetNext (tkParenEnd);
+		return expr.GetResult()->Clone();
+	}
 
-		if (mLexer->GetTokenType() == tkColon)
-			return new ExpressionColon;
+	op = new ExpressionValue (mType);
 
-		// Check for operator
-		for (const OperatorInfo& op : gOperators)
-			if (mLexer->GetTokenType() == op.token)
-				return new ExpressionOperator ((EOperator) (&op - &gOperators[0]));
+	// Check function
+	if (CommandInfo* comm = FindCommandByName (mLexer->PeekNextString()))
+	{
+		mLexer->Skip();
 
-		// Check sub-expression
-		if (mLexer->GetTokenType() == tkParenStart)
+		if (mType != EUnknownType && comm->returnvalue != mType)
+			Error ("%1 returns an incompatible data type", comm->name);
+
+		op->SetBuffer (mParser->ParseCommand (comm));
+		return op;
+	}
+
+	// Check for variables
+	if (mLexer->GetNext (tkDollarSign))
+	{
+		mLexer->MustGetNext (tkSymbol);
+		Variable* var = mParser->FindVariable (GetTokenString());
+
+		if (var == null)
+			Error ("unknown variable %1", GetTokenString());
+
+		if (var->type != mType)
+			Error ("expression requires %1, variable $%2 is of type %3",
+				GetTypeName (mType), var->name, GetTypeName (var->type));
+
+		if (var->isarray)
 		{
-			Expression expr (mParser, mLexer, mType);
-			mLexer->MustGetNext (tkParenEnd);
-			return expr.GetResult()->Clone();
+			mLexer->MustGetNext (tkBracketStart);
+			Expression expr (mParser, mLexer, EIntType);
+			expr.GetResult()->ConvertToBuffer();
+			DataBuffer* buf = expr.GetResult()->GetBuffer()->Clone();
+			buf->WriteDWord (dhPushGlobalArray);
+			buf->WriteDWord (var->index);
+			op->SetBuffer (buf);
+			mLexer->MustGetNext (tkBracketEnd);
 		}
-
-		op = new ExpressionValue (mType);
-
-		// Check function
-		if (CommandInfo* comm = FindCommandByName (GetTokenString()))
+		elif (var->writelevel == Variable::WRITE_Constexpr)
+			op->SetValue (var->value);
+		else
 		{
-			if (mType != EUnknownType && comm->returnvalue != mType)
-				Error ("%1 returns an incompatible data type", comm->name);
+			DataBuffer* buf = new DataBuffer (8);
 
-			op->SetBuffer (mParser->ParseCommand (comm));
-			return op;
-		}
-
-		// Check for variables
-		if (mLexer->GetTokenType() == tkDollarSign)
-		{
-			mLexer->MustGetNext (tkSymbol);
-			Variable* globalvar = mParser->FindVariable (GetTokenString());
-
-			if (globalvar == null)
-				Error ("unknown variable %1", GetTokenString());
-
-			if (globalvar->writelevel == Variable::WRITE_Constexpr)
-				op->SetValue (globalvar->value);
-			else
-			{
-				DataBuffer* buf = new DataBuffer (8);
+			if (var->IsGlobal())
 				buf->WriteDWord (dhPushGlobalVar);
-				buf->WriteDWord (globalvar->index);
-				op->SetBuffer (buf);
-			}
+			else
+				buf->WriteDWord (dhPushLocalVar);
 
-			return op;
+			buf->WriteDWord (var->index);
+			op->SetBuffer (buf);
 		}
 
-		EToken tt;
+		return op;
+	}
 
-		// Check for literal
-		switch (mType)
+	// Check for literal
+	switch (mType)
+	{
+		case EVoidType:
+		case EUnknownType:
 		{
-			case EVoidType:
-			case EUnknownType:
-			{
-				Error ("unknown identifier `%1` (expected keyword, function or variable)", GetTokenString());
-				break;
-			}
+			Error ("unknown identifier `%1` (expected keyword, function or variable)", GetTokenString());
+			break;
+		}
 
-			case EBoolType:
+		case EBoolType:
+		{
+			if (mLexer->GetNext (tkTrue) || mLexer->GetNext (tkFalse))
 			{
-				if ((tt = mLexer->GetTokenType()) == tkTrue || tt == tkFalse)
-				{
-					op->SetValue (tt == tkTrue ? 1 : 0);
-					return op;
-				}
+				EToken tt = mLexer->GetTokenType();
+				op->SetValue (tt == tkTrue ? 1 : 0);
+				return op;
 			}
-			case EIntType:
-			{
-				if (mLexer->GetTokenType() != tkNumber)
-					throw failed;
+		}
 
+		case EIntType:
+		{
+			if (mLexer->GetNext (tkNumber))
+			{
 				op->SetValue (GetTokenString().ToLong());
 				return op;
 			}
+		}
 
-			case EStringType:
+		case EStringType:
+		{
+			if (mLexer->GetNext (tkString))
 			{
-				if (mLexer->GetTokenType() != tkString)
-					throw failed;
-
 				op->SetValue (GetStringTableIndex (GetTokenString()));
 				return op;
 			}
 		}
-
-		assert (false);
-		throw failed;
-	}
-	catch (ELocalException&)
-	{
-		// We use a local enum here since catch(...) would catch Error() calls.
-		mBadTokenText = mLexer->GetToken()->text;
-		mLexer->SetPosition (pos);
-		delete op;
-		return null;
 	}
 
-	assert (false);
+	mBadTokenText = mLexer->GetToken()->text;
+	mLexer->SetPosition (pos);
+	delete op;
 	return null;
 }
 
@@ -383,6 +390,7 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 {
 	const OperatorInfo* info = &gOperators[op->GetID()];
 	bool isconstexpr = true;
+	assert (values.Size() == info->numoperands);
 
 	for (ExpressionValue* val : values)
 	{
@@ -481,18 +489,22 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 			case opTernary:				a = (nums[0] != 0) ? nums[1] : nums[2];	break;
 
 			case opDivision:
+			{
 				if (nums[1] == 0)
 					Error ("division by zero in constant expression");
 
 				a = nums[0] / nums[1];
 				break;
+			}
 
 			case opModulus:
+			{
 				if (nums[1] == 0)
 					Error ("modulus by zero in constant expression");
 
 				a = nums[0] % nums[1];
 				break;
+			}
 		}
 
 		newval->SetValue (a);

@@ -107,6 +107,7 @@ struct Variable
 	EWritability	writelevel;
 	int				value;
 	String			origin;
+	bool			isarray;
 
 	inline bool IsGlobal() const
 	{
@@ -134,6 +135,7 @@ struct ScopeInfo
 	EScopeType					type;
 	DataBuffer*					buffer1;
 	int							globalVarIndexBase;
+	int							globalArrayIndexBase;
 	int							localVarIndexBase;
 
 	// switch-related stuff
@@ -141,6 +143,7 @@ struct ScopeInfo
 	List<CaseInfo>				cases;
 	List<Variable*>				localVariables;
 	List<Variable*>				globalVariables;
+	List<Variable*>				globalArrays;
 };
 
 // ============================================================================

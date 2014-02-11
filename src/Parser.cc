@@ -178,6 +178,9 @@ void BotscriptParser::ParseBotscript (String fileName)
 				ParseFuncdef();
 				break;
 
+			case tkSemicolon:
+				break;
+
 			default:
 			{
 				// Check for labels
@@ -206,12 +209,15 @@ void BotscriptParser::ParseBotscript (String fileName)
 				DataBuffer* b = ParseStatement();
 
 				if (b == false)
+				{
+					mLexer->GetNext();
 					Error ("unknown token `%1`", GetTokenString());
+				}
 
 				buffer()->MergeAndDestroy (b);
 				mLexer->MustGetNext (tkSemicolon);
+				break;
 			}
-			break;
 		}
 	}
 
@@ -328,6 +334,7 @@ void BotscriptParser::ParseVar()
 {
 	Variable* var = new Variable;
 	var->origin = mLexer->DescribeCurrentPosition();
+	var->isarray = false;
 	const bool isconst = mLexer->GetNext (tkConst);
 	mLexer->MustGetAnyOf ({tkInt, tkStr, tkVoid});
 
@@ -337,6 +344,15 @@ void BotscriptParser::ParseVar()
 
 	mLexer->MustGetNext (tkSymbol);
 	String name = GetTokenString();
+
+	if (mLexer->GetNext (tkBracketStart))
+	{
+		mLexer->MustGetNext (tkBracketEnd);
+		var->isarray = true;
+
+		if (isconst)
+			Error ("arrays cannot be const");
+	}
 
 	for (Variable* var : SCOPE(0).globalVariables + SCOPE(0).localVariables)
 	{
@@ -368,7 +384,7 @@ void BotscriptParser::ParseVar()
 		else
 		{
 			// TODO: might need a VM-wise oninit for this...
-			Error ("const variables must be constexpr for now");
+			Error ("const variables must be constexpr");
 		}
 	}
 
@@ -989,11 +1005,10 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 					comm->name, comm->GetSignature());
 
 			break;
-			curarg++;
 		}
 
 		if (curarg >= comm->args.Size())
-			Error ("too many arguments passed to %1\n\tusage is: %2",
+			Error ("too many arguments (%3) passed to %1\n\tusage is: %2",
 				comm->name, comm->GetSignature());
 
 		r->MergeAndDestroy (ParseExpression (comm->args[curarg].type, true));
@@ -1096,36 +1111,43 @@ EAssignmentOperator BotscriptParser::ParseAssignmentOperator()
 
 // ============================================================================
 //
+struct AssignmentDataHeaderInfo
+{
+	EAssignmentOperator	op;
+	EDataHeader			local;
+	EDataHeader			global;
+	EDataHeader			array;
+};
+
+const AssignmentDataHeaderInfo gAssignmentDataHeaders[] =
+{
+	{ EAssign,			dhAssignLocalVar,	dhAssignGlobalVar,		dhAssignGlobalArray },
+	{ EAssignAdd,		dhAddLocalVar,		dhAddGlobalVar,			dhAddGlobalArray },
+	{ EAssignSub,		dhSubtractLocalVar,	dhSubtractGlobalVar,	dhSubtractGlobalArray },
+	{ EAssignMul,		dhMultiplyLocalVar,	dhMultiplyGlobalVar,	dhMultiplyGlobalArray },
+	{ EAssignDiv,		dhDivideLocalVar,	dhDivideGlobalVar,		dhDivideGlobalArray },
+	{ EAssignMod,		dhModLocalVar,		dhModGlobalVar,			dhModGlobalArray },
+	{ EAssignIncrement,	dhIncreaseLocalVar,	dhIncreaseGlobalVar,	dhIncreaseGlobalArray },
+	{ EAssignDecrement,	dhDecreaseLocalVar,	dhDecreaseGlobalVar,	dhDecreaseGlobalArray },
+};
+
 EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, Variable* var)
 {
-	if (var->IsGlobal())
+	for (const auto& a : gAssignmentDataHeaders)
 	{
-		switch (op)
-		{
-			case EAssign:			return dhAssignGlobalVar;
-			case EAssignAdd:		return dhAddGlobalVar;
-			case EAssignSub:		return dhSubtractGlobalVar;
-			case EAssignMul:		return dhMultiplyGlobalVar;
-			case EAssignDiv:		return dhDivideGlobalVar;
-			case EAssignMod:		return dhModGlobalVar;
-			case EAssignIncrement:	return dhIncreaseGlobalVar;
-			case EAssignDecrement:	return dhDecreaseGlobalVar;
-		}
+		if (a.op != op)
+			continue;
+
+		if (var->isarray)
+			return a.array;
+
+		if (var->IsGlobal())
+			return a.global;
+
+		return a.local;
 	}
 
-	switch (op)
-	{
-		case EAssign:			return dhAssignLocalVar;
-		case EAssignAdd:		return dhAddLocalVar;
-		case EAssignSub:		return dhSubtractLocalVar;
-		case EAssignMul:		return dhMultiplyLocalVar;
-		case EAssignDiv:		return dhDivideLocalVar;
-		case EAssignMod:		return dhModLocalVar;
-		case EAssignIncrement:	return dhIncreaseLocalVar;
-		case EAssignDecrement:	return dhDecreaseLocalVar;
-	}
-
-	assert (false);
+	Error ("WTF: couldn't find data header for operator #%1", op);
 	return (EDataHeader) 0;
 }
 
@@ -1137,14 +1159,23 @@ EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, Var
 //
 DataBuffer* BotscriptParser::ParseAssignment (Variable* var)
 {
+	DataBuffer* retbuf = new DataBuffer;
+	DataBuffer* arrayindex = null;
+
 	if (var->writelevel != Variable::WRITE_Mutable)
-	{
 		Error ("cannot alter read-only variable $%1", var->name);
+
+	if (var->isarray)
+	{
+		mLexer->MustGetNext (tkBracketStart);
+		Expression expr (this, mLexer, EIntType);
+		expr.GetResult()->ConvertToBuffer();
+		arrayindex = expr.GetResult()->GetBuffer()->Clone();
+		mLexer->MustGetNext (tkBracketEnd);
 	}
 
 	// Get an operator
 	EAssignmentOperator oper = ParseAssignmentOperator();
-	DataBuffer* retbuf = new DataBuffer;
 
 	if (mCurrentMode == ETopLevelMode)
 		Error ("can't alter variables at top level");
@@ -1155,6 +1186,9 @@ DataBuffer* BotscriptParser::ParseAssignment (Variable* var)
 		DataBuffer* expr = ParseExpression (var->type);
 		retbuf->MergeAndDestroy (expr);
 	}
+
+	if (var->isarray)
+		retbuf->MergeAndDestroy (arrayindex);
 
 #if 0
 	// <<= and >>= do not have data headers. Solution: expand them.
