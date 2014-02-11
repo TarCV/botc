@@ -39,7 +39,6 @@ enum EToken
 	tkRightShiftAssign,
 	tkEquals,
 	tkNotEquals,
-	tkBrackets,
 	tkAddAssign,
 	tkSubAssign,
 	tkMultiplyAssign,

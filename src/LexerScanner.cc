@@ -40,7 +40,6 @@ static const String gTokenStrings[] =
 	">>=",
 	"==",
 	"!=",
-	"[]",
 	"+=",
 	"-=",
 	"*=",
