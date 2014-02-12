@@ -1,5 +1,6 @@
 build
 GitInformation.h
+EnumStrings.h
 untracked
 botc.kdev4
 .kdev4
