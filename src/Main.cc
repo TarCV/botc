@@ -34,7 +34,6 @@
 #include "Parser.h"
 #include "Lexer.h"
 #include "GitInformation.h"
-#include "EnumStrings.h"
 
 int main (int argc, char** argv)
 {

@@ -115,8 +115,8 @@ void Error (void, ...);
 
 #ifndef IN_IDE_PARSER
 # ifdef DEBUG
-#  define devf(...) fprint (stderr, __VA_ARGS__)
-#  define dvalof( A ) fprint (stderr, "value of '%1' = %2\n", #A, A)
+#  define devf(...) PrintTo (stderr, __VA_ARGS__)
+#  define dvalof( A ) PrintTo (stderr, "value of '%1' = %2\n", #A, A)
 # else
 #  define devf(...)
 #  define dvalof( A )

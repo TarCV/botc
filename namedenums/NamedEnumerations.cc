@@ -231,7 +231,7 @@ int main (int argc, char* argv[])
 
 			fprintf (fp, "};\n\n");
 
-			fprintf (fp, "inline const char* Get%sString( %s a )\n"
+			fprintf (fp, "inline const char* Get%sString (%s a)\n"
 				"{\n"
 				"\treturn g%sNames[a];\n"
 				"}\n",
