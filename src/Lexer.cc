@@ -129,7 +129,7 @@ static bool IsValidHeader (String header)
 
 	if (VERSION_NUMBER < MAKE_VERSION_NUMBER (major, minor, patch))
 		Error ("The script file requires " APPNAME " v%1, this is v%2",
-			MakeVersionString (major, minor, patch), GetVersionString (EShortForm));
+			MakeVersionString (major, minor, patch), GetVersionString (false));
 
 	return true;
 }
@@ -224,7 +224,7 @@ void Lexer::MustGetAnyOf (const List<EToken>& toks)
 
 // =============================================================================
 //
-int Lexer::GetOneSymbol (const StringList& syms)
+int Lexer::GEXPRSYM_tOne (const StringList& syms)
 {
 	if (!GetNext())
 		Error ("unexpected EOF");

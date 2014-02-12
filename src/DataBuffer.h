@@ -51,9 +51,9 @@
 //
 class DataBuffer
 {
-	PROPERTY (private, byte*,					Buffer,			NO_OPS,		STOCK_WRITE)
+	PROPERTY (private, char*,					Buffer,			NO_OPS,		STOCK_WRITE)
 	PROPERTY (private, int,						AllocatedSize,	NUM_OPS,	STOCK_WRITE)
-	PROPERTY (private, byte*,					Position,		NO_OPS,		STOCK_WRITE)
+	PROPERTY (private, char*,					Position,		NO_OPS,		STOCK_WRITE)
 	PROPERTY (private, List<ByteMark*>,			Marks,			LIST_OPS,	STOCK_WRITE)
 	PROPERTY (private, List<MarkReference*>,	References,		LIST_OPS,	STOCK_WRITE)
 
@@ -76,7 +76,6 @@ class DataBuffer
 		ByteMark*		FindMarkByName (const String& target);
 		void			Dump();
 		void			TransferMarks (DataBuffer* other);
-		void			WriteFloat (float a);
 		void			WriteStringIndex (const String& a);
 		void			WriteString (const String& a);
 		void			WriteByte (int8_t data);

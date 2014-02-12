@@ -34,7 +34,7 @@
 
 struct CommandArgument
 {
-	EType					type;
+	DataType				type;
 	String					name;
 	int						defvalue;
 };
@@ -44,7 +44,7 @@ struct CommandInfo
 	String					name;
 	int						number;
 	int						minargs;
-	EType					returnvalue;
+	DataType				returnvalue;
 	List<CommandArgument>	args;
 	String					origin;
 

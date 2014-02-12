@@ -32,7 +32,7 @@
 //
 DataBuffer::DataBuffer (int size)
 {
-	SetBuffer (new byte[size]);
+	SetBuffer (new char[size]);
 	SetPosition (&GetBuffer()[0]);
 	SetAllocatedSize (size);
 }
@@ -146,21 +146,9 @@ void DataBuffer::OffsetMark (ByteMark* mark, int offset)
 
 // ============================================================================
 //
-void DataBuffer::WriteFloat (float a)
-{
-	// TODO: Find a way to store the number without decimal loss.
-	WriteDWord (dhPushNumber);
-	WriteDWord (abs (a));
-
-	if (a < 0)
-		WriteDWord (dhUnaryMinus);
-}
-
-// ============================================================================
-//
 void DataBuffer::WriteStringIndex (const String& a)
 {
-	WriteDWord (dhPushStringIndex);
+	WriteDWord (DH_PushStringIndex);
 	WriteDWord (GetStringTableIndex (a));
 }
 
@@ -193,7 +181,7 @@ void DataBuffer::CheckSpace (int bytes)
 	int newsize = GetAllocatedSize() + bytes + 512;
 
 	delete GetBuffer();
-	SetBuffer (new byte[newsize]);
+	SetBuffer (new char[newsize]);
 	SetAllocatedSize (newsize);
 
 	// Now, copy the stuff back.
