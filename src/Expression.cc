@@ -4,7 +4,7 @@
 
 struct OperatorInfo
 {
-	EToken		token;
+	TokenType	token;
 	int			priority;
 	int			numoperands;
 	DataHeader	header;
@@ -12,27 +12,27 @@ struct OperatorInfo
 
 static const OperatorInfo gOperators[] =
 {
-	{ tkExclamationMark,	0,		1,	DH_NegateLogical,	},
-	{ tkMinus,				0,		1,	DH_UnaryMinus,		},
-	{ tkMultiply,			10,		2,	DH_Multiply,		},
-	{ tkDivide,				10,		2,	DH_Divide,			},
-	{ tkModulus,			10,		2,	DH_Modulus,			},
-	{ tkPlus,				20,		2,	DH_Add,				},
-	{ tkMinus,				20,		2,	DH_Subtract,		},
-	{ tkLeftShift,			30,		2,	DH_LeftShift,		},
-	{ tkRightShift,			30,		2,	DH_RightShift,		},
-	{ tkLesser,				40,		2,	DH_LessThan,		},
-	{ tkGreater,			40,		2,	DH_GreaterThan,		},
-	{ tkAtLeast,			40,		2,	DH_AtLeast,			},
-	{ tkAtMost,				40,		2,	DH_AtMost,			},
-	{ tkEquals,				50,		2,	DH_Equals			},
-	{ tkNotEquals,			50,		2,	DH_NotEquals		},
-	{ tkAmperstand,			60,		2,	DH_AndBitwise		},
-	{ tkCaret,				70,		2,	DH_EorBitwise		},
-	{ tkBar,				80,		2,	DH_OrBitwise		},
-	{ tkDoubleAmperstand,	90,		2,	DH_AndLogical		},
-	{ tkDoubleBar,			100,	2,	DH_OrLogical		},
-	{ tkQuMARK_stion,		110,	3,	(DataHeader) 0		},
+	{TK_ExclamationMark,	0,		1,	DH_NegateLogical,	},
+	{TK_Minus,				0,		1,	DH_UnaryMinus,		},
+	{TK_Multiply,			10,		2,	DH_Multiply,		},
+	{TK_Divide,				10,		2,	DH_Divide,			},
+	{TK_Modulus,			10,		2,	DH_Modulus,			},
+	{TK_Plus,				20,		2,	DH_Add,				},
+	{TK_Minus,				20,		2,	DH_Subtract,		},
+	{TK_LeftShift,			30,		2,	DH_LeftShift,		},
+	{TK_RightShift,			30,		2,	DH_RightShift,		},
+	{TK_Lesser,				40,		2,	DH_LessThan,		},
+	{TK_Greater,			40,		2,	DH_GreaterThan,		},
+	{TK_AtLeast,			40,		2,	DH_AtLeast,			},
+	{TK_AtMost,				40,		2,	DH_AtMost,			},
+	{TK_Equals,				50,		2,	DH_Equals			},
+	{TK_NotEquals,			50,		2,	DH_NotEquals		},
+	{TK_Amperstand,			60,		2,	DH_AndBitwise		},
+	{TK_Caret,				70,		2,	DH_EorBitwise		},
+	{TK_Bar,				80,		2,	DH_OrBitwise		},
+	{TK_DoubleAmperstand,	90,		2,	DH_AndLogical		},
+	{TK_DoubleBar,			100,	2,	DH_OrLogical		},
+	{TK_QuestionMark,		110,	3,	(DataHeader) 0		},
 };
 
 // =============================================================================
@@ -76,7 +76,7 @@ ExpressionSymbol* Expression::ParseSymbol()
 	int pos = mLexer->GetPosition();
 	ExpressionValue* op = null;
 
-	if (mLexer->GetNext (tkColon))
+	if (mLexer->GetNext (TK_Colon))
 		return new ExpressionColon;
 
 	// Check for OPER_erator
@@ -85,10 +85,10 @@ ExpressionSymbol* Expression::ParseSymbol()
 			return new ExpressionOperator ((ExpressionOperatorType) (&op - &gOperators[0]));
 
 	// Check sub-expression
-	if (mLexer->GetNext (tkParenStart))
+	if (mLexer->GetNext (TK_ParenStart))
 	{
 		Expression expr (mParser, mLexer, mType);
-		mLexer->MustGetNext (tkParenEnd);
+		mLexer->MustGetNext (TK_ParenEnd);
 		return expr.GetResult()->Clone();
 	}
 
@@ -107,9 +107,9 @@ ExpressionSymbol* Expression::ParseSymbol()
 	}
 
 	// Check for variables
-	if (mLexer->GetNext (tkDollarSign))
+	if (mLexer->GetNext (TK_DollarSign))
 	{
-		mLexer->MustGetNext (tkSymbol);
+		mLexer->MustGetNext (TK_Symbol);
 		Variable* var = mParser->FindVariable (GetTokenString());
 
 		if (var == null)
@@ -121,14 +121,14 @@ ExpressionSymbol* Expression::ParseSymbol()
 
 		if (var->isarray)
 		{
-			mLexer->MustGetNext (tkBracketStart);
+			mLexer->MustGetNext (TK_BracketStart);
 			Expression expr (mParser, mLexer, TYPE_Int);
 			expr.GetResult()->ConvertToBuffer();
 			DataBuffer* buf = expr.GetResult()->GetBuffer()->Clone();
 			buf->WriteDWord (DH_PushGlobalArray);
 			buf->WriteDWord (var->index);
 			op->SetBuffer (buf);
-			mLexer->MustGetNext (tkBracketEnd);
+			mLexer->MustGetNext (TK_BracketEnd);
 		}
 		elif (var->writelevel == WRITE_Constexpr)
 			op->SetValue (var->value);
@@ -160,17 +160,17 @@ ExpressionSymbol* Expression::ParseSymbol()
 
 		case TYPE_Bool:
 		{
-			if (mLexer->GetNext (tkTrue) || mLexer->GetNext (tkFalse))
+			if (mLexer->GetNext (TK_True) || mLexer->GetNext (TK_False))
 			{
-				EToken tt = mLexer->GetTokenType();
-				op->SetValue (tt == tkTrue ? 1 : 0);
+				TokenType tt = mLexer->GetTokenType();
+				op->SetValue (tt ==TK_True ? 1 : 0);
 				return op;
 			}
 		}
 
 		case TYPE_Int:
 		{
-			if (mLexer->GetNext (tkNumber))
+			if (mLexer->GetNext (TK_Number))
 			{
 				op->SetValue (GetTokenString().ToLong());
 				return op;
@@ -179,7 +179,7 @@ ExpressionSymbol* Expression::ParseSymbol()
 
 		case TYPE_String:
 		{
-			if (mLexer->GetNext (tkString))
+			if (mLexer->GetNext (TK_String))
 			{
 				op->SetValue (GetStringTableIndex (GetTokenString()));
 				return op;
@@ -197,7 +197,7 @@ ExpressionSymbol* Expression::ParseSymbol()
 //
 // The symbol parsing process only does token-based checking for OPER_erators. Thus
 // ALL minus OPER_erators are actually unary minuses simply because both have
-// tkMinus as their token and the unary minus is prior to the binary minus in
+//TK_Minus as their token and the unary minus is prior to the binary minus in
 // the OPER_erator table. Now that we have all symbols present, we can correct
 // cases like this.
 //

@@ -63,13 +63,13 @@ void Lexer::ProcessFile (String fileName)
 	while (sc.GetNextToken())
 	{
 		// Preprocessor commands:
-		if (sc.GetTokenType() == tkHash)
+		if (sc.GetTokenType() ==TK_Hash)
 		{
-			MustGetFromScanner (sc, tkSymbol);
+			MustGetFromScanner (sc,TK_Symbol);
 
 			if (sc.GetTokenText() == "include")
 			{
-				MustGetFromScanner (sc, tkString);
+				MustGetFromScanner (sc,TK_String);
 				String fileName = sc.GetTokenText();
 
 				if (gFileNameStack.Contains (fileName))
@@ -89,8 +89,9 @@ void Lexer::ProcessFile (String fileName)
 			tok.type = sc.GetTokenType();
 			tok.text = sc.GetTokenText();
 
-			// devf ("Token #%1: %2:%3:%4: %5 (%6)\n", mTokens.size(),
-			//	tok.file, tok.line, tok.column, DescribeToken (&tok), DescribeTokenType (tok.type));
+			// devf ("Token #%1: %2:%3:%4: %5 (%6)\n", mTokens.Size(),
+			// 	tok.file, tok.line, tok.column, DescribeToken (&tok),
+			// 	GetTokenTypeString (tok.type));
 
 			mTokens << tok;
 		}
@@ -144,7 +145,7 @@ void Lexer::CheckFileHeader (LexerScanner& sc)
 
 // =============================================================================
 //
-bool Lexer::GetNext (EToken req)
+bool Lexer::GetNext (TokenType req)
 {
 	Iterator pos = mTokenPosition;
 
@@ -153,7 +154,7 @@ bool Lexer::GetNext (EToken req)
 
 	mTokenPosition++;
 
-	if (IsAtEnd() || (req != tkAny && GetTokenType() != req))
+	if (IsAtEnd() || (req !=TK_Any && GetTokenType() != req))
 	{
 		mTokenPosition = pos;
 		return false;
@@ -164,24 +165,24 @@ bool Lexer::GetNext (EToken req)
 
 // =============================================================================
 //
-void Lexer::MustGetNext (EToken tok)
+void Lexer::MustGetNext (TokenType tok)
 {
 	if (!GetNext())
 		Error ("unexpected EOF");
 
-	if (tok != tkAny)
+	if (tok !=TK_Any)
 		TokenMustBe (tok);
 }
 
 // =============================================================================
 // eugh..
 //
-void Lexer::MustGetFromScanner (LexerScanner& sc, EToken tt)
+void Lexer::MustGetFromScanner (LexerScanner& sc, TokenType tt)
 {
 	if (!sc.GetNextToken())
 		Error ("unexpected EOF");
 
-	if (tt != tkAny && sc.GetTokenType() != tt)
+	if (tt !=TK_Any && sc.GetTokenType() != tt)
 	{
 		// TODO
 		Token tok;
@@ -198,18 +199,18 @@ void Lexer::MustGetFromScanner (LexerScanner& sc, EToken tt)
 
 // =============================================================================
 //
-void Lexer::MustGetAnyOf (const List<EToken>& toks)
+void Lexer::MustGetAnyOf (const List<TokenType>& toks)
 {
 	if (!GetNext())
 		Error ("unexpected EOF");
 
-	for (EToken tok : toks)
+	for (TokenType tok : toks)
 		if (GetTokenType() == tok)
 			return;
 
 	String toknames;
 
-	for (const EToken& tokType : toks)
+	for (const TokenType& tokType : toks)
 	{
 		if (&tokType == &toks.Last())
 			toknames += " or ";
@@ -224,12 +225,12 @@ void Lexer::MustGetAnyOf (const List<EToken>& toks)
 
 // =============================================================================
 //
-int Lexer::GEXPRSYM_tOne (const StringList& syms)
+int Lexer::GetOneSymbol (const StringList& syms)
 {
 	if (!GetNext())
 		Error ("unexpected EOF");
 
-	if (GetTokenType() == tkSymbol)
+	if (GetTokenType() ==TK_Symbol)
 	{
 		for (int i = 0; i < syms.Size(); ++i)
 		{
@@ -244,7 +245,7 @@ int Lexer::GEXPRSYM_tOne (const StringList& syms)
 
 // =============================================================================
 //
-void Lexer::TokenMustBe (EToken tok)
+void Lexer::TokenMustBe (TokenType tok)
 {
 	if (GetTokenType() != tok)
 		Error ("expected %1, got %2", DescribeTokenType (tok),
@@ -253,17 +254,17 @@ void Lexer::TokenMustBe (EToken tok)
 
 // =============================================================================
 //
-String Lexer::DescribeTokenPrivate (EToken tokType, Lexer::Token* tok)
+String Lexer::DescribeTokenPrivate (TokenType tokType, Lexer::Token* tok)
 {
-	if (tokType < tkLastNamedToken)
+	if (tokType <gLastNamedToken)
 		return "\"" + LexerScanner::GetTokenString (tokType) + "\"";
 
 	switch (tokType)
 	{
-		case tkSymbol:	return tok ? tok->text : "a symbol";
-		case tkNumber:	return tok ? tok->text : "a number";
-		case tkString:	return tok ? ("\"" + tok->text + "\"") : "a string";
-		case tkAny:	return tok ? tok->text : "any token";
+		case TK_Symbol:	return tok ? tok->text : "a symbol";
+		case TK_Number:	return tok ? tok->text : "a number";
+		case TK_String:	return tok ? ("\"" + tok->text + "\"") : "a string";
+		case TK_Any:	return tok ? tok->text : "any token";
 		default: break;
 	}
 
@@ -286,7 +287,7 @@ bool Lexer::PeekNext (Lexer::Token* tk)
 
 // =============================================================================
 //
-bool Lexer::PeekNextType (EToken req)
+bool Lexer::PeekNextType (TokenType req)
 {
 	Iterator pos = mTokenPosition;
 	bool result = false;

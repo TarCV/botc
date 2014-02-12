@@ -184,7 +184,7 @@ class BotscriptParser
 		void					AddSwitchCase (DataBuffer* b);
 		void					CheckToplevel();
 		void					CheckNotToplevel();
-		bool					TokenIs (EToken a);
+		bool					TokenIs (TokenType a);
 		String					GetTokenString();
 		String					DescribePosition() const;
 		void					WriteToFile (String outfile);

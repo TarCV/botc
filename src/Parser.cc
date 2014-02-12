@@ -93,92 +93,92 @@ void BotscriptParser::ParseBotscript (String fileName)
 	while (mLexer->GetNext())
 	{
 		// Check if else is potentically valid
-		if (TokenIs (tkElse) && mCanElse == false)
+		if (TokenIs (TK_Else) && mCanElse == false)
 			Error ("else without preceding if");
 
-		if (TokenIs (tkElse) == false)
+		if (TokenIs (TK_Else) == false)
 			mCanElse = false;
 
 		switch (mLexer->GetToken()->type)
 		{
-			case tkState:
+			case TK_State:
 				ParseStateBlock();
 				break;
 
-			case tkEvent:
+			case TK_Event:
 				ParseEventBlock();
 				break;
 
-			case tkMainloop:
+			case TK_Mainloop:
 				ParseMainloop();
 				break;
 
-			case tkOnenter:
-			case tkOnexit:
+			case TK_Onenter:
+			case TK_Onexit:
 				ParseOnEnterExit();
 				break;
 
-			case tkVar:
+			case TK_Var:
 				ParseVar();
 				break;
 
-			case tkGoto:
+			case TK_Goto:
 				ParseGoto();
 				break;
 
-			case tkIf:
+			case TK_If:
 				ParseIf();
 				break;
 
-			case tkElse:
+			case TK_Else:
 				ParseElse();
 				break;
 
-			case tkWhile:
+			case TK_While:
 				ParseWhileBlock();
 				break;
 
-			case tkFor:
+			case TK_For:
 				ParseForBlock();
 				break;
 
-			case tkDo:
+			case TK_Do:
 				ParseDoBlock();
 				break;
 
-			case tkSwitch:
+			case TK_Switch:
 				ParseSwitchBlock();
 				break;
 
-			case tkCase:
+			case TK_Case:
 				ParseSwitchCase();
 				break;
 
-			case tkDefault:
+			case TK_Default:
 				ParseSwitchDefault();
 				break;
 
-			case tkBreak:
+			case TK_Break:
 				ParseBreak();
 				break;
 
-			case tkContinue:
+			case TK_Continue:
 				ParseContinue();
 				break;
 
-			case tkBraceEnd:
+			case TK_BraceEnd:
 				ParseBlockEnd();
 				break;
 
-			case tkEventdef:
+			case TK_Eventdef:
 				ParseEventdef();
 				break;
 
-			case tkFuncdef:
+			case TK_Funcdef:
 				ParseFuncdef();
 				break;
 
-			case tkSemicolon:
+			case TK_Semicolon:
 				break;
 
 			default:
@@ -186,9 +186,9 @@ void BotscriptParser::ParseBotscript (String fileName)
 				// Check for labels
 				Lexer::Token next;
 
-				if (TokenIs (tkSymbol) &&
+				if (TokenIs (TK_Symbol) &&
 					mLexer->PeekNext (&next) &&
-					next.type == tkColon)
+					next.type ==TK_Colon)
 				{
 					ParseLabel();
 					break;
@@ -200,7 +200,7 @@ void BotscriptParser::ParseBotscript (String fileName)
 				if (comm)
 				{
 					buffer()->MergeAndDestroy (ParseCommand (comm));
-					mLexer->MustGetNext (tkSemicolon);
+					mLexer->MustGetNext (TK_Semicolon);
 					continue;
 				}
 
@@ -215,7 +215,7 @@ void BotscriptParser::ParseBotscript (String fileName)
 				}
 
 				buffer()->MergeAndDestroy (b);
-				mLexer->MustGetNext (tkSemicolon);
+				mLexer->MustGetNext (TK_Semicolon);
 				break;
 			}
 		}
@@ -256,7 +256,7 @@ void BotscriptParser::ParseBotscript (String fileName)
 void BotscriptParser::ParseStateBlock()
 {
 	CheckToplevel();
-	mLexer->MustGetNext (tkString);
+	mLexer->MustGetNext (TK_String);
 	String statename = GetTokenString();
 
 	// State name must be a word.
@@ -269,7 +269,7 @@ void BotscriptParser::ParseStateBlock()
 		mStateSpawnDefined = true;
 
 	// Must end in a colon
-	mLexer->MustGetNext (tkColon);
+	mLexer->MustGetNext (TK_Colon);
 
 	// write the previous state's onenter and
 	// mainloop buffers to file now
@@ -291,14 +291,14 @@ void BotscriptParser::ParseStateBlock()
 void BotscriptParser::ParseEventBlock()
 {
 	CheckToplevel();
-	mLexer->MustGetNext (tkString);
+	mLexer->MustGetNext (TK_String);
 
 	EventDefinition* e = FindEventByName (GetTokenString());
 
 	if (e == null)
 		Error ("bad event, got `%1`\n", GetTokenString());
 
-	mLexer->MustGetNext (tkBraceStart);
+	mLexer->MustGetNext (TK_BraceStart);
 	mCurrentMode = PARSERMODE_Event;
 	buffer()->WriteDWord (DH_Event);
 	buffer()->WriteDWord (e->number);
@@ -310,7 +310,7 @@ void BotscriptParser::ParseEventBlock()
 void BotscriptParser::ParseMainloop()
 {
 	CheckToplevel();
-	mLexer->MustGetNext (tkBraceStart);
+	mLexer->MustGetNext (TK_BraceStart);
 
 	mCurrentMode = PARSERMODE_MainLoop;
 	mMainLoopBuffer->WriteDWord (DH_MainLoop);
@@ -321,8 +321,8 @@ void BotscriptParser::ParseMainloop()
 void BotscriptParser::ParseOnEnterExit()
 {
 	CheckToplevel();
-	bool onenter = (TokenIs (tkOnenter));
-	mLexer->MustGetNext (tkBraceStart);
+	bool onenter = (TokenIs (TK_Onenter));
+	mLexer->MustGetNext (TK_BraceStart);
 
 	mCurrentMode = onenter ? PARSERMODE_Onenter : PARSERMODE_Onexit;
 	buffer()->WriteDWord (onenter ? DH_OnEnter : DH_OnExit);
@@ -335,19 +335,19 @@ void BotscriptParser::ParseVar()
 	Variable* var = new Variable;
 	var->origin = mLexer->DescribeCurrentPosition();
 	var->isarray = false;
-	const bool isconst = mLexer->GetNext (tkConst);
-	mLexer->MustGetAnyOf ({tkInt, tkStr, tkVoid});
+	const bool isconst = mLexer->GetNext (TK_Const);
+	mLexer->MustGetAnyOf ({TK_Int,TK_Str,TK_Void});
 
-	DataType vartype =	(TokenIs (tkInt)) ? TYPE_Int :
-					(TokenIs (tkStr)) ? TYPE_String :
+	DataType vartype =	(TokenIs (TK_Int)) ? TYPE_Int :
+					(TokenIs (TK_Str)) ? TYPE_String :
 					TYPE_Bool;
 
-	mLexer->MustGetNext (tkSymbol);
+	mLexer->MustGetNext (TK_Symbol);
 	String name = GetTokenString();
 
-	if (mLexer->GetNext (tkBracketStart))
+	if (mLexer->GetNext (TK_BracketStart))
 	{
-		mLexer->MustGetNext (tkBracketEnd);
+		mLexer->MustGetNext (TK_BracketEnd);
 		var->isarray = true;
 
 		if (isconst)
@@ -371,7 +371,7 @@ void BotscriptParser::ParseVar()
 	}
 	else
 	{
-		mLexer->MustGetNext (tkAssign);
+		mLexer->MustGetNext (TK_Assign);
 		Expression expr (this, mLexer, vartype);
 
 		// If the expression was constexpr, we know its value and thus
@@ -409,7 +409,7 @@ void BotscriptParser::ParseVar()
 		SCOPE(0).localVariables << var;
 
 	SuggestHighestVarIndex (IsInGlobalState(), var->index);
-	mLexer->MustGetNext (tkSemicolon);
+	mLexer->MustGetNext (TK_Semicolon);
 	Print ("Declared %3 variable #%1 $%2\n", var->index, var->name, IsInGlobalState() ? "global" : "state-local");
 }
 
@@ -420,7 +420,7 @@ void BotscriptParser::ParseGoto()
 	CheckNotToplevel();
 
 	// Get the name of the label
-	mLexer->MustGetNext (tkSymbol);
+	mLexer->MustGetNext (TK_Symbol);
 
 	// Find the mark this goto statement points to
 	String target = GetTokenString();
@@ -438,7 +438,7 @@ void BotscriptParser::ParseGoto()
 	// Add a reference to the mark.
 	buffer()->WriteDWord (DH_Goto);
 	buffer()->AddReference (mark);
-	mLexer->MustGetNext (tkSemicolon);
+	mLexer->MustGetNext (TK_Semicolon);
 }
 
 // ============================================================================
@@ -449,14 +449,14 @@ void BotscriptParser::ParseIf()
 	PushScope();
 
 	// Condition
-	mLexer->MustGetNext (tkParenStart);
+	mLexer->MustGetNext (TK_ParenStart);
 
 	// Read the expression and write it.
 	DataBuffer* c = ParseExpression (TYPE_Int);
 	buffer()->MergeAndDestroy (c);
 
-	mLexer->MustGetNext (tkParenEnd);
-	mLexer->MustGetNext (tkBraceStart);
+	mLexer->MustGetNext (TK_ParenEnd);
+	mLexer->MustGetNext (TK_BraceStart);
 
 	// Add a mark - to here temporarily - and add a reference to it.
 	// Upon a closing brace, the mark will be adjusted.
@@ -477,7 +477,7 @@ void BotscriptParser::ParseIf()
 void BotscriptParser::ParseElse()
 {
 	CheckNotToplevel();
-	mLexer->MustGetNext (tkBraceStart);
+	mLexer->MustGetNext (TK_BraceStart);
 	PushScope (eNoReset);
 
 	if (SCOPE (0).type != SCOPE_If)
@@ -511,10 +511,10 @@ void BotscriptParser::ParseWhileBlock()
 	ByteMark* mark2 = buffer()->AddMark (""); // end
 
 	// Condition
-	mLexer->MustGetNext (tkParenStart);
+	mLexer->MustGetNext (TK_ParenStart);
 	DataBuffer* expr = ParseExpression (TYPE_Int);
-	mLexer->MustGetNext (tkParenEnd);
-	mLexer->MustGetNext (tkBraceStart);
+	mLexer->MustGetNext (TK_ParenEnd);
+	mLexer->MustGetNext (TK_BraceStart);
 
 	// write condition
 	buffer()->MergeAndDestroy (expr);
@@ -537,13 +537,13 @@ void BotscriptParser::ParseForBlock()
 	PushScope();
 
 	// Initializer
-	mLexer->MustGetNext (tkParenStart);
+	mLexer->MustGetNext (TK_ParenStart);
 	DataBuffer* init = ParseStatement();
 
 	if (init == null)
 		Error ("bad statement for initializer of for");
 
-	mLexer->MustGetNext (tkSemicolon);
+	mLexer->MustGetNext (TK_Semicolon);
 
 	// Condition
 	DataBuffer* cond = ParseExpression (TYPE_Int);
@@ -551,7 +551,7 @@ void BotscriptParser::ParseForBlock()
 	if (cond == null)
 		Error ("bad statement for condition of for");
 
-	mLexer->MustGetNext (tkSemicolon);
+	mLexer->MustGetNext (TK_Semicolon);
 
 	// Incrementor
 	DataBuffer* incr = ParseStatement();
@@ -559,8 +559,8 @@ void BotscriptParser::ParseForBlock()
 	if (incr == null)
 		Error ("bad statement for incrementor of for");
 
-	mLexer->MustGetNext (tkParenEnd);
-	mLexer->MustGetNext (tkBraceStart);
+	mLexer->MustGetNext (TK_ParenEnd);
+	mLexer->MustGetNext (TK_BraceStart);
 
 	// First, write out the initializer
 	buffer()->MergeAndDestroy (init);
@@ -587,7 +587,7 @@ void BotscriptParser::ParseDoBlock()
 {
 	CheckNotToplevel();
 	PushScope();
-	mLexer->MustGetNext (tkBraceStart);
+	mLexer->MustGetNext (TK_BraceStart);
 	SCOPE (0).mark1 = buffer()->AddMark ("");
 	SCOPE (0).type = SCOPE_Do;
 }
@@ -611,10 +611,10 @@ void BotscriptParser::ParseSwitchBlock()
 
 	CheckNotToplevel();
 	PushScope();
-	mLexer->MustGetNext (tkParenStart);
+	mLexer->MustGetNext (TK_ParenStart);
 	buffer()->MergeAndDestroy (ParseExpression (TYPE_Int));
-	mLexer->MustGetNext (tkParenEnd);
-	mLexer->MustGetNext (tkBraceStart);
+	mLexer->MustGetNext (TK_ParenEnd);
+	mLexer->MustGetNext (TK_BraceStart);
 	SCOPE (0).type = SCOPE_Switch;
 	SCOPE (0).mark1 = buffer()->AddMark (""); // end mark
 	SCOPE (0).buffer1 = null; // default header
@@ -630,9 +630,9 @@ void BotscriptParser::ParseSwitchCase()
 
 	// Get a literal value for the case block. Zandronum does not support
 	// expressions here.
-	mLexer->MustGetNext (tkNumber);
+	mLexer->MustGetNext (TK_Number);
 	int num = mLexer->GetToken()->text.ToLong();
-	mLexer->MustGetNext (tkColon);
+	mLexer->MustGetNext (TK_Colon);
 
 	for (const CaseInfo& info : SCOPE(0).cases)
 		if (info.number == num)
@@ -665,7 +665,7 @@ void BotscriptParser::ParseSwitchDefault()
 	if (SCOPE (0).buffer1 != null)
 		Error ("multiple default labels in one switch");
 
-	mLexer->MustGetNext (tkColon);
+	mLexer->MustGetNext (TK_Colon);
 
 	// The default header is buffered into buffer1, since
 	// it has to be the last of the case headers
@@ -712,14 +712,14 @@ void BotscriptParser::ParseBreak()
 		} break;
 	}
 
-	mLexer->MustGetNext (tkSemicolon);
+	mLexer->MustGetNext (TK_Semicolon);
 }
 
 // ============================================================================
 //
 void BotscriptParser::ParseContinue()
 {
-	mLexer->MustGetNext (tkSemicolon);
+	mLexer->MustGetNext (TK_Semicolon);
 
 	int curs;
 	bool found = false;
@@ -792,11 +792,11 @@ void BotscriptParser::ParseBlockEnd()
 
 			case SCOPE_Do:
 			{
-				mLexer->MustGetNext (tkWhile);
-				mLexer->MustGetNext (tkParenStart);
+				mLexer->MustGetNext (TK_While);
+				mLexer->MustGetNext (TK_ParenStart);
 				DataBuffer* expr = ParseExpression (TYPE_Int);
-				mLexer->MustGetNext (tkParenEnd);
-				mLexer->MustGetNext (tkSemicolon);
+				mLexer->MustGetNext (TK_ParenEnd);
+				mLexer->MustGetNext (TK_Semicolon);
 
 				// If the condition runs true, go back to the start.
 				buffer()->MergeAndDestroy (expr);
@@ -861,7 +861,7 @@ void BotscriptParser::ParseBlockEnd()
 	// the closing data headers into said buffers too.
 	buffer()->WriteDWord (dataheader);
 	mCurrentMode = PARSERMODE_TopLevel;
-	mLexer->GetNext (tkSemicolon);
+	mLexer->GetNext (TK_Semicolon);
 }
 
 // ============================================================================
@@ -890,7 +890,7 @@ void BotscriptParser::ParseLabel()
 	if (mark == null)
 		buffer()->AddMark (labelName);
 
-	mLexer->MustGetNext (tkColon);
+	mLexer->MustGetNext (TK_Colon);
 }
 
 // =============================================================================
@@ -899,14 +899,14 @@ void BotscriptParser::ParseEventdef()
 {
 	EventDefinition* e = new EventDefinition;
 
-	mLexer->MustGetNext (tkNumber);
+	mLexer->MustGetNext (TK_Number);
 	e->number = GetTokenString().ToLong();
-	mLexer->MustGetNext (tkColon);
-	mLexer->MustGetNext (tkSymbol);
+	mLexer->MustGetNext (TK_Colon);
+	mLexer->MustGetNext (TK_Symbol);
 	e->name = mLexer->GetToken()->text;
-	mLexer->MustGetNext (tkParenStart);
-	mLexer->MustGetNext (tkParenEnd);
-	mLexer->MustGetNext (tkSemicolon);
+	mLexer->MustGetNext (TK_ParenStart);
+	mLexer->MustGetNext (TK_ParenEnd);
+	mLexer->MustGetNext (TK_Semicolon);
 	AddEvent (e);
 }
 
@@ -918,47 +918,47 @@ void BotscriptParser::ParseFuncdef()
 	comm->origin = mLexer->DescribeCurrentPosition();
 
 	// Return value
-	mLexer->MustGetAnyOf ({tkInt, tkVoid, tkBool, tkStr});
+	mLexer->MustGetAnyOf ({TK_Int,TK_Void,TK_Bool,TK_Str});
 	comm->returnvalue = GetTypeByName (mLexer->GetToken()->text); // TODO
 	assert (comm->returnvalue != -1);
 
 	// Number
-	mLexer->MustGetNext (tkNumber);
+	mLexer->MustGetNext (TK_Number);
 	comm->number = mLexer->GetToken()->text.ToLong();
-	mLexer->MustGetNext (tkColon);
+	mLexer->MustGetNext (TK_Colon);
 
 	// Name
-	mLexer->MustGetNext (tkSymbol);
+	mLexer->MustGetNext (TK_Symbol);
 	comm->name = mLexer->GetToken()->text;
 
 	// Arguments
-	mLexer->MustGetNext (tkParenStart);
+	mLexer->MustGetNext (TK_ParenStart);
 	comm->minargs = 0;
 
-	while (mLexer->PeekNextType (tkParenEnd) == false)
+	while (mLexer->PeekNextType (TK_ParenEnd) == false)
 	{
 		if (comm->args.IsEmpty() == false)
-			mLexer->MustGetNext (tkComma);
+			mLexer->MustGetNext (TK_Comma);
 
 		CommandArgument arg;
-		mLexer->MustGetAnyOf ({tkInt, tkBool, tkStr});
+		mLexer->MustGetAnyOf ({TK_Int,TK_Bool,TK_Str});
 		DataType type = GetTypeByName (mLexer->GetToken()->text); // TODO
 		assert (type != -1 && type != TYPE_Void);
 		arg.type = type;
 
-		mLexer->MustGetNext (tkSymbol);
+		mLexer->MustGetNext (TK_Symbol);
 		arg.name = mLexer->GetToken()->text;
 
 		// If this is an optional parameter, we need the default value.
-		if (comm->minargs < comm->args.Size() || mLexer->PeekNextType (tkAssign))
+		if (comm->minargs < comm->args.Size() || mLexer->PeekNextType (TK_Assign))
 		{
-			mLexer->MustGetNext (tkAssign);
+			mLexer->MustGetNext (TK_Assign);
 
 			switch (type)
 			{
 				case TYPE_Int:
 				case TYPE_Bool:
-					mLexer->MustGetNext (tkNumber);
+					mLexer->MustGetNext (TK_Number);
 					break;
 
 				case TYPE_String:
@@ -977,8 +977,8 @@ void BotscriptParser::ParseFuncdef()
 		comm->args << arg;
 	}
 
-	mLexer->MustGetNext (tkParenEnd);
-	mLexer->MustGetNext (tkSemicolon);
+	mLexer->MustGetNext (TK_ParenEnd);
+	mLexer->MustGetNext (TK_Semicolon);
 	AddCommandDefinition (comm);
 }
 
@@ -991,14 +991,14 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 	if (mCurrentMode == PARSERMODE_TopLevel && comm->returnvalue == TYPE_Void)
 		Error ("command call at top level");
 
-	mLexer->MustGetNext (tkParenStart);
-	mLexer->MustGetNext (tkAny);
+	mLexer->MustGetNext (TK_ParenStart);
+	mLexer->MustGetNext (TK_Any);
 
 	int curarg = 0;
 
 	for (;;)
 	{
-		if (TokenIs (tkParenEnd))
+		if (TokenIs (TK_ParenEnd))
 		{
 			if (curarg < comm->minargs)
 				Error ("too few arguments passed to %1\n\tusage is: %2",
@@ -1012,25 +1012,25 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 				comm->name, comm->GetSignature());
 
 		r->MergeAndDestroy (ParseExpression (comm->args[curarg].type, true));
-		mLexer->MustGetNext (tkAny);
+		mLexer->MustGetNext (TK_Any);
 
 		if (curarg < comm->minargs - 1)
 		{
-			mLexer->TokenMustBe (tkComma);
-			mLexer->MustGetNext (tkAny);
+			mLexer->TokenMustBe (TK_Comma);
+			mLexer->MustGetNext (TK_Any);
 		}
 		else if (curarg < comm->args.Size() - 1)
 		{
 			// Can continue, but can terminate as well.
-			if (TokenIs (tkParenEnd))
+			if (TokenIs (TK_ParenEnd))
 			{
 				curarg++;
 				break;
 			}
 			else
 			{
-				mLexer->TokenMustBe (tkComma);
-				mLexer->MustGetNext (tkAny);
+				mLexer->TokenMustBe (TK_Comma);
+				mLexer->MustGetNext (TK_Any);
 			}
 		}
 
@@ -1056,15 +1056,15 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 //
 String BotscriptParser::ParseFloat()
 {
-	mLexer->TokenMustBe (tkNumber);
+	mLexer->TokenMustBe (TK_Number);
 	String floatstring = GetTokenString();
 	Lexer::Token tok;
 
 	// Go after the decimal point
-	if (mLexer->PeekNext (&tok) && tok.type == tkDot)
+	if (mLexer->PeekNext (&tok) && tok.type ==TK_Dot)
 	{
 		mLexer->Skip();
-		mLexer->MustGetNext (tkNumber);
+		mLexer->MustGetNext (TK_Number);
 		floatstring += ".";
 		floatstring += GetTokenString();
 	}
@@ -1078,30 +1078,30 @@ String BotscriptParser::ParseFloat()
 //
 AssignmentOperator BotscriptParser::ParseAssignmentOperator()
 {
-	const List<EToken> tokens =
+	const List<TokenType> tokens =
 	{
-		tkAssign,
-		tkAddAssign,
-		tkSubAssign,
-		tkMultiplyAssign,
-		tkDivideAssign,
-		tkModulusAssign,
-		tkDoublePlus,
-		tkDoubleMinus,
+		TK_Assign,
+		TK_AddAssign,
+		TK_SubAssign,
+		TK_MultiplyAssign,
+		TK_DivideAssign,
+		TK_ModulusAssign,
+		TK_DoublePlus,
+		TK_DoubleMinus,
 	};
 
 	mLexer->MustGetAnyOf (tokens);
 
 	switch (mLexer->GetTokenType())
 	{
-		case tkAssign:			return ASSIGNOP_Assign;
-		case tkAddAssign:		return ASSIGNOP_Add;
-		case tkSubAssign:		return ASSIGNOP_Subtract;
-		case tkMultiplyAssign:	return ASSIGNOP_Multiply;
-		case tkDivideAssign:	return ASSIGNOP_Divide;
-		case tkModulusAssign:	return ASSIGNOP_Modulus;
-		case tkDoublePlus:		return ASSIGNOP_Increase;
-		case tkDoubleMinus:		return ASSIGNOP_Decrease;
+		case TK_Assign:			return ASSIGNOP_Assign;
+		case TK_AddAssign:		return ASSIGNOP_Add;
+		case TK_SubAssign:		return ASSIGNOP_Subtract;
+		case TK_MultiplyAssign:	return ASSIGNOP_Multiply;
+		case TK_DivideAssign:	return ASSIGNOP_Divide;
+		case TK_ModulusAssign:	return ASSIGNOP_Modulus;
+		case TK_DoublePlus:		return ASSIGNOP_Increase;
+		case TK_DoubleMinus:	return ASSIGNOP_Decrease;
 		default: break;
 	}
 
@@ -1167,11 +1167,11 @@ DataBuffer* BotscriptParser::ParseAssignment (Variable* var)
 
 	if (var->isarray)
 	{
-		mLexer->MustGetNext (tkBracketStart);
+		mLexer->MustGetNext (TK_BracketStart);
 		Expression expr (this, mLexer, TYPE_Int);
 		expr.GetResult()->ConvertToBuffer();
 		arrayindex = expr.GetResult()->GetBuffer()->Clone();
-		mLexer->MustGetNext (tkBracketEnd);
+		mLexer->MustGetNext (TK_BracketEnd);
 	}
 
 	// Get an operator
@@ -1264,9 +1264,9 @@ DataBuffer* BotscriptParser::ParseExpression (DataType reqtype, bool fromhere)
 DataBuffer* BotscriptParser::ParseStatement()
 {
 	// If it's a variable, expect assignment.
-	if (mLexer->GetNext (tkDollarSign))
+	if (mLexer->GetNext (TK_DollarSign))
 	{
-		mLexer->MustGetNext (tkSymbol);
+		mLexer->MustGetNext (TK_Symbol);
 		Variable* var = FindVariable (GetTokenString());
 
 		if (var == null)
@@ -1305,7 +1305,7 @@ void BotscriptParser::AddSwitchCase (DataBuffer* casebuffer)
 
 // ============================================================================
 //
-bool BotscriptParser::TokenIs (EToken a)
+bool BotscriptParser::TokenIs (TokenType a)
 {
 	return (mLexer->GetTokenType() == a);
 }

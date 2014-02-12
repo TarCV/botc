@@ -111,7 +111,7 @@ static const String gTokenStrings[] =
 	"return",
 };
 
-static_assert (countof (gTokenStrings) == (int) tkLastNamedToken + 1,
+static_assert (countof (gTokenStrings) == (int)gLastNamedToken + 1,
 	"Count of gTokenStrings is not the same as the amount of named token identifiers.");
 
 // =============================================================================
@@ -192,13 +192,13 @@ bool LexerScanner::GetNextToken()
 	{
 		int flags = 0;
 
-		if (i >= tkFirstNamedToken)
+		if (i >= gFirstNamedToken)
 			flags |= FCheckWord;
 
 		if (CheckString (gTokenStrings[i], flags))
 		{
 			mTokenText = gTokenStrings[i];
-			mTokenType = (EToken) i;
+			mTokenType = (TokenType) i;
 			return true;
 		}
 	}
@@ -232,7 +232,7 @@ bool LexerScanner::GetNextToken()
 			mTokenText += *mPosition++;
 		}
 
-		mTokenType = tkString;
+		mTokenType =TK_String;
 		Skip(); // skip the final quote
 		return true;
 	}
@@ -242,13 +242,13 @@ bool LexerScanner::GetNextToken()
 		while (isdigit (*mPosition))
 			mTokenText += *mPosition++;
 
-		mTokenType = tkNumber;
+		mTokenType =TK_Number;
 		return true;
 	}
 
 	if (IsSymbolChar (*mPosition, false))
 	{
-		mTokenType = tkSymbol;
+		mTokenType =TK_Symbol;
 
 		do
 		{
@@ -288,9 +288,9 @@ void LexerScanner::Skip (int chars)
 
 // =============================================================================
 //
-String LexerScanner::GetTokenString (EToken a)
+String LexerScanner::GetTokenString (TokenType a)
 {
-	assert ((int) a <= tkLastNamedToken);
+	assert ((int) a <= gLastNamedToken);
 	return gTokenStrings[a];
 }
 

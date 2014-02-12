@@ -37,7 +37,7 @@ class Lexer
 types:
 	struct Token
 	{
-		EToken		type;
+		TokenType	type;
 		String		text;
 		String		file;
 		int			line;
@@ -52,13 +52,13 @@ public:
 	~Lexer();
 
 	void	ProcessFile (String file_name);
-	bool	GetNext (EToken req = tkAny);
-	void	MustGetNext (EToken tok);
-	void	MustGetAnyOf (const List<EToken>& toks);
-	int		GEXPRSYM_tOne (const StringList& syms);
-	void	TokenMustBe (EToken tok);
+	bool	GetNext (TokenType req = TK_Any);
+	void	MustGetNext (TokenType tok);
+	void	MustGetAnyOf (const List<TokenType>& toks);
+	int		GetOneSymbol (const StringList& syms);
+	void	TokenMustBe (TokenType tok);
 	bool	PeekNext (Token* tk = null);
-	bool	PeekNextType (EToken req);
+	bool	PeekNextType (TokenType req);
 	String	PeekNextString (int a = 1);
 	String	DescribeCurrentPosition();
 	String	DescribeTokenPosition();
@@ -81,7 +81,7 @@ public:
 		return mTokenPosition == mTokens.end();
 	}
 
-	inline EToken GetTokenType() const
+	inline TokenType GetTokenType() const
 	{
 		return GetToken()->type;
 	}
@@ -102,7 +102,7 @@ public:
 	}
 
 	// If @tok is given, describes the token. If not, describes @tok_type.
-	static inline String DescribeTokenType (EToken toktype)
+	static inline String DescribeTokenType (TokenType toktype)
 	{
 		return DescribeTokenPrivate (toktype, null);
 	}
@@ -117,10 +117,10 @@ private:
 	Iterator		mTokenPosition;
 
 	// read a mandatory token from scanner
-	void MustGetFromScanner (LexerScanner& sc, EToken tt = tkAny);
+	void MustGetFromScanner (LexerScanner& sc, TokenType tt =TK_Any);
 	void CheckFileHeader (LexerScanner& sc);
 
-	static String DescribeTokenPrivate (EToken tok_type, Token* tok);
+	static String DescribeTokenPrivate (TokenType tok_type, Token* tok);
 };
 
 #endif // BOTC_LEXER_H
