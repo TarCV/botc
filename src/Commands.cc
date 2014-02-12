@@ -99,7 +99,7 @@ String CommandInfo::GetSignature()
 		{
 			text += " = ";
 
-			bool is_string = args[i].type == EStringType;
+			bool is_string = args[i].type == TYPE_String;
 
 			if (is_string)
 				text += '"';

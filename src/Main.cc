@@ -62,7 +62,7 @@ int main (int argc, char** argv)
 		// Print header
 		String header;
 		String headerline;
-		header = Format (APPNAME " version %1", GetVersionString (ELongForm));
+		header = Format (APPNAME " version %1", GetVersionString (true));
 
 #ifdef DEBUG
 		header += " (debug build)";
@@ -135,14 +135,14 @@ String MakeObjectFileName (String s)
 
 // ============================================================================
 //
-EType GetTypeByName (String t)
+DataType GetTypeByName (String t)
 {
 	t = t.ToLowercase();
-	return	(t == "int") ? EIntType :
-			(t == "str") ? EStringType :
-			(t == "void") ? EVoidType :
-			(t == "bool") ? EBoolType :
-			EUnknownType;
+	return	(t == "int") ? TYPE_Int :
+			(t == "str") ? TYPE_String :
+			(t == "void") ? TYPE_Void :
+			(t == "bool") ? TYPE_Bool :
+			TYPE_Unknown;
 }
 
 
@@ -150,15 +150,15 @@ EType GetTypeByName (String t)
 //
 // Inverse operation - type name by value
 //
-String GetTypeName (EType type)
+String GetTypeName (DataType type)
 {
 	switch (type)
 	{
-		case EIntType: return "int"; break;
-		case EStringType: return "str"; break;
-		case EVoidType: return "void"; break;
-		case EBoolType: return "bool"; break;
-		case EUnknownType: return "???"; break;
+		case TYPE_Int: return "int"; break;
+		case TYPE_String: return "str"; break;
+		case TYPE_Void: return "void"; break;
+		case TYPE_Bool: return "bool"; break;
+		case TYPE_Unknown: return "???"; break;
 	}
 
 	return "";
@@ -181,12 +181,12 @@ String MakeVersionString (int major, int minor, int patch)
 
 // =============================================================================
 //
-String GetVersionString (EFormLength len)
+String GetVersionString (bool longform)
 {
 	String tag (GIT_DESCRIPTION);
 	String version = tag;
 
-	if (len == ELongForm && tag.EndsWith ("-pre"))
+	if (longform && tag.EndsWith ("-pre"))
 		version += "-" + String (GIT_HASH).Mid (0, 8);
 
 	return version;

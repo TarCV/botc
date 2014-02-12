@@ -56,55 +56,68 @@ struct UndefinedLabel
 // ============================================================================
 // Mark types
 //
-enum eMarkType
+named_enum MarkType
 {
-	eLabelMark,
-	eIfMark,
-	eInternalMark, // internal structures
+	MARK_Label,
+	MARK_If,
+	MARK_Internal, // internal structures
 };
 
 // ============================================================================
 // Scope types
 //
-enum EScopeType
+named_enum ScopeType
 {
-	eUnknownScope,
-	eIfScope,
-	eWhileScope,
-	eForScope,
-	eDoScope,
-	eSwitchScope,
-	eElseScope,
+	SCOPE_Unknown,
+	SCOPE_If,
+	SCOPE_While,
+	SCOPE_For,
+	SCOPE_Do,
+	SCOPE_Switch,
+	SCOPE_Else,
 };
 
-enum EAssignmentOperator
+named_enum AssignmentOperator
 {
-	EAssign,
-	EAssignAdd,
-	EAssignSub,
-	EAssignMul,
-	EAssignDiv,
-	EAssignMod,
-	EAssignIncrement,
-	EAssignDecrement,
+	ASSIGNOP_Assign,
+	ASSIGNOP_Add,
+	ASSIGNOP_Subtract,
+	ASSIGNOP_Multiply,
+	ASSIGNOP_Divide,
+	ASSIGNOP_Modulus,
+	ASSIGNOP_Increase,
+	ASSIGNOP_Decrease,
+};
+
+named_enum Writability
+{
+	WRITE_Mutable,		// normal read-many-write-many variable
+	WRITE_Const,		// write-once const variable
+	WRITE_Constexpr,	// const variable whose value is known to compiler
+};
+
+// =============================================================================
+//
+// Parser mode: where is the parser at?
+//
+named_enum ParserMode
+{
+	PARSERMODE_TopLevel,	// at top level
+	PARSERMODE_Event,		// inside event definition
+	PARSERMODE_MainLoop,	// inside mainloop
+	PARSERMODE_Onenter,		// inside onenter
+	PARSERMODE_Onexit,		// inside onexit
 };
 
 // ============================================================================
 //
 struct Variable
 {
-	enum EWritability
-	{
-		WRITE_Mutable,		// normal read-many-write-many variable
-		WRITE_Const,		// write-once const variable
-		WRITE_Constexpr,	// const variable whose value is known to compiler
-	};
-
 	String			name;
 	String			statename;
-	EType			type;
+	DataType		type;
 	int				index;
-	EWritability	writelevel;
+	Writability		writelevel;
 	int				value;
 	String			origin;
 	bool			isarray;
@@ -132,7 +145,7 @@ struct ScopeInfo
 {
 	ByteMark*					mark1;
 	ByteMark*					mark2;
-	EScopeType					type;
+	ScopeType					type;
 	DataBuffer*					buffer1;
 	int							globalVarIndexBase;
 	int							globalArrayIndexBase;
@@ -156,7 +169,7 @@ class BotscriptParser
 		enum EReset
 		{
 			eNoReset,
-			eResetScope,
+			SCOPE_Reset,
 		};
 
 		BotscriptParser();
@@ -164,9 +177,9 @@ class BotscriptParser
 		void					ParseBotscript (String fileName);
 		DataBuffer*				ParseCommand (CommandInfo* comm);
 		DataBuffer*				ParseAssignment (Variable* var);
-		EAssignmentOperator		ParseAssignmentOperator ();
+		AssignmentOperator		ParseAssignmentOperator();
 		String					ParseFloat();
-		void					PushScope (EReset reset = eResetScope);
+		void					PushScope (EReset reset = SCOPE_Reset);
 		DataBuffer*				ParseStatement();
 		void					AddSwitchCase (DataBuffer* b);
 		void					CheckToplevel();
@@ -180,7 +193,7 @@ class BotscriptParser
 		void					SuggestHighestVarIndex (bool global, int index);
 		int						GetHighestVarIndex (bool global);
 
-		inline ScopeInfo& GetScope (int offset)
+		inline ScopeInfo& GSCOPE_t (int offset)
 		{
 			return mScopeStack[mScopeCursor - offset];
 		}
@@ -215,7 +228,7 @@ class BotscriptParser
 		Lexer*					mLexer;
 		int						mNumStates;
 		int						mNumEvents;
-		EParserMode				mCurrentMode;
+		ParserMode				mCurrentMode;
 		String					mCurrentState;
 		bool					mStateSpawnDefined;
 		bool					mGotMainLoop;
@@ -254,8 +267,8 @@ class BotscriptParser
 		void			ParseFuncdef();
 		void			writeMemberBuffers();
 		void			WriteStringTable();
-		DataBuffer*		ParseExpression (EType reqtype, bool fromhere = false);
-		EDataHeader		GetAssigmentDataHeader (EAssignmentOperator op, Variable* var);
+		DataBuffer*		ParseExpression (DataType reqtype, bool fromhere = false);
+		DataHeader		GetAssigmentDataHeader (AssignmentOperator op, Variable* var);
 };
 
 #endif // BOTC_PARSER_H

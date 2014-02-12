@@ -9,46 +9,46 @@ class ExpressionOperator;
 
 // =============================================================================
 //
-enum EOperator
+named_enum ExpressionOperatorType
 {
-	opNegateLogical,
-	opUnaryMinus,
-	opMultiplication,
-	opDivision,
-	opModulus,
-	opAddition,
-	opSubtraction,
-	opLeftShift,
-	opRightShift,
-	opCompareLesser,
-	opCompareGreater,
-	opCompareAtLeast,
-	opCompareAtMost,
-	opCompareEquals,
-	opCompareNotEquals,
-	opBitwiseAnd,
-	opBitwiseXOr,
-	opBitwiseOr,
-	opLogicalAnd,
-	opLogicalOr,
-	opTernary,
+	OPER_NegateLogical,
+	OPER_UnaryMinus,
+	OPER_Multiplication,
+	OPER_Division,
+	OPER_Modulus,
+	OPER_Addition,
+	OPER_Subtraction,
+	OPER_LeftShift,
+	OPER_RightShift,
+	OPER_CompareLesser,
+	OPER_CompareGreater,
+	OPER_CompareAtLeast,
+	OPER_CompareAtMost,
+	OPER_CompareEquals,
+	OPER_CompareNotEquals,
+	OPER_BitwiseAnd,
+	OPER_BitwiseXOr,
+	OPER_BitwiseOr,
+	OPER_LogicalAnd,
+	OPER_LogicalOr,
+	OPER_Ternary,
 };
 
 // =============================================================================
 //
+enum ExpressionSymbolType
+{
+	EXPRSYM_Operator,
+	EXPRSYM_Value,
+	EXPRSYM_Colon,
+};
+
 class Expression final
 {
 	public:
-		enum ESymbolType
-		{
-			eOperatorSymbol,
-			eValueSymbol,
-			eColonSymbol,
-		};
-
 		using SymbolList = List<ExpressionSymbol*>;
 
-		Expression (BotscriptParser* parser, Lexer* lx, EType reqtype);
+		Expression (BotscriptParser* parser, Lexer* lx, DataType reqtype);
 		~Expression();
 		ExpressionValue*		GetResult();
 
@@ -56,7 +56,7 @@ class Expression final
 		BotscriptParser*		mParser;
 		Lexer*					mLexer;
 		SymbolList				mSymbols;
-		EType					mType;
+		DataType				mType;
 		String					mBadTokenText;
 
 		ExpressionValue*		Evaluate(); // Process the expression and yield a result
@@ -75,20 +75,20 @@ class Expression final
 class ExpressionSymbol
 {
 	public:
-		ExpressionSymbol (Expression::ESymbolType type) :
+		ExpressionSymbol (ExpressionSymbolType type) :
 			mType (type) {}
 
-	PROPERTY (private, Expression::ESymbolType, Type, NO_OPS, STOCK_WRITE)
+	PROPERTY (private, ExpressionSymbolType, Type, NO_OPS, STOCK_WRITE)
 };
 
 // =============================================================================
 //
 class ExpressionOperator final : public ExpressionSymbol
 {
-	PROPERTY (public, EOperator, ID, NO_OPS, STOCK_WRITE)
+	PROPERTY (public, ExpressionOperatorType, ID, NO_OPS, STOCK_WRITE)
 
 	public:
-		ExpressionOperator (EOperator id);
+		ExpressionOperator (ExpressionOperatorType id);
 };
 
 // =============================================================================
@@ -97,10 +97,10 @@ class ExpressionValue final : public ExpressionSymbol
 {
 	PROPERTY (public, int,			Value,		NUM_OPS,	STOCK_WRITE)
 	PROPERTY (public, DataBuffer*,	Buffer,		NO_OPS,		STOCK_WRITE)
-	PROPERTY (public, EType,		ValueType,	NO_OPS,		STOCK_WRITE)
+	PROPERTY (public, DataType,		ValueType,	NO_OPS,		STOCK_WRITE)
 
 	public:
-		ExpressionValue (EType valuetype);
+		ExpressionValue (DataType valuetype);
 		~ExpressionValue();
 
 		void				ConvertToBuffer();
@@ -119,14 +119,14 @@ class ExpressionValue final : public ExpressionSymbol
 // =============================================================================
 //
 // This class represents a ":" in the expression. It serves as the colon for the
-// ternary ?: operator. It's not an operand nor is an operator, nor can we just
+// ternary ?: OPER_erator. It's not an OPER_erand nor is an OPER_erator, nor can we just
 // skip it so it is its own thing here.
 //
 class ExpressionColon final : public ExpressionSymbol
 {
 	public:
 		ExpressionColon() :
-			ExpressionSymbol (Expression::eColonSymbol) {}
+			ExpressionSymbol (EXPRSYM_Colon) {}
 };
 
 #endif // BOTC_EXPRESSION_H

@@ -47,7 +47,7 @@ BotscriptParser::BotscriptParser() :
 	mLexer (new Lexer),
 	mNumStates (0),
 	mNumEvents (0),
-	mCurrentMode (ETopLevelMode),
+	mCurrentMode (PARSERMODE_TopLevel),
 	mStateSpawnDefined (false),
 	mGotMainLoop (false),
 	mScopeCursor (-1),
@@ -66,7 +66,7 @@ BotscriptParser::~BotscriptParser()
 //
 void BotscriptParser::CheckToplevel()
 {
-	if (mCurrentMode != ETopLevelMode)
+	if (mCurrentMode != PARSERMODE_TopLevel)
 		Error ("%1-statements may only be defined at top level!", GetTokenString());
 }
 
@@ -74,7 +74,7 @@ void BotscriptParser::CheckToplevel()
 //
 void BotscriptParser::CheckNotToplevel()
 {
-	if (mCurrentMode == ETopLevelMode)
+	if (mCurrentMode == PARSERMODE_TopLevel)
 		Error ("%1-statements must not be defined at top level!", GetTokenString());
 }
 
@@ -223,7 +223,7 @@ void BotscriptParser::ParseBotscript (String fileName)
 
 	// ===============================================================================
 	// Script file ended. Do some last checks and write the last things to main buffer
-	if (mCurrentMode != ETopLevelMode)
+	if (mCurrentMode != PARSERMODE_TopLevel)
 		Error ("script did not end at top level; a `}` is missing somewhere");
 
 	if (IsReadOnly() == false)
@@ -276,9 +276,9 @@ void BotscriptParser::ParseStateBlock()
 	if (mCurrentState.IsEmpty() == false)
 		writeMemberBuffers();
 
-	buffer()->WriteDWord (dhStateName);
+	buffer()->WriteDWord (DH_StateName);
 	buffer()->WriteString (statename);
-	buffer()->WriteDWord (dhStateIndex);
+	buffer()->WriteDWord (DH_StateIndex);
 	buffer()->WriteDWord (mNumStates);
 
 	mNumStates++;
@@ -299,8 +299,8 @@ void BotscriptParser::ParseEventBlock()
 		Error ("bad event, got `%1`\n", GetTokenString());
 
 	mLexer->MustGetNext (tkBraceStart);
-	mCurrentMode = EEventMode;
-	buffer()->WriteDWord (dhEvent);
+	mCurrentMode = PARSERMODE_Event;
+	buffer()->WriteDWord (DH_Event);
 	buffer()->WriteDWord (e->number);
 	mNumEvents++;
 }
@@ -312,8 +312,8 @@ void BotscriptParser::ParseMainloop()
 	CheckToplevel();
 	mLexer->MustGetNext (tkBraceStart);
 
-	mCurrentMode = EMainLoopMode;
-	mMainLoopBuffer->WriteDWord (dhMainLoop);
+	mCurrentMode = PARSERMODE_MainLoop;
+	mMainLoopBuffer->WriteDWord (DH_MainLoop);
 }
 
 // ============================================================================
@@ -324,8 +324,8 @@ void BotscriptParser::ParseOnEnterExit()
 	bool onenter = (TokenIs (tkOnenter));
 	mLexer->MustGetNext (tkBraceStart);
 
-	mCurrentMode = onenter ? EOnenterMode : EOnexitMode;
-	buffer()->WriteDWord (onenter ? dhOnEnter : dhOnExit);
+	mCurrentMode = onenter ? PARSERMODE_Onenter : PARSERMODE_Onexit;
+	buffer()->WriteDWord (onenter ? DH_OnEnter : DH_OnExit);
 }
 
 // ============================================================================
@@ -338,9 +338,9 @@ void BotscriptParser::ParseVar()
 	const bool isconst = mLexer->GetNext (tkConst);
 	mLexer->MustGetAnyOf ({tkInt, tkStr, tkVoid});
 
-	EType vartype =	(TokenIs (tkInt)) ? EIntType :
-					(TokenIs (tkStr)) ? EStringType :
-					EBoolType;
+	DataType vartype =	(TokenIs (tkInt)) ? TYPE_Int :
+					(TokenIs (tkStr)) ? TYPE_String :
+					TYPE_Bool;
 
 	mLexer->MustGetNext (tkSymbol);
 	String name = GetTokenString();
@@ -367,7 +367,7 @@ void BotscriptParser::ParseVar()
 
 	if (isconst == false)
 	{
-		var->writelevel = Variable::WRITE_Mutable;
+		var->writelevel = WRITE_Mutable;
 	}
 	else
 	{
@@ -378,7 +378,7 @@ void BotscriptParser::ParseVar()
 		// can store it in the variable.
 		if (expr.GetResult()->IsConstexpr())
 		{
-			var->writelevel = Variable::WRITE_Constexpr;
+			var->writelevel = WRITE_Constexpr;
 			var->value = expr.GetResult()->GetValue();
 		}
 		else
@@ -391,7 +391,7 @@ void BotscriptParser::ParseVar()
 	// Assign an index for the variable if it is not constexpr. Constexpr
 	// variables can simply be substituted out for their value when used
 	// so they need no index.
-	if (var->writelevel != Variable::WRITE_Constexpr)
+	if (var->writelevel != WRITE_Constexpr)
 	{
 		bool isglobal = IsInGlobalState();
 		var->index = isglobal ? SCOPE(0).globalVarIndexBase++ : SCOPE(0).localVarIndexBase++;
@@ -436,7 +436,7 @@ void BotscriptParser::ParseGoto()
 	}
 
 	// Add a reference to the mark.
-	buffer()->WriteDWord (dhGoto);
+	buffer()->WriteDWord (DH_Goto);
 	buffer()->AddReference (mark);
 	mLexer->MustGetNext (tkSemicolon);
 }
@@ -452,7 +452,7 @@ void BotscriptParser::ParseIf()
 	mLexer->MustGetNext (tkParenStart);
 
 	// Read the expression and write it.
-	DataBuffer* c = ParseExpression (EIntType);
+	DataBuffer* c = ParseExpression (TYPE_Int);
 	buffer()->MergeAndDestroy (c);
 
 	mLexer->MustGetNext (tkParenEnd);
@@ -462,14 +462,14 @@ void BotscriptParser::ParseIf()
 	// Upon a closing brace, the mark will be adjusted.
 	ByteMark* mark = buffer()->AddMark ("");
 
-	// Use dhIfNotGoto - if the expression is not true, we goto the mark
+	// Use DH_IfNotGoto - if the expression is not true, we goto the mark
 	// we just defined - and this mark will be at the end of the scope block.
-	buffer()->WriteDWord (dhIfNotGoto);
+	buffer()->WriteDWord (DH_IfNotGoto);
 	buffer()->AddReference (mark);
 
 	// Store it
 	SCOPE (0).mark1 = mark;
-	SCOPE (0).type = eIfScope;
+	SCOPE (0).type = SCOPE_If;
 }
 
 // ============================================================================
@@ -480,7 +480,7 @@ void BotscriptParser::ParseElse()
 	mLexer->MustGetNext (tkBraceStart);
 	PushScope (eNoReset);
 
-	if (SCOPE (0).type != eIfScope)
+	if (SCOPE (0).type != SCOPE_If)
 		Error ("else without preceding if");
 
 	// write down to jump to the end of the else statement
@@ -488,12 +488,12 @@ void BotscriptParser::ParseElse()
 	SCOPE (0).mark2 = buffer()->AddMark ("");
 
 	// Instruction to jump to the end after if block is complete
-	buffer()->WriteDWord (dhGoto);
+	buffer()->WriteDWord (DH_Goto);
 	buffer()->AddReference (SCOPE (0).mark2);
 
 	// Move the ifnot mark here and set type to else
 	buffer()->AdjustMark (SCOPE (0).mark1);
-	SCOPE (0).type = eElseScope;
+	SCOPE (0).type = SCOPE_Else;
 }
 
 // ============================================================================
@@ -512,7 +512,7 @@ void BotscriptParser::ParseWhileBlock()
 
 	// Condition
 	mLexer->MustGetNext (tkParenStart);
-	DataBuffer* expr = ParseExpression (EIntType);
+	DataBuffer* expr = ParseExpression (TYPE_Int);
 	mLexer->MustGetNext (tkParenEnd);
 	mLexer->MustGetNext (tkBraceStart);
 
@@ -520,13 +520,13 @@ void BotscriptParser::ParseWhileBlock()
 	buffer()->MergeAndDestroy (expr);
 
 	// Instruction to go to the end if it fails
-	buffer()->WriteDWord (dhIfNotGoto);
+	buffer()->WriteDWord (DH_IfNotGoto);
 	buffer()->AddReference (mark2);
 
 	// Store the needed stuff
 	SCOPE (0).mark1 = mark1;
 	SCOPE (0).mark2 = mark2;
-	SCOPE (0).type = eWhileScope;
+	SCOPE (0).type = SCOPE_While;
 }
 
 // ============================================================================
@@ -546,7 +546,7 @@ void BotscriptParser::ParseForBlock()
 	mLexer->MustGetNext (tkSemicolon);
 
 	// Condition
-	DataBuffer* cond = ParseExpression (EIntType);
+	DataBuffer* cond = ParseExpression (TYPE_Int);
 
 	if (cond == null)
 		Error ("bad statement for condition of for");
@@ -571,14 +571,14 @@ void BotscriptParser::ParseForBlock()
 
 	// Add the condition
 	buffer()->MergeAndDestroy (cond);
-	buffer()->WriteDWord (dhIfNotGoto);
+	buffer()->WriteDWord (DH_IfNotGoto);
 	buffer()->AddReference (mark2);
 
 	// Store the marks and incrementor
 	SCOPE (0).mark1 = mark1;
 	SCOPE (0).mark2 = mark2;
 	SCOPE (0).buffer1 = incr;
-	SCOPE (0).type = eForScope;
+	SCOPE (0).type = SCOPE_For;
 }
 
 // ============================================================================
@@ -589,7 +589,7 @@ void BotscriptParser::ParseDoBlock()
 	PushScope();
 	mLexer->MustGetNext (tkBraceStart);
 	SCOPE (0).mark1 = buffer()->AddMark ("");
-	SCOPE (0).type = eDoScope;
+	SCOPE (0).type = SCOPE_Do;
 }
 
 // ============================================================================
@@ -612,10 +612,10 @@ void BotscriptParser::ParseSwitchBlock()
 	CheckNotToplevel();
 	PushScope();
 	mLexer->MustGetNext (tkParenStart);
-	buffer()->MergeAndDestroy (ParseExpression (EIntType));
+	buffer()->MergeAndDestroy (ParseExpression (TYPE_Int));
 	mLexer->MustGetNext (tkParenEnd);
 	mLexer->MustGetNext (tkBraceStart);
-	SCOPE (0).type = eSwitchScope;
+	SCOPE (0).type = SCOPE_Switch;
 	SCOPE (0).mark1 = buffer()->AddMark (""); // end mark
 	SCOPE (0).buffer1 = null; // default header
 }
@@ -625,7 +625,7 @@ void BotscriptParser::ParseSwitchBlock()
 void BotscriptParser::ParseSwitchCase()
 {
 	// case is only allowed inside switch
-	if (SCOPE (0).type != eSwitchScope)
+	if (SCOPE (0).type != SCOPE_Switch)
 		Error ("case label outside switch");
 
 	// Get a literal value for the case block. Zandronum does not support
@@ -649,7 +649,7 @@ void BotscriptParser::ParseSwitchCase()
 	// We null the switch buffer for the case-go-to statement as
 	// we want it all under the switch, not into the case-buffers.
 	mSwitchBuffer = null;
-	buffer()->WriteDWord (dhCaseGoto);
+	buffer()->WriteDWord (DH_CaseGoto);
 	buffer()->WriteDWord (num);
 	AddSwitchCase (null);
 	SCOPE (0).casecursor->number = num;
@@ -659,7 +659,7 @@ void BotscriptParser::ParseSwitchCase()
 //
 void BotscriptParser::ParseSwitchDefault()
 {
-	if (SCOPE (0).type != eSwitchScope)
+	if (SCOPE (0).type != SCOPE_Switch)
 		Error ("default label outside switch");
 
 	if (SCOPE (0).buffer1 != null)
@@ -672,12 +672,12 @@ void BotscriptParser::ParseSwitchDefault()
 	//
 	// Since the expression is pushed into the switch
 	// and is only popped when case succeeds, we have
-	// to pop it with dhDrop manually if we end up in
+	// to pop it with DH_Drop manually if we end up in
 	// a default.
 	DataBuffer* buf = new DataBuffer;
 	SCOPE (0).buffer1 = buf;
-	buf->WriteDWord (dhDrop);
-	buf->WriteDWord (dhGoto);
+	buf->WriteDWord (DH_Drop);
+	buf->WriteDWord (DH_Goto);
 	AddSwitchCase (buf);
 }
 
@@ -688,20 +688,20 @@ void BotscriptParser::ParseBreak()
 	if (mScopeCursor == 0)
 		Error ("unexpected `break`");
 
-	buffer()->WriteDWord (dhGoto);
+	buffer()->WriteDWord (DH_Goto);
 
 	// switch and if use mark1 for the closing point,
 	// for and while use mark2.
 	switch (SCOPE (0).type)
 	{
-		case eIfScope:
-		case eSwitchScope:
+		case SCOPE_If:
+		case SCOPE_Switch:
 		{
 			buffer()->AddReference (SCOPE (0).mark1);
 		} break;
 
-		case eForScope:
-		case eWhileScope:
+		case SCOPE_For:
+		case SCOPE_While:
 		{
 			buffer()->AddReference (SCOPE (0).mark2);
 		} break;
@@ -729,11 +729,11 @@ void BotscriptParser::ParseContinue()
 	{
 		switch (mScopeStack[curs].type)
 		{
-			case eForScope:
-			case eWhileScope:
-			case eDoScope:
+			case SCOPE_For:
+			case SCOPE_While:
+			case SCOPE_Do:
 			{
-				buffer()->WriteDWord (dhGoto);
+				buffer()->WriteDWord (DH_Goto);
 				buffer()->AddReference (mScopeStack[curs].mark1);
 				found = true;
 			} break;
@@ -758,7 +758,7 @@ void BotscriptParser::ParseBlockEnd()
 	{
 		switch (SCOPE (0).type)
 		{
-			case eIfScope:
+			case SCOPE_If:
 			{
 				// Adjust the closing mark.
 				buffer()->AdjustMark (SCOPE (0).mark1);
@@ -768,7 +768,7 @@ void BotscriptParser::ParseBlockEnd()
 				break;
 			}
 
-			case eElseScope:
+			case SCOPE_Else:
 			{
 				// else instead uses mark1 for itself (so if expression
 				// fails, jump to else), mark2 means end of else
@@ -776,13 +776,13 @@ void BotscriptParser::ParseBlockEnd()
 				break;
 			}
 
-			case eForScope:
+			case SCOPE_For:
 			{	// write the incrementor at the end of the loop block
 				buffer()->MergeAndDestroy (SCOPE (0).buffer1);
 			}
-			case eWhileScope:
+			case SCOPE_While:
 			{	// write down the instruction to go back to the start of the loop
-				buffer()->WriteDWord (dhGoto);
+				buffer()->WriteDWord (DH_Goto);
 				buffer()->AddReference (SCOPE (0).mark1);
 
 				// Move the closing mark here since we're at the end of the while loop
@@ -790,22 +790,22 @@ void BotscriptParser::ParseBlockEnd()
 				break;
 			}
 
-			case eDoScope:
+			case SCOPE_Do:
 			{
 				mLexer->MustGetNext (tkWhile);
 				mLexer->MustGetNext (tkParenStart);
-				DataBuffer* expr = ParseExpression (EIntType);
+				DataBuffer* expr = ParseExpression (TYPE_Int);
 				mLexer->MustGetNext (tkParenEnd);
 				mLexer->MustGetNext (tkSemicolon);
 
 				// If the condition runs true, go back to the start.
 				buffer()->MergeAndDestroy (expr);
-				buffer()->WriteDWord (dhIfGoto);
+				buffer()->WriteDWord (DH_IfGoto);
 				buffer()->AddReference (SCOPE (0).mark1);
 				break;
 			}
 
-			case eSwitchScope:
+			case SCOPE_Switch:
 			{
 				// Switch closes. Move down to the record buffer of
 				// the lower block.
@@ -821,8 +821,8 @@ void BotscriptParser::ParseBlockEnd()
 					buffer()->MergeAndDestroy (SCOPE (0).buffer1);
 				else
 				{
-					buffer()->WriteDWord (dhDrop);
-					buffer()->WriteDWord (dhGoto);
+					buffer()->WriteDWord (DH_Drop);
+					buffer()->WriteDWord (DH_Goto);
 					buffer()->AddReference (SCOPE (0).mark1);
 				}
 
@@ -839,7 +839,7 @@ void BotscriptParser::ParseBlockEnd()
 				break;
 			}
 
-			case eUnknownScope:
+			case SCOPE_Unknown:
 				break;
 		}
 
@@ -848,10 +848,10 @@ void BotscriptParser::ParseBlockEnd()
 		return;
 	}
 
-	int dataheader =	(mCurrentMode == EEventMode) ? dhEndEvent :
-						(mCurrentMode == EMainLoopMode) ? dhEndMainLoop :
-						(mCurrentMode == EOnenterMode) ? dhEndOnEnter :
-						(mCurrentMode == EOnexitMode) ? dhEndOnExit : -1;
+	int dataheader =	(mCurrentMode == PARSERMODE_Event) ? DH_EndEvent :
+						(mCurrentMode == PARSERMODE_MainLoop) ? DH_EndMainLoop :
+						(mCurrentMode == PARSERMODE_Onenter) ? DH_EndOnEnter :
+						(mCurrentMode == PARSERMODE_Onexit) ? DH_EndOnExit : -1;
 
 	if (dataheader == -1)
 		Error ("unexpected `}`");
@@ -860,7 +860,7 @@ void BotscriptParser::ParseBlockEnd()
 	// onenter and mainloop go into special buffers, and we want
 	// the closing data headers into said buffers too.
 	buffer()->WriteDWord (dataheader);
-	mCurrentMode = ETopLevelMode;
+	mCurrentMode = PARSERMODE_TopLevel;
 	mLexer->GetNext (tkSemicolon);
 }
 
@@ -942,8 +942,8 @@ void BotscriptParser::ParseFuncdef()
 
 		CommandArgument arg;
 		mLexer->MustGetAnyOf ({tkInt, tkBool, tkStr});
-		EType type = GetTypeByName (mLexer->GetToken()->text); // TODO
-		assert (type != -1 && type != EVoidType);
+		DataType type = GetTypeByName (mLexer->GetToken()->text); // TODO
+		assert (type != -1 && type != TYPE_Void);
 		arg.type = type;
 
 		mLexer->MustGetNext (tkSymbol);
@@ -956,16 +956,16 @@ void BotscriptParser::ParseFuncdef()
 
 			switch (type)
 			{
-				case EIntType:
-				case EBoolType:
+				case TYPE_Int:
+				case TYPE_Bool:
 					mLexer->MustGetNext (tkNumber);
 					break;
 
-				case EStringType:
+				case TYPE_String:
 					Error ("string arguments cannot have default values");
 
-				case EUnknownType:
-				case EVoidType:
+				case TYPE_Unknown:
+				case TYPE_Void:
 					break;
 			}
 
@@ -988,7 +988,7 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 {
 	DataBuffer* r = new DataBuffer (64);
 
-	if (mCurrentMode == ETopLevelMode && comm->returnvalue == EVoidType)
+	if (mCurrentMode == PARSERMODE_TopLevel && comm->returnvalue == TYPE_Void)
 		Error ("command call at top level");
 
 	mLexer->MustGetNext (tkParenStart);
@@ -1040,12 +1040,12 @@ DataBuffer* BotscriptParser::ParseCommand (CommandInfo* comm)
 	// If the script skipped any optional arguments, fill in defaults.
 	while (curarg < comm->args.Size())
 	{
-		r->WriteDWord (dhPushNumber);
+		r->WriteDWord (DH_PushNumber);
 		r->WriteDWord (comm->args[curarg].defvalue);
 		curarg++;
 	}
 
-	r->WriteDWord (dhCommand);
+	r->WriteDWord (DH_Command);
 	r->WriteDWord (comm->number);
 	r->WriteDWord (comm->args.Size());
 
@@ -1076,7 +1076,7 @@ String BotscriptParser::ParseFloat()
 //
 // Parses an assignment operator.
 //
-EAssignmentOperator BotscriptParser::ParseAssignmentOperator()
+AssignmentOperator BotscriptParser::ParseAssignmentOperator()
 {
 	const List<EToken> tokens =
 	{
@@ -1094,44 +1094,44 @@ EAssignmentOperator BotscriptParser::ParseAssignmentOperator()
 
 	switch (mLexer->GetTokenType())
 	{
-		case tkAssign:			return EAssign;
-		case tkAddAssign:		return EAssignAdd;
-		case tkSubAssign:		return EAssignSub;
-		case tkMultiplyAssign:	return EAssignMul;
-		case tkDivideAssign:	return EAssignDiv;
-		case tkModulusAssign:	return EAssignMod;
-		case tkDoublePlus:		return EAssignIncrement;
-		case tkDoubleMinus:		return EAssignDecrement;
+		case tkAssign:			return ASSIGNOP_Assign;
+		case tkAddAssign:		return ASSIGNOP_Add;
+		case tkSubAssign:		return ASSIGNOP_Subtract;
+		case tkMultiplyAssign:	return ASSIGNOP_Multiply;
+		case tkDivideAssign:	return ASSIGNOP_Divide;
+		case tkModulusAssign:	return ASSIGNOP_Modulus;
+		case tkDoublePlus:		return ASSIGNOP_Increase;
+		case tkDoubleMinus:		return ASSIGNOP_Decrease;
 		default: break;
 	}
 
 	assert (false);
-	return (EAssignmentOperator) 0;
+	return (AssignmentOperator) 0;
 }
 
 // ============================================================================
 //
 struct AssignmentDataHeaderInfo
 {
-	EAssignmentOperator	op;
-	EDataHeader			local;
-	EDataHeader			global;
-	EDataHeader			array;
+	AssignmentOperator	op;
+	DataHeader			local;
+	DataHeader			global;
+	DataHeader			array;
 };
 
 const AssignmentDataHeaderInfo gAssignmentDataHeaders[] =
 {
-	{ EAssign,			dhAssignLocalVar,	dhAssignGlobalVar,		dhAssignGlobalArray },
-	{ EAssignAdd,		dhAddLocalVar,		dhAddGlobalVar,			dhAddGlobalArray },
-	{ EAssignSub,		dhSubtractLocalVar,	dhSubtractGlobalVar,	dhSubtractGlobalArray },
-	{ EAssignMul,		dhMultiplyLocalVar,	dhMultiplyGlobalVar,	dhMultiplyGlobalArray },
-	{ EAssignDiv,		dhDivideLocalVar,	dhDivideGlobalVar,		dhDivideGlobalArray },
-	{ EAssignMod,		dhModLocalVar,		dhModGlobalVar,			dhModGlobalArray },
-	{ EAssignIncrement,	dhIncreaseLocalVar,	dhIncreaseGlobalVar,	dhIncreaseGlobalArray },
-	{ EAssignDecrement,	dhDecreaseLocalVar,	dhDecreaseGlobalVar,	dhDecreaseGlobalArray },
+	{ ASSIGNOP_Assign,		DH_AssignLocalVar,		DH_AssignGlobalVar,		DH_AssignGlobalArray },
+	{ ASSIGNOP_Add,			DH_AddLocalVar,			DH_AddGlobalVar,		DH_AddGlobalArray },
+	{ ASSIGNOP_Subtract,	DH_SubtractLocalVar,	DH_SubtractGlobalVar,	DH_SubtractGlobalArray },
+	{ ASSIGNOP_Multiply,	DH_MultiplyLocalVar,	DH_MultiplyGlobalVar,	DH_MultiplyGlobalArray },
+	{ ASSIGNOP_Divide,		DH_DivideLocalVar,		DH_DivideGlobalVar,		DH_DivideGlobalArray },
+	{ ASSIGNOP_Modulus,		DH_ModLocalVar,			DH_ModGlobalVar,		DH_ModGlobalArray },
+	{ ASSIGNOP_Increase,	DH_IncreaseLocalVar,	DH_IncreaseGlobalVar,	DH_IncreaseGlobalArray },
+	{ ASSIGNOP_Decrease,	DH_DecreaseLocalVar,	DH_DecreaseGlobalVar,	DH_DecreaseGlobalArray },
 };
 
-EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, Variable* var)
+DataHeader BotscriptParser::GetAssigmentDataHeader (AssignmentOperator op, Variable* var)
 {
 	for (const auto& a : gAssignmentDataHeaders)
 	{
@@ -1148,7 +1148,7 @@ EDataHeader BotscriptParser::GetAssigmentDataHeader (EAssignmentOperator op, Var
 	}
 
 	Error ("WTF: couldn't find data header for operator #%1", op);
-	return (EDataHeader) 0;
+	return (DataHeader) 0;
 }
 
 // ============================================================================
@@ -1162,26 +1162,26 @@ DataBuffer* BotscriptParser::ParseAssignment (Variable* var)
 	DataBuffer* retbuf = new DataBuffer;
 	DataBuffer* arrayindex = null;
 
-	if (var->writelevel != Variable::WRITE_Mutable)
+	if (var->writelevel != WRITE_Mutable)
 		Error ("cannot alter read-only variable $%1", var->name);
 
 	if (var->isarray)
 	{
 		mLexer->MustGetNext (tkBracketStart);
-		Expression expr (this, mLexer, EIntType);
+		Expression expr (this, mLexer, TYPE_Int);
 		expr.GetResult()->ConvertToBuffer();
 		arrayindex = expr.GetResult()->GetBuffer()->Clone();
 		mLexer->MustGetNext (tkBracketEnd);
 	}
 
 	// Get an operator
-	EAssignmentOperator oper = ParseAssignmentOperator();
+	AssignmentOperator oper = ParseAssignmentOperator();
 
-	if (mCurrentMode == ETopLevelMode)
+	if (mCurrentMode == PARSERMODE_TopLevel)
 		Error ("can't alter variables at top level");
 
 	// Parse the right operand
-	if (oper != EAssignIncrement && oper != EAssignDecrement)
+	if (oper != ASSIGNOP_Increase && oper != ASSIGNOP_Decrease)
 	{
 		DataBuffer* expr = ParseExpression (var->type);
 		retbuf->MergeAndDestroy (expr);
@@ -1194,15 +1194,15 @@ DataBuffer* BotscriptParser::ParseAssignment (Variable* var)
 	// <<= and >>= do not have data headers. Solution: expand them.
 	// a <<= b -> a = a << b
 	// a >>= b -> a = a >> b
-	retbuf->WriteDWord (var->IsGlobal() ? dhPushGlobalVar : dhPushLocalVar);
+	retbuf->WriteDWord (var->IsGlobal() ? DH_PushGlobalVar : DH_PushLocalVar);
 	retbuf->WriteDWord (var->index);
 	retbuf->MergeAndDestroy (expr);
-	retbuf->WriteDWord ((oper == OPER_ASSIGNLEFTSHIFT) ? dhLeftShift : dhRightShift);
-	retbuf->WriteDWord (var->IsGlobal() ? dhAssignGlobalVar : dhAssignLocalVar);
+	retbuf->WriteDWord ((oper == OPER_ASSIGNLEFTSHIFT) ? DH_LeftShift : DH_RightShift);
+	retbuf->WriteDWord (var->IsGlobal() ? DH_AssignGlobalVar : DH_AssignLocalVar);
 	retbuf->WriteDWord (var->index);
 #endif
 
-	EDataHeader dh = GetAssigmentDataHeader (oper, var);
+	DataHeader dh = GetAssigmentDataHeader (oper, var);
 	retbuf->WriteDWord (dh);
 	retbuf->WriteDWord (var->index);
 	return retbuf;
@@ -1218,13 +1218,13 @@ void BotscriptParser::PushScope (EReset reset)
 	{
 		ScopeInfo newscope;
 		mScopeStack << newscope;
-		reset = eResetScope;
+		reset = SCOPE_Reset;
 	}
 
-	if (reset == eResetScope)
+	if (reset == SCOPE_Reset)
 	{
 		ScopeInfo* info = &SCOPE (0);
-		info->type = eUnknownScope;
+		info->type = SCOPE_Unknown;
 		info->mark1 = null;
 		info->mark2 = null;
 		info->buffer1 = null;
@@ -1245,7 +1245,7 @@ void BotscriptParser::PushScope (EReset reset)
 
 // ============================================================================
 //
-DataBuffer* BotscriptParser::ParseExpression (EType reqtype, bool fromhere)
+DataBuffer* BotscriptParser::ParseExpression (DataType reqtype, bool fromhere)
 {
 	// hehe
 	if (fromhere == true)
@@ -1332,10 +1332,10 @@ DataBuffer* BotscriptParser::buffer()
 	if (mSwitchBuffer != null)
 		return mSwitchBuffer;
 
-	if (mCurrentMode == EMainLoopMode)
+	if (mCurrentMode == PARSERMODE_MainLoop)
 		return mMainLoopBuffer;
 
-	if (mCurrentMode == EOnenterMode)
+	if (mCurrentMode == PARSERMODE_Onenter)
 		return mOnEnterBuffer;
 
 	return mMainBuffer;
@@ -1348,8 +1348,8 @@ void BotscriptParser::writeMemberBuffers()
 	// If there was no mainloop defined, write a dummy one now.
 	if (mGotMainLoop == false)
 	{
-		mMainLoopBuffer->WriteDWord (dhMainLoop);
-		mMainLoopBuffer->WriteDWord (dhEndMainLoop);
+		mMainLoopBuffer->WriteDWord (DH_MainLoop);
+		mMainLoopBuffer->WriteDWord (DH_EndMainLoop);
 	}
 
 	// Write the onenter and mainloop buffers, in that order in particular.
@@ -1377,7 +1377,7 @@ void BotscriptParser::WriteStringTable()
 		return;
 
 	// Write header
-	mMainBuffer->WriteDWord (dhStringList);
+	mMainBuffer->WriteDWord (DH_StringList);
 	mMainBuffer->WriteDWord (stringcount);
 
 	// Write all strings

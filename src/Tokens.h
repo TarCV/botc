@@ -77,7 +77,7 @@ enum EToken
 	tkAmperstand,
 	tkBar,
 	tkCaret,
-	tkQuestionMark,
+	tkQuMARK_stion,
 	tkArrow,
 
 	// --------------

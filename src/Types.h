@@ -31,39 +31,20 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include "Macros.h"
 #include "String.h"
 
 static const std::nullptr_t null = nullptr;
 
 // =============================================================================
 //
-// Byte datatype
-//
-typedef int32_t word;
-typedef unsigned char byte;
-
-// =============================================================================
-//
-// Parser mode: where is the parser at?
-//
-enum EParserMode
+named_enum DataType
 {
-	ETopLevelMode,		// at top level
-	EEventMode,			// inside event definition
-	EMainLoopMode,		// inside mainloop
-	EOnenterMode,		// inside onenter
-	EOnexitMode,		// inside onexit
-};
-
-// =============================================================================
-//
-enum EType
-{
-	EUnknownType = 0,
-	EVoidType,
-	EIntType,
-	EStringType,
-	EBoolType,
+	TYPE_Unknown = 0,
+	TYPE_Void,
+	TYPE_Int,
+	TYPE_String,
+	TYPE_Bool,
 };
 
 // =============================================================================

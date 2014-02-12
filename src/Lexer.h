@@ -55,7 +55,7 @@ public:
 	bool	GetNext (EToken req = tkAny);
 	void	MustGetNext (EToken tok);
 	void	MustGetAnyOf (const List<EToken>& toks);
-	int		GetOneSymbol (const StringList& syms);
+	int		GEXPRSYM_tOne (const StringList& syms);
 	void	TokenMustBe (EToken tok);
 	bool	PeekNext (Token* tk = null);
 	bool	PeekNextType (EToken req);

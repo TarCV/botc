@@ -26,37 +26,33 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_MAIN_H
-#define BOTC_MAIN_H
+#pragma once
 
-#include <cstdio>
-#include <cstdarg>
-#include <cstdint>
-#include "Macros.h"
-#include "Property.h"
-#include "Types.h"
-#include "Containers.h"
-#include "String.h"
-#include "Format.h"
-#include "BotStuff.h"
-#include "Tokens.h"
+#if !defined (__cplusplus) || __cplusplus < 201103L
+# error botc requires a C++11-compliant compiler to be built
+#endif
 
-String MakeObjectFileName (String s);
-DataType GetTypeByName (String token);
-String GetTypeName (DataType type);
-String GetVersionString (bool longform);
-String MakeVersionString (int major, int minor, int patch);
+// Application name and version
+#define APPNAME "botc"
+#define VERSION_MAJOR	1
+#define VERSION_MINOR	0
+#define VERSION_PATCH 	0
 
-template<typename T>
-inline T max (T a, T b)
-{
-	return a > b ? a : b;
-}
+#define MAKE_VERSION_NUMBER(MAJ, MIN, PAT) ((MAJ * 10000) + (MIN * 100) + PAT)
+#define VERSION_NUMBER MAKE_VERSION_NUMBER (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 
-template<typename T>
-inline T min (T a, T b)
-{
-	return a < b ? a : b;
-}
+// On Windows, files are case-insensitive
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
+#define FILE_CASEINSENSITIVE
+#endif
 
-#endif // BOTC_MAIN_H
+#define named_enum enum
+#define elif else if
+#define types public
+#define countof(A) ((int) (sizeof A / sizeof *A))
+
+#ifndef __GNUC__
+# define __attribute__(X)
+#endif
+
+#define deprecated __attribute__ ((deprecated))
