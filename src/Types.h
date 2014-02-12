@@ -40,7 +40,7 @@ static const std::nullptr_t null = nullptr;
 //
 named_enum DataType
 {
-	TYPE_Unknown = 0,
+	TYPE_Unknown,
 	TYPE_Void,
 	TYPE_Int,
 	TYPE_String,
