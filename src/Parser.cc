@@ -122,10 +122,6 @@ void BotscriptParser::ParseBotscript (String fileName)
 				ParseVar();
 				break;
 
-			case TK_Goto:
-				ParseGoto();
-				break;
-
 			case TK_If:
 				ParseIf();
 				break;
@@ -183,17 +179,6 @@ void BotscriptParser::ParseBotscript (String fileName)
 
 			default:
 			{
-				// Check for labels
-				Lexer::Token next;
-
-				if (TokenIs (TK_Symbol) &&
-					mLexer->PeekNext (&next) &&
-					next.type ==TK_Colon)
-				{
-					ParseLabel();
-					break;
-				}
-
 				// Check if it's a command
 				CommandInfo* comm = FindCommandByName (GetTokenString());
 
@@ -232,17 +217,6 @@ void BotscriptParser::ParseBotscript (String fileName)
 		if (mStateSpawnDefined == false)
 			Error ("script must have a state named `stateSpawn`!");
 
-		// Ensure no goto target is left undefined
-		if (mUndefinedLabels.IsEmpty() == false)
-		{
-			StringList names;
-
-			for (UndefinedLabel& undf : mUndefinedLabels)
-				names << undf.name;
-
-			Error ("labels `%1` are referenced via `goto` but are not defined\n", names);
-		}
-
 		// Dump the last state's onenter and mainloop
 		writeMemberBuffers();
 
@@ -265,7 +239,7 @@ void BotscriptParser::ParseStateBlock()
 
 	// stateSpawn is special - it *must* be defined. If we
 	// encountered it, then mark down that we have it.
-	if (-statename == "statespawn")
+	if (statename.ToLowercase() == "statespawn")
 		mStateSpawnDefined = true;
 
 	// Must end in a colon
@@ -411,34 +385,6 @@ void BotscriptParser::ParseVar()
 	SuggestHighestVarIndex (IsInGlobalState(), var->index);
 	mLexer->MustGetNext (TK_Semicolon);
 	Print ("Declared %3 variable #%1 $%2\n", var->index, var->name, IsInGlobalState() ? "global" : "state-local");
-}
-
-// ============================================================================
-//
-void BotscriptParser::ParseGoto()
-{
-	CheckNotToplevel();
-
-	// Get the name of the label
-	mLexer->MustGetNext (TK_Symbol);
-
-	// Find the mark this goto statement points to
-	String target = GetTokenString();
-	ByteMark* mark = buffer()->FindMarkByName (target);
-
-	// If not set, define it
-	if (mark == null)
-	{
-		UndefinedLabel undf;
-		undf.name = target;
-		undf.target = buffer()->AddMark (target);
-		mUndefinedLabels << undf;
-	}
-
-	// Add a reference to the mark.
-	buffer()->WriteDWord (DH_Goto);
-	buffer()->AddReference (mark);
-	mLexer->MustGetNext (TK_Semicolon);
 }
 
 // ============================================================================
@@ -862,35 +808,6 @@ void BotscriptParser::ParseBlockEnd()
 	buffer()->WriteDWord (dataheader);
 	mCurrentMode = PARSERMODE_TopLevel;
 	mLexer->GetNext (TK_Semicolon);
-}
-
-// ============================================================================
-//
-void BotscriptParser::ParseLabel()
-{
-	CheckNotToplevel();
-	String labelName = GetTokenString();
-	ByteMark* mark = null;
-
-	// See if a mark already exists for this label
-	for (UndefinedLabel& label : mUndefinedLabels)
-	{
-		if (label.name != labelName)
-			continue;
-
-		mark = label.target;
-		buffer()->AdjustMark (mark);
-
-		// No longer undefined
-		mUndefinedLabels.Remove (label);
-		break;
-	}
-
-	// Not found in unmarked lists, define it now
-	if (mark == null)
-		buffer()->AddMark (labelName);
-
-	mLexer->MustGetNext (TK_Colon);
 }
 
 // =============================================================================

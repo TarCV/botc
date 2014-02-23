@@ -46,14 +46,6 @@ class Lexer;
 class Variable;
 
 // ============================================================================
-//
-struct UndefinedLabel
-{
-	String		name;
-	ByteMark*	target;
-};
-
-// ============================================================================
 // Mark types
 //
 named_enum MarkType
@@ -234,7 +226,6 @@ class BotscriptParser
 		bool					mGotMainLoop;
 		int						mScopeCursor;
 		bool					mCanElse;
-		List<UndefinedLabel>	mUndefinedLabels;
 		int						mHighestGlobalVarIndex;
 		int						mHighestStateVarIndex;
 

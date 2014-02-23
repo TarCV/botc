@@ -92,7 +92,6 @@ static const String gTokenStrings[] =
 	"eventdef",
 	"for",
 	"funcdef",
-	"goto",
 	"if",
 	"int",
 	"mainloop",
