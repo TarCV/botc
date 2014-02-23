@@ -40,7 +40,7 @@
 // ============================================================================
 //
 BotscriptParser::BotscriptParser() :
-	mReadOnly (false),
+	mIsReadOnly (false),
 	mMainBuffer (new DataBuffer),
 	mOnEnterBuffer (new DataBuffer),
 	mMainLoopBuffer (new DataBuffer),
@@ -90,7 +90,7 @@ void BotscriptParser::ParseBotscript (String fileName)
 	mLexer->ProcessFile (fileName);
 	PushScope();
 
-	while (mLexer->GetNext())
+	while (mLexer->Next())
 	{
 		// Check if else is potentically valid
 		if (TokenIs (TK_Else) && mCanElse == false)
@@ -99,7 +99,7 @@ void BotscriptParser::ParseBotscript (String fileName)
 		if (TokenIs (TK_Else) == false)
 			mCanElse = false;
 
-		switch (mLexer->GetToken()->type)
+		switch (mLexer->Token()->type)
 		{
 			case TK_State:
 				ParseStateBlock();
@@ -195,7 +195,7 @@ void BotscriptParser::ParseBotscript (String fileName)
 
 				if (b == false)
 				{
-					mLexer->GetNext();
+					mLexer->Next();
 					Error ("unknown token `%1`", GetTokenString());
 				}
 
@@ -309,7 +309,7 @@ void BotscriptParser::ParseVar()
 	Variable* var = new Variable;
 	var->origin = mLexer->DescribeCurrentPosition();
 	var->isarray = false;
-	const bool isconst = mLexer->GetNext (TK_Const);
+	const bool isconst = mLexer->Next (TK_Const);
 	mLexer->MustGetAnyOf ({TK_Int,TK_Str,TK_Void});
 
 	DataType vartype =	(TokenIs (TK_Int)) ? TYPE_Int :
@@ -319,7 +319,7 @@ void BotscriptParser::ParseVar()
 	mLexer->MustGetNext (TK_Symbol);
 	String name = GetTokenString();
 
-	if (mLexer->GetNext (TK_BracketStart))
+	if (mLexer->Next (TK_BracketStart))
 	{
 		mLexer->MustGetNext (TK_BracketEnd);
 		var->isarray = true;
@@ -350,10 +350,10 @@ void BotscriptParser::ParseVar()
 
 		// If the expression was constexpr, we know its value and thus
 		// can store it in the variable.
-		if (expr.GetResult()->IsConstexpr())
+		if (expr.Result()->IsConstexpr())
 		{
 			var->writelevel = WRITE_Constexpr;
-			var->value = expr.GetResult()->GetValue();
+			var->value = expr.Result()->Value();
 		}
 		else
 		{
@@ -577,7 +577,7 @@ void BotscriptParser::ParseSwitchCase()
 	// Get a literal value for the case block. Zandronum does not support
 	// expressions here.
 	mLexer->MustGetNext (TK_Number);
-	int num = mLexer->GetToken()->text.ToLong();
+	int num = mLexer->Token()->text.ToLong();
 	mLexer->MustGetNext (TK_Colon);
 
 	for (const CaseInfo& info : SCOPE(0).cases)
@@ -807,7 +807,7 @@ void BotscriptParser::ParseBlockEnd()
 	// the closing data headers into said buffers too.
 	buffer()->WriteDWord (dataheader);
 	mCurrentMode = PARSERMODE_TopLevel;
-	mLexer->GetNext (TK_Semicolon);
+	mLexer->Next (TK_Semicolon);
 }
 
 // =============================================================================
@@ -820,7 +820,7 @@ void BotscriptParser::ParseEventdef()
 	e->number = GetTokenString().ToLong();
 	mLexer->MustGetNext (TK_Colon);
 	mLexer->MustGetNext (TK_Symbol);
-	e->name = mLexer->GetToken()->text;
+	e->name = mLexer->Token()->text;
 	mLexer->MustGetNext (TK_ParenStart);
 	mLexer->MustGetNext (TK_ParenEnd);
 	mLexer->MustGetNext (TK_Semicolon);
@@ -836,17 +836,17 @@ void BotscriptParser::ParseFuncdef()
 
 	// Return value
 	mLexer->MustGetAnyOf ({TK_Int,TK_Void,TK_Bool,TK_Str});
-	comm->returnvalue = GetTypeByName (mLexer->GetToken()->text); // TODO
+	comm->returnvalue = GetTypeByName (mLexer->Token()->text); // TODO
 	assert (comm->returnvalue != -1);
 
 	// Number
 	mLexer->MustGetNext (TK_Number);
-	comm->number = mLexer->GetToken()->text.ToLong();
+	comm->number = mLexer->Token()->text.ToLong();
 	mLexer->MustGetNext (TK_Colon);
 
 	// Name
 	mLexer->MustGetNext (TK_Symbol);
-	comm->name = mLexer->GetToken()->text;
+	comm->name = mLexer->Token()->text;
 
 	// Arguments
 	mLexer->MustGetNext (TK_ParenStart);
@@ -859,12 +859,12 @@ void BotscriptParser::ParseFuncdef()
 
 		CommandArgument arg;
 		mLexer->MustGetAnyOf ({TK_Int,TK_Bool,TK_Str});
-		DataType type = GetTypeByName (mLexer->GetToken()->text); // TODO
+		DataType type = GetTypeByName (mLexer->Token()->text); // TODO
 		assert (type != -1 && type != TYPE_Void);
 		arg.type = type;
 
 		mLexer->MustGetNext (TK_Symbol);
-		arg.name = mLexer->GetToken()->text;
+		arg.name = mLexer->Token()->text;
 
 		// If this is an optional parameter, we need the default value.
 		if (comm->minargs < comm->args.Size() || mLexer->PeekNextType (TK_Assign))
@@ -886,7 +886,7 @@ void BotscriptParser::ParseFuncdef()
 					break;
 			}
 
-			arg.defvalue = mLexer->GetToken()->text.ToLong();
+			arg.defvalue = mLexer->Token()->text.ToLong();
 		}
 		else
 			comm->minargs++;
@@ -975,7 +975,7 @@ String BotscriptParser::ParseFloat()
 {
 	mLexer->TokenMustBe (TK_Number);
 	String floatstring = GetTokenString();
-	Lexer::Token tok;
+	Lexer::TokenInfo tok;
 
 	// Go after the decimal point
 	if (mLexer->PeekNext (&tok) && tok.type ==TK_Dot)
@@ -995,7 +995,7 @@ String BotscriptParser::ParseFloat()
 //
 AssignmentOperator BotscriptParser::ParseAssignmentOperator()
 {
-	const List<TokenType> tokens =
+	const List<ETokenType> tokens =
 	{
 		TK_Assign,
 		TK_AddAssign,
@@ -1009,7 +1009,7 @@ AssignmentOperator BotscriptParser::ParseAssignmentOperator()
 
 	mLexer->MustGetAnyOf (tokens);
 
-	switch (mLexer->GetTokenType())
+	switch (mLexer->TokenType())
 	{
 		case TK_Assign:			return ASSIGNOP_Assign;
 		case TK_AddAssign:		return ASSIGNOP_Add;
@@ -1086,8 +1086,8 @@ DataBuffer* BotscriptParser::ParseAssignment (Variable* var)
 	{
 		mLexer->MustGetNext (TK_BracketStart);
 		Expression expr (this, mLexer, TYPE_Int);
-		expr.GetResult()->ConvertToBuffer();
-		arrayindex = expr.GetResult()->GetBuffer()->Clone();
+		expr.Result()->ConvertToBuffer();
+		arrayindex = expr.Result()->Buffer()->Clone();
 		mLexer->MustGetNext (TK_BracketEnd);
 	}
 
@@ -1169,11 +1169,11 @@ DataBuffer* BotscriptParser::ParseExpression (DataType reqtype, bool fromhere)
 		mLexer->Skip (-1);
 
 	Expression expr (this, mLexer, reqtype);
-	expr.GetResult()->ConvertToBuffer();
+	expr.Result()->ConvertToBuffer();
 
 	// The buffer will be destroyed once the function ends so we need to
 	// clone it now.
-	return expr.GetResult()->GetBuffer()->Clone();
+	return expr.Result()->Buffer()->Clone();
 }
 
 // ============================================================================
@@ -1181,7 +1181,7 @@ DataBuffer* BotscriptParser::ParseExpression (DataType reqtype, bool fromhere)
 DataBuffer* BotscriptParser::ParseStatement()
 {
 	// If it's a variable, expect assignment.
-	if (mLexer->GetNext (TK_DollarSign))
+	if (mLexer->Next (TK_DollarSign))
 	{
 		mLexer->MustGetNext (TK_Symbol);
 		Variable* var = FindVariable (GetTokenString());
@@ -1222,23 +1222,23 @@ void BotscriptParser::AddSwitchCase (DataBuffer* casebuffer)
 
 // ============================================================================
 //
-bool BotscriptParser::TokenIs (TokenType a)
+bool BotscriptParser::TokenIs (ETokenType a)
 {
-	return (mLexer->GetTokenType() == a);
+	return (mLexer->TokenType() == a);
 }
 
 // ============================================================================
 //
 String BotscriptParser::GetTokenString()
 {
-	return mLexer->GetToken()->text;
+	return mLexer->Token()->text;
 }
 
 // ============================================================================
 //
 String BotscriptParser::DescribePosition() const
 {
-	Lexer::Token* tok = mLexer->GetToken();
+	Lexer::TokenInfo* tok = mLexer->Token();
 	return tok->file + ":" + String (tok->line) + ":" + String (tok->column);
 }
 
@@ -1314,13 +1314,13 @@ void BotscriptParser::WriteToFile (String outfile)
 		Error ("couldn't open %1 for writing: %2", outfile, strerror (errno));
 
 	// First, resolve references
-	for (MarkReference* ref : mMainBuffer->GetReferences())
+	for (MarkReference* ref : mMainBuffer->References())
 		for (int i = 0; i < 4; ++i)
-			mMainBuffer->GetBuffer()[ref->pos + i] = (ref->target->pos >> (8 * i)) & 0xFF;
+			mMainBuffer->Buffer()[ref->pos + i] = (ref->target->pos >> (8 * i)) & 0xFF;
 
 	// Then, dump the main buffer to the file
-	fwrite (mMainBuffer->GetBuffer(), 1, mMainBuffer->GetWrittenSize(), fp);
-	Print ("-- %1 byte%s1 written to %2\n", mMainBuffer->GetWrittenSize(), outfile);
+	fwrite (mMainBuffer->Buffer(), 1, mMainBuffer->WrittenSize(), fp);
+	Print ("-- %1 byte%s1 written to %2\n", mMainBuffer->WrittenSize(), outfile);
 	fclose (fp);
 }
 

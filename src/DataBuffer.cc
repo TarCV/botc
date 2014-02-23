@@ -33,7 +33,7 @@
 DataBuffer::DataBuffer (int size)
 {
 	SetBuffer (new char[size]);
-	SetPosition (&GetBuffer()[0]);
+	SetPosition (&Buffer()[0]);
 	SetAllocatedSize (size);
 }
 
@@ -41,8 +41,8 @@ DataBuffer::DataBuffer (int size)
 //
 DataBuffer::~DataBuffer()
 {
-	assert (CountMarks() == 0 && CountReferences() == 0);
-	delete GetBuffer();
+	assert (Marks().Size() == 0 && References().Size() == 0);
+	delete Buffer();
 }
 
 // ============================================================================
@@ -77,31 +77,31 @@ DataBuffer* DataBuffer::Clone()
 //
 void DataBuffer::CopyBuffer (const DataBuffer* buf)
 {
-	CheckSpace (buf->GetWrittenSize());
-	memcpy (mPosition, buf->GetBuffer(), buf->GetWrittenSize());
-	mPosition += buf->GetWrittenSize();
+	CheckSpace (buf->WrittenSize());
+	memcpy (mPosition, buf->Buffer(), buf->WrittenSize());
+	mPosition += buf->WrittenSize();
 }
 
 // ============================================================================
 //
 void DataBuffer::TransferMarks (DataBuffer* other)
 {
-	int offset = other->GetWrittenSize();
+	int offset = other->WrittenSize();
 
-	for (ByteMark* mark : GetMarks())
+	for (ByteMark* mark : Marks())
 	{
 		mark->pos += offset;
-		other->PushToMarks (mark);
+		other->mMarks << mark;
 	}
 
-	for (MarkReference* ref : GetReferences())
+	for (MarkReference* ref : References())
 	{
 		ref->pos += offset;
-		other->PushToReferences (ref);
+		other->mReferences << ref;
 	}
 
-	ClearMarks();
-	ClearReferences();
+	mMarks.Clear();
+	mReferences.Clear();
 }
 
 // ============================================================================
@@ -110,8 +110,8 @@ ByteMark* DataBuffer::AddMark (String name)
 {
 	ByteMark* mark = new ByteMark;
 	mark->name = name;
-	mark->pos = GetWrittenSize();
-	PushToMarks (mark);
+	mark->pos = WrittenSize();
+	mMarks << mark;
 	return mark;
 }
 
@@ -121,8 +121,8 @@ MarkReference* DataBuffer::AddReference (ByteMark* mark)
 {
 	MarkReference* ref = new MarkReference;
 	ref->target = mark;
-	ref->pos = GetWrittenSize();
-	PushToReferences (ref);
+	ref->pos = WrittenSize();
+	mReferences << ref;
 
 	// Write a dummy placeholder for the reference
 	WriteDWord (0xBEEFCAFE);
@@ -134,7 +134,7 @@ MarkReference* DataBuffer::AddReference (ByteMark* mark)
 //
 void DataBuffer::AdjustMark (ByteMark* mark)
 {
-	mark->pos = GetWrittenSize();
+	mark->pos = WrittenSize();
 }
 
 // ============================================================================
@@ -149,44 +149,44 @@ void DataBuffer::OffsetMark (ByteMark* mark, int offset)
 void DataBuffer::WriteStringIndex (const String& a)
 {
 	WriteDWord (DH_PushStringIndex);
-	WriteDWord (GetStringTableIndex (a));
+	WriteDWord (StringTableIndex (a));
 }
 
 // ============================================================================
 //
 void DataBuffer::Dump()
 {
-	for (int i = 0; i < GetWrittenSize(); ++i)
-		printf ("%d. [0x%X]\n", i, GetBuffer()[i]);
+	for (int i = 0; i < WrittenSize(); ++i)
+		printf ("%d. [0x%X]\n", i, Buffer()[i]);
 }
 
 // ============================================================================
 //
 void DataBuffer::CheckSpace (int bytes)
 {
-	int writesize = GetWrittenSize();
+	int writesize = WrittenSize();
 
-	if (writesize + bytes < GetAllocatedSize())
+	if (writesize + bytes < AllocatedSize())
 		return;
 
 	// We don't have enough space in the buffer to write
 	// the stuff - thus resize. First, store the old
 	// buffer temporarily:
-	char* copy = new char[GetAllocatedSize()];
-	memcpy (copy, GetBuffer(), GetAllocatedSize());
+	char* copy = new char[AllocatedSize()];
+	memcpy (copy, Buffer(), AllocatedSize());
 
 	// Remake the buffer with the new size. Have enough space
 	// for the stuff we're going to write, as well as a bit
 	// of leeway so we don't have to resize immediately again.
-	int newsize = GetAllocatedSize() + bytes + 512;
+	int newsize = AllocatedSize() + bytes + 512;
 
-	delete GetBuffer();
+	delete Buffer();
 	SetBuffer (new char[newsize]);
 	SetAllocatedSize (newsize);
 
 	// Now, copy the stuff back.
-	memcpy (mBuffer, copy, GetAllocatedSize());
-	SetPosition (GetBuffer() + writesize);
+	memcpy (mBuffer, copy, AllocatedSize());
+	SetPosition (Buffer() + writesize);
 	delete copy;
 }
 
@@ -234,7 +234,7 @@ void DataBuffer::WriteString (const String& a)
 //
 ByteMark* DataBuffer::FindMarkByName (const String& target)
 {
-	for (ByteMark* mark : GetMarks())
+	for (ByteMark* mark : Marks())
 		if (mark->name == target)
 			return mark;
 

@@ -197,7 +197,7 @@ bool LexerScanner::GetNextToken()
 		if (CheckString (gTokenStrings[i], flags))
 		{
 			mTokenText = gTokenStrings[i];
-			mTokenType = (TokenType) i;
+			mTokenType = (ETokenType) i;
 			return true;
 		}
 	}
@@ -287,7 +287,7 @@ void LexerScanner::Skip (int chars)
 
 // =============================================================================
 //
-String LexerScanner::GetTokenString (TokenType a)
+String LexerScanner::GetTokenString (ETokenType a)
 {
 	assert ((int) a <= gLastNamedToken);
 	return gTokenStrings[a];

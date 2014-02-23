@@ -34,17 +34,17 @@
 
 class Lexer
 {
-types:
-	struct Token
+public:
+	struct TokenInfo
 	{
-		TokenType	type;
+		ETokenType	type;
 		String		text;
 		String		file;
 		int			line;
 		int			column;
 	};
 
-	using TokenList	= List<Token>;
+	using TokenList	= List<TokenInfo>;
 	using Iterator	= TokenList::Iterator;
 
 public:
@@ -52,13 +52,13 @@ public:
 	~Lexer();
 
 	void	ProcessFile (String file_name);
-	bool	GetNext (TokenType req = TK_Any);
-	void	MustGetNext (TokenType tok);
-	void	MustGetAnyOf (const List<TokenType>& toks);
+	bool	Next (ETokenType req = TK_Any);
+	void	MustGetNext (ETokenType tok);
+	void	MustGetAnyOf (const List<ETokenType>& toks);
 	int		GetOneSymbol (const StringList& syms);
-	void	TokenMustBe (TokenType tok);
-	bool	PeekNext (Token* tk = null);
-	bool	PeekNextType (TokenType req);
+	void	TokenMustBe (ETokenType tok);
+	bool	PeekNext (TokenInfo* tk = null);
+	bool	PeekNextType (ETokenType req);
 	String	PeekNextString (int a = 1);
 	String	DescribeCurrentPosition();
 	String	DescribeTokenPosition();
@@ -70,7 +70,7 @@ public:
 		return (mTokenPosition < mTokens.end() && mTokenPosition >= mTokens.begin());
 	}
 
-	inline Token* GetToken() const
+	inline TokenInfo* Token() const
 	{
 		assert (HasValidToken() == true);
 		return &(*mTokenPosition);
@@ -81,9 +81,9 @@ public:
 		return mTokenPosition == mTokens.end();
 	}
 
-	inline TokenType GetTokenType() const
+	inline ETokenType TokenType() const
 	{
-		return GetToken()->type;
+		return Token()->type;
 	}
 
 	inline void Skip (int a = 1)
@@ -91,7 +91,7 @@ public:
 		mTokenPosition += a;
 	}
 
-	inline int GetPosition()
+	inline int Position()
 	{
 		return mTokenPosition - mTokens.begin();
 	}
@@ -102,12 +102,12 @@ public:
 	}
 
 	// If @tok is given, describes the token. If not, describes @tok_type.
-	static inline String DescribeTokenType (TokenType toktype)
+	static inline String DescribeTokenType (ETokenType toktype)
 	{
 		return DescribeTokenPrivate (toktype, null);
 	}
 
-	static inline String DescribeToken (Token* tok)
+	static inline String DescribeToken (TokenInfo* tok)
 	{
 		return DescribeTokenPrivate (tok->type, tok);
 	}
@@ -117,10 +117,10 @@ private:
 	Iterator		mTokenPosition;
 
 	// read a mandatory token from scanner
-	void MustGetFromScanner (LexerScanner& sc, TokenType tt =TK_Any);
+	void MustGetFromScanner (LexerScanner& sc, ETokenType tt =TK_Any);
 	void CheckFileHeader (LexerScanner& sc);
 
-	static String DescribeTokenPrivate (TokenType tok_type, Token* tok);
+	static String DescribeTokenPrivate (ETokenType tok_type, TokenInfo* tok);
 };
 
 #endif // BOTC_LEXER_H

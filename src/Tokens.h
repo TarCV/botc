@@ -33,7 +33,7 @@
 #include "Macros.h"
 
 // =======================================================
-named_enum TokenType
+named_enum ETokenType
 {
 	// Non-word tokens
 	TK_LeftShiftAssign,

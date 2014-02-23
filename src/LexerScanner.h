@@ -80,12 +80,12 @@ class LexerScanner
 			return mPosition - mLineBreakPosition;
 		}
 
-		inline TokenType GetTokenType() const
+		inline ETokenType GetTokenType() const
 		{
 			return mTokenType;
 		}
 
-		static String GetTokenString (TokenType a);
+		static String GetTokenString (ETokenType a);
 
 	private:
 		char*			mData;
@@ -93,7 +93,7 @@ class LexerScanner
 		char*			mLineBreakPosition;
 		String			mTokenText,
 						mLastToken;
-		TokenType		mTokenType;
+		ETokenType		mTokenType;
 		int				mLine;
 
 		bool			CheckString (const char* c, int flags = 0);
