@@ -95,7 +95,6 @@ named_enum TokenType
 	TK_Eventdef,
 	TK_For,
 	TK_Funcdef,
-	TK_Goto,
 	TK_If,
 	TK_Int,
 	TK_Mainloop,
