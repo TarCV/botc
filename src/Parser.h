@@ -35,12 +35,6 @@
 #include "LexerScanner.h"
 #include "Tokens.h"
 
-// TODO: get rid of this too?
-#define MAX_CASE 64
-
-// TODO: get rid of this
-#define MAX_MARKS 512
-
 class DataBuffer;
 class Lexer;
 class Variable;
@@ -155,7 +149,7 @@ struct ScopeInfo
 //
 class BotscriptParser
 {
-	PROPERTY (public, bool, ReadOnly, BOOL_OPS, STOCK_WRITE)
+	PROPERTY (public, bool, IsReadOnly, SetReadOnly, STOCK_WRITE)
 
 	public:
 		enum EReset
@@ -176,7 +170,7 @@ class BotscriptParser
 		void					AddSwitchCase (DataBuffer* b);
 		void					CheckToplevel();
 		void					CheckNotToplevel();
-		bool					TokenIs (TokenType a);
+		bool					TokenIs (ETokenType a);
 		String					GetTokenString();
 		String					DescribePosition() const;
 		void					WriteToFile (String outfile);

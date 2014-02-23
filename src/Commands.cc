@@ -69,7 +69,7 @@ CommandInfo* FindCommandByName (String fname)
 String CommandInfo::GetSignature()
 {
 	String text;
-	text += GetTypeName (returnvalue);
+	text += DataTypeName (returnvalue);
 	text += ' ';
 	text += name;
 
@@ -91,7 +91,7 @@ String CommandInfo::GetSignature()
 		if (i)
 			text += ", ";
 
-		text += GetTypeName (args[i].type);
+		text += DataTypeName (args[i].type);
 		text += ' ';
 		text += args[i].name;
 

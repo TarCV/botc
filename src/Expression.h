@@ -50,7 +50,7 @@ class Expression final
 
 		Expression (BotscriptParser* parser, Lexer* lx, DataType reqtype);
 		~Expression();
-		ExpressionValue*		GetResult();
+		ExpressionValue*		Result();
 
 	private:
 		BotscriptParser*		mParser;
@@ -61,7 +61,7 @@ class Expression final
 
 		ExpressionValue*		Evaluate(); // Process the expression and yield a result
 		ExpressionSymbol*		ParseSymbol();
-		String					GetTokenString();
+		String					TokenString();
 		void					AdjustOperators();
 		void					Verify(); // Ensure the expr is valid
 		void					TryVerifyValue (bool* verified, SymbolList::Iterator it);
@@ -78,14 +78,14 @@ class ExpressionSymbol
 		ExpressionSymbol (ExpressionSymbolType type) :
 			mType (type) {}
 
-	PROPERTY (private, ExpressionSymbolType, Type, NO_OPS, STOCK_WRITE)
+	PROPERTY (private, ExpressionSymbolType, Type, SetType, STOCK_WRITE)
 };
 
 // =============================================================================
 //
 class ExpressionOperator final : public ExpressionSymbol
 {
-	PROPERTY (public, ExpressionOperatorType, ID, NO_OPS, STOCK_WRITE)
+	PROPERTY (public, ExpressionOperatorType, ID, SetID, STOCK_WRITE)
 
 	public:
 		ExpressionOperator (ExpressionOperatorType id);
@@ -95,9 +95,9 @@ class ExpressionOperator final : public ExpressionSymbol
 //
 class ExpressionValue final : public ExpressionSymbol
 {
-	PROPERTY (public, int,			Value,		NUM_OPS,	STOCK_WRITE)
-	PROPERTY (public, DataBuffer*,	Buffer,		NO_OPS,		STOCK_WRITE)
-	PROPERTY (public, DataType,		ValueType,	NO_OPS,		STOCK_WRITE)
+	PROPERTY (public, int,			Value,		SetValue,		STOCK_WRITE)
+	PROPERTY (public, DataBuffer*,	Buffer,		SetBuffer,		STOCK_WRITE)
+	PROPERTY (public, DataType,		ValueType,	SetValueType,	STOCK_WRITE)
 
 	public:
 		ExpressionValue (DataType valuetype);
@@ -112,7 +112,7 @@ class ExpressionValue final : public ExpressionSymbol
 
 		inline bool IsConstexpr() const
 		{
-			return GetBuffer() == null;
+			return Buffer() == null;
 		}
 };
 

@@ -34,8 +34,6 @@
 #include "Main.h"
 #include "StringTable.h"
 
-#define MAX_MARKS 512
-
 // ============================================================================
 // data_buffer: A dynamic data buffer.
 //
@@ -51,11 +49,11 @@
 //
 class DataBuffer
 {
-	PROPERTY (private, char*,					Buffer,			NO_OPS,		STOCK_WRITE)
-	PROPERTY (private, int,						AllocatedSize,	NUM_OPS,	STOCK_WRITE)
-	PROPERTY (private, char*,					Position,		NO_OPS,		STOCK_WRITE)
-	PROPERTY (private, List<ByteMark*>,			Marks,			LIST_OPS,	STOCK_WRITE)
-	PROPERTY (private, List<MarkReference*>,	References,		LIST_OPS,	STOCK_WRITE)
+	PROPERTY (private, char*,					Buffer,			SetBuffer,			STOCK_WRITE)
+	PROPERTY (private, int,						AllocatedSize,	SetAllocatedSize,	STOCK_WRITE)
+	PROPERTY (private, char*,					Position,		SetPosition,		STOCK_WRITE)
+	PROPERTY (private, List<ByteMark*>,			Marks,			SetMarks,			STOCK_WRITE)
+	PROPERTY (private, List<MarkReference*>,	References,		SetReferences,		STOCK_WRITE)
 
 	public:
 		DataBuffer (int size = 128);
@@ -83,9 +81,9 @@ class DataBuffer
 		void			WriteDWord (int32_t data);
 		void			CopyBuffer (const DataBuffer* buf);
 
-		inline int GetWrittenSize() const
+		inline int WrittenSize() const
 		{
-			return GetPosition() - GetBuffer();
+			return Position() - Buffer();
 		}
 };
 

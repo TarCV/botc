@@ -31,7 +31,7 @@
 
 #include "Main.h"
 
-int GetStringTableIndex (const String& a);
+int StringTableIndex (const String& a);
 const StringList& GetStringTable();
 int CountStringsInTable();
 

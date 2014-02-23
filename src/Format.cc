@@ -130,7 +130,7 @@ void DoError (String msg)
 
 	if (lx != null && lx->HasValidToken())
 	{
-		Lexer::Token* tk = lx->GetToken();
+		Lexer::TokenInfo* tk = lx->Token();
 		fileinfo = Format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
 	}
 

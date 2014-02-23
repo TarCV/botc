@@ -44,7 +44,7 @@ const StringList& GetStringTable()
 //
 // Potentially adds a string to the table and returns the index of it.
 //
-int GetStringTableIndex (const String& a)
+int StringTableIndex (const String& a)
 {
 	// Find a free slot in the table.
 	int idx;

@@ -150,7 +150,7 @@ DataType GetTypeByName (String t)
 //
 // Inverse operation - type name by value
 //
-String GetTypeName (DataType type)
+String DataTypeName (DataType type)
 {
 	switch (type)
 	{

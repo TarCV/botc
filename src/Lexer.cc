@@ -82,7 +82,7 @@ void Lexer::ProcessFile (String fileName)
 		}
 		else
 		{
-			Token tok;
+			TokenInfo tok;
 			tok.file = fileName;
 			tok.line = sc.GetLine();
 			tok.column = sc.GetColumn();
@@ -145,7 +145,7 @@ void Lexer::CheckFileHeader (LexerScanner& sc)
 
 // =============================================================================
 //
-bool Lexer::GetNext (TokenType req)
+bool Lexer::Next (ETokenType req)
 {
 	Iterator pos = mTokenPosition;
 
@@ -154,7 +154,7 @@ bool Lexer::GetNext (TokenType req)
 
 	mTokenPosition++;
 
-	if (IsAtEnd() || (req !=TK_Any && GetTokenType() != req))
+	if (IsAtEnd() || (req !=TK_Any && TokenType() != req))
 	{
 		mTokenPosition = pos;
 		return false;
@@ -165,9 +165,9 @@ bool Lexer::GetNext (TokenType req)
 
 // =============================================================================
 //
-void Lexer::MustGetNext (TokenType tok)
+void Lexer::MustGetNext (ETokenType tok)
 {
-	if (!GetNext())
+	if (!Next())
 		Error ("unexpected EOF");
 
 	if (tok !=TK_Any)
@@ -177,7 +177,7 @@ void Lexer::MustGetNext (TokenType tok)
 // =============================================================================
 // eugh..
 //
-void Lexer::MustGetFromScanner (LexerScanner& sc, TokenType tt)
+void Lexer::MustGetFromScanner (LexerScanner& sc, ETokenType tt)
 {
 	if (!sc.GetNextToken())
 		Error ("unexpected EOF");
@@ -185,7 +185,7 @@ void Lexer::MustGetFromScanner (LexerScanner& sc, TokenType tt)
 	if (tt !=TK_Any && sc.GetTokenType() != tt)
 	{
 		// TODO
-		Token tok;
+		TokenInfo tok;
 		tok.type = sc.GetTokenType();
 		tok.text = sc.GetTokenText();
 
@@ -199,18 +199,18 @@ void Lexer::MustGetFromScanner (LexerScanner& sc, TokenType tt)
 
 // =============================================================================
 //
-void Lexer::MustGetAnyOf (const List<TokenType>& toks)
+void Lexer::MustGetAnyOf (const List<ETokenType>& toks)
 {
-	if (!GetNext())
+	if (!Next())
 		Error ("unexpected EOF");
 
-	for (TokenType tok : toks)
-		if (GetTokenType() == tok)
+	for (ETokenType tok : toks)
+		if (TokenType() == tok)
 			return;
 
 	String toknames;
 
-	for (const TokenType& tokType : toks)
+	for (const ETokenType& tokType : toks)
 	{
 		if (&tokType == &toks.Last())
 			toknames += " or ";
@@ -220,41 +220,41 @@ void Lexer::MustGetAnyOf (const List<TokenType>& toks)
 		toknames += DescribeTokenType (tokType);
 	}
 
-	Error ("expected %1, got %2", toknames, DescribeToken (GetToken()));
+	Error ("expected %1, got %2", toknames, DescribeToken (Token()));
 }
 
 // =============================================================================
 //
 int Lexer::GetOneSymbol (const StringList& syms)
 {
-	if (!GetNext())
+	if (!Next())
 		Error ("unexpected EOF");
 
-	if (GetTokenType() ==TK_Symbol)
+	if (TokenType() ==TK_Symbol)
 	{
 		for (int i = 0; i < syms.Size(); ++i)
 		{
-			if (syms[i] == GetToken()->text)
+			if (syms[i] == Token()->text)
 				return i;
 		}
 	}
 
-	Error ("expected one of %1, got %2", syms, DescribeToken (GetToken()));
+	Error ("expected one of %1, got %2", syms, DescribeToken (Token()));
 	return -1;
 }
 
 // =============================================================================
 //
-void Lexer::TokenMustBe (TokenType tok)
+void Lexer::TokenMustBe (ETokenType tok)
 {
-	if (GetTokenType() != tok)
+	if (TokenType() != tok)
 		Error ("expected %1, got %2", DescribeTokenType (tok),
-			DescribeToken (GetToken()));
+			DescribeToken (Token()));
 }
 
 // =============================================================================
 //
-String Lexer::DescribeTokenPrivate (TokenType tokType, Lexer::Token* tok)
+String Lexer::DescribeTokenPrivate (ETokenType tokType, Lexer::TokenInfo* tok)
 {
 	if (tokType <gLastNamedToken)
 		return "\"" + LexerScanner::GetTokenString (tokType) + "\"";
@@ -273,10 +273,10 @@ String Lexer::DescribeTokenPrivate (TokenType tokType, Lexer::Token* tok)
 
 // =============================================================================
 //
-bool Lexer::PeekNext (Lexer::Token* tk)
+bool Lexer::PeekNext (Lexer::TokenInfo* tk)
 {
 	Iterator pos = mTokenPosition;
-	bool r = GetNext();
+	bool r = Next();
 
 	if (r && tk != null)
 		*tk = *mTokenPosition;
@@ -287,12 +287,12 @@ bool Lexer::PeekNext (Lexer::Token* tk)
 
 // =============================================================================
 //
-bool Lexer::PeekNextType (TokenType req)
+bool Lexer::PeekNextType (ETokenType req)
 {
 	Iterator pos = mTokenPosition;
 	bool result = false;
 
-	if (GetNext() && GetTokenType() == req)
+	if (Next() && TokenType() == req)
 		result = true;
 
 	mTokenPosition = pos;
@@ -315,7 +315,7 @@ String Lexer::PeekNextString (int a)
 
 	Iterator oldpos = mTokenPosition;
 	mTokenPosition += a;
-	String result = GetToken()->text;
+	String result = Token()->text;
 	mTokenPosition = oldpos;
 	return result;
 }
@@ -324,7 +324,7 @@ String Lexer::PeekNextString (int a)
 //
 String Lexer::DescribeCurrentPosition()
 {
-	return GetToken()->file + ":" + GetToken()->line;
+	return Token()->file + ":" + Token()->line;
 }
 
 // =============================================================================

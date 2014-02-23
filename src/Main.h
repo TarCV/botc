@@ -43,7 +43,7 @@
 
 String MakeObjectFileName (String s);
 DataType GetTypeByName (String token);
-String GetTypeName (DataType type);
+String DataTypeName (DataType type);
 String GetVersionString (bool longform);
 String MakeVersionString (int major, int minor, int patch);
 
