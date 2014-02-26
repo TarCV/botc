@@ -65,23 +65,6 @@ struct MarkReference
 
 // =============================================================================
 //
-class ScriptError : public std::exception
-{
-	public:
-		ScriptError (const String& msg) :
-			mMsg (msg) {}
-
-		inline const char* what() const throw()
-		{
-			return mMsg;
-		}
-
-	private:
-		String mMsg;
-};
-
-// =============================================================================
-//
 // Get absolute value of @a
 //
 template<class T> inline T abs (T a)

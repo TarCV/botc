@@ -112,7 +112,7 @@ int main (int argc, char** argv)
 	}
 	catch (std::exception& e)
 	{
-		PrintTo (stderr, "error: %1\n", e.what());
+		fprintf (stderr, "error: %s\n", e.what());
 		return 1;
 	}
 }

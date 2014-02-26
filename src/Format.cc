@@ -33,30 +33,23 @@
 
 // =============================================================================
 //
-static void DrawPosition (const String& fmt, int pos)
+static void FormatError (String fmtstr, const String errdescribe, int pos)
 {
-	String rep (fmt);
-	rep.Replace ("\n", "↵");
-	rep.Replace ("\t", "⇥");
-
-	fprintf (stderr, "%s\n", rep.CString());
+	fmtstr.Replace ("\n", " ");
+	fmtstr.Replace ("\t", " ");
+	String errmsg ("With format string:\n" + fmtstr + "\n");
 
 	for (int x = 0; x < pos; ++x)
-		fprintf (stderr, "-");
+		errmsg += "-";
 
-	fprintf (stderr, "^\n");
+	errmsg += "^\n" + errdescribe;
+	throw std::logic_error (errmsg.STDString());
 }
 
 // =============================================================================
 //
-String FormatArgs (const List<FormatArgument>& args)
+String FormatArgs (const String& fmtstr, const std::vector<String>& args)
 {
-	const String& fmtstr = args[0].AsString();
-	assert (args.Size() >= 1);
-
-	if (args.Size() == 1)
-		return args[0].AsString();
-
 	String fmt = fmtstr;
 	String out;
 	int pos = 0;
@@ -81,33 +74,26 @@ String FormatArgs (const List<FormatArgument>& args)
 		}
 
 		if (!isdigit (fmt[pos + ofs]))
-		{
-			fprintf (stderr, "bad format string, expected digit with optional "
-				"modifier after '%%':\n");
-			DrawPosition (fmt, pos);
-			return fmt;
-		}
+			FormatError (fmtstr, "bad format string, expected digit with optional "
+				"modifier after '%%'", pos);
 
 		int i = fmt[pos + ofs]  - '0';
 
-		if (i >= args.Size())
-		{
-			fprintf (stderr, "format arg #%d used but not defined: %s\n", i, fmtstr.CString());
-			return fmt;
-		}
+		if (i > static_cast<signed> (args.size()))
+			FormatError (fmtstr, String ("Format argument #") + i + " used but not defined.", pos);
 
-		String repl = args[i].AsString();
+		String replacement = args[i - 1];
 
 		switch (mod)
 		{
-			case 's': repl = (repl == "1") ? "" : "s";			break;
-			case 'd': repl.SPrintf ("%d", repl[0]);				break;
-			case 'x': repl.SPrintf ("0x%X", repl.ToLong());	break;
+			case 's': replacement = (replacement == "1") ? "" : "s";		break;
+			case 'd': replacement.SPrintf ("%d", replacement[0]);			break;
+			case 'x': replacement.SPrintf ("0x%X", replacement.ToLong());	break;
 			default: break;
 		}
 
-		fmt.Replace (pos, 1 + ofs, repl);
-		pos += repl.Length();
+		fmt.Replace (pos, 1 + ofs, replacement);
+		pos += replacement.Length();
 	}
 
 	return fmt;
@@ -115,15 +101,7 @@ String FormatArgs (const List<FormatArgument>& args)
 
 // =============================================================================
 //
-void PrintArgs (FILE* fp, const List<FormatArgument>& args)
-{
-	String out = FormatArgs (args);
-	fprintf (fp, "%s", out.CString());
-}
-
-// =============================================================================
-//
-void DoError (String msg)
+void Error (String msg)
 {
 	Lexer* lx = Lexer::GetCurrentLexer();
 	String fileinfo;
@@ -134,5 +112,5 @@ void DoError (String msg)
 		fileinfo = Format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
 	}
 
-	throw ScriptError (fileinfo + msg);
+	throw std::runtime_error (fileinfo + msg);
 }
