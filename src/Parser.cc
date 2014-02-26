@@ -316,6 +316,7 @@ void BotscriptParser::ParseVar()
 					(TokenIs (TK_Str)) ? TYPE_String :
 					TYPE_Bool;
 
+	mLexer->MustGetNext (TK_DollarSign);
 	mLexer->MustGetNext (TK_Symbol);
 	String name = GetTokenString();
 
@@ -1097,15 +1098,15 @@ DataBuffer* BotscriptParser::ParseAssignment (Variable* var)
 	if (mCurrentMode == PARSERMODE_TopLevel)
 		Error ("can't alter variables at top level");
 
+	if (var->isarray)
+		retbuf->MergeAndDestroy (arrayindex);
+
 	// Parse the right operand
 	if (oper != ASSIGNOP_Increase && oper != ASSIGNOP_Decrease)
 	{
 		DataBuffer* expr = ParseExpression (var->type);
 		retbuf->MergeAndDestroy (expr);
 	}
-
-	if (var->isarray)
-		retbuf->MergeAndDestroy (arrayindex);
 
 #if 0
 	// <<= and >>= do not have data headers. Solution: expand them.
