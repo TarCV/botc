@@ -264,9 +264,9 @@ class List
 		{
 			int i = 0;
 
-			for (const ValueType & hay : *this)
+			for (const ValueType& hay : *this)
 			{
-				if (&hay == &needle)
+				if (hay == needle)
 					return i;
 
 				i++;

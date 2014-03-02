@@ -103,6 +103,7 @@ named_enum ETokenType
 	TK_State,
 	TK_Switch,
 	TK_Str,
+	TK_Using,
 	TK_Var,
 	TK_Void,
 	TK_While,
