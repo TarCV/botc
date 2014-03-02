@@ -50,24 +50,24 @@ class Expression final
 
 		Expression (BotscriptParser* parser, Lexer* lx, DataType reqtype);
 		~Expression();
-		ExpressionValue*		Result();
+		ExpressionValue*		getResult();
 
 	private:
-		BotscriptParser*		mParser;
-		Lexer*					mLexer;
-		SymbolList				mSymbols;
-		DataType				mType;
-		String					mBadTokenText;
+		BotscriptParser*		m_parser;
+		Lexer*					m_lexer;
+		SymbolList				m_symbols;
+		DataType				m_type;
+		String					m_badTokenText;
 
-		ExpressionValue*		Evaluate(); // Process the expression and yield a result
-		ExpressionSymbol*		ParseSymbol();
-		String					TokenString();
-		void					AdjustOperators();
-		void					Verify(); // Ensure the expr is valid
-		void					TryVerifyValue (bool* verified, SymbolList::Iterator it);
-		ExpressionValue*		EvaluateOperator (const ExpressionOperator* op,
+		ExpressionValue*		evaluate(); // Process the expression and yield a result
+		ExpressionSymbol*		parseSymbol();
+		String					getTokenString();
+		void					adjustOperators();
+		void					verify(); // Ensure the expr is valid
+		void					tryVerifyValue (bool* verified, SymbolList::Iterator it);
+		ExpressionValue*		evaluateOperator (const ExpressionOperator* op,
 												  const List<ExpressionValue*>& values);
-		SymbolList::Iterator	FindPrioritizedOperator();
+		SymbolList::Iterator	findPrioritizedOperator();
 };
 
 // =============================================================================
@@ -76,16 +76,16 @@ class ExpressionSymbol
 {
 	public:
 		ExpressionSymbol (ExpressionSymbolType type) :
-			mType (type) {}
+			m_type (type) {}
 
-	PROPERTY (private, ExpressionSymbolType, Type, SetType, STOCK_WRITE)
+	PROPERTY (private, ExpressionSymbolType, type, setType, STOCK_WRITE)
 };
 
 // =============================================================================
 //
 class ExpressionOperator final : public ExpressionSymbol
 {
-	PROPERTY (public, ExpressionOperatorType, ID, SetID, STOCK_WRITE)
+	PROPERTY (public, ExpressionOperatorType, id, setID, STOCK_WRITE)
 
 	public:
 		ExpressionOperator (ExpressionOperatorType id);
@@ -95,24 +95,24 @@ class ExpressionOperator final : public ExpressionSymbol
 //
 class ExpressionValue final : public ExpressionSymbol
 {
-	PROPERTY (public, int,			Value,		SetValue,		STOCK_WRITE)
-	PROPERTY (public, DataBuffer*,	Buffer,		SetBuffer,		STOCK_WRITE)
-	PROPERTY (public, DataType,		ValueType,	SetValueType,	STOCK_WRITE)
+	PROPERTY (public, int,			value,		setValue,		STOCK_WRITE)
+	PROPERTY (public, DataBuffer*,	buffer,		setBuffer,		STOCK_WRITE)
+	PROPERTY (public, DataType,		valueType,	setValueType,	STOCK_WRITE)
 
 	public:
 		ExpressionValue (DataType valuetype);
 		~ExpressionValue();
 
-		void				ConvertToBuffer();
+		void					convertToBuffer();
 
-		inline ExpressionValue* Clone() const
+		inline ExpressionValue* clone() const
 		{
 			return new ExpressionValue (*this);
 		}
 
-		inline bool IsConstexpr() const
+		inline bool isConstexpr() const
 		{
-			return Buffer() == null;
+			return buffer() == null;
 		}
 };
 

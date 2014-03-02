@@ -48,11 +48,11 @@ struct CommandInfo
 	List<CommandArgument>	args;
 	String					origin;
 
-	String	GetSignature();
+	String	signature();
 };
 
-void						AddCommandDefinition (CommandInfo* comm);
-CommandInfo*				FindCommandByName (String a);
-const List<CommandInfo*>&	GetCommands();
+void						addCommandDefinition (CommandInfo* comm);
+CommandInfo*				findCommandByName (String a);
+const List<CommandInfo*>&	getCommands();
 
 #endif // BOTC_COMMANDS_H

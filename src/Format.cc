@@ -33,32 +33,32 @@
 
 // =============================================================================
 //
-static void FormatError (String fmtstr, const String errdescribe, int pos)
+static void formatError (String fmtstr, const String errdescribe, int pos)
 {
-	fmtstr.Replace ("\n", " ");
-	fmtstr.Replace ("\t", " ");
+	fmtstr.replace ("\n", " ");
+	fmtstr.replace ("\t", " ");
 	String errmsg ("With format string:\n" + fmtstr + "\n");
 
 	for (int x = 0; x < pos; ++x)
 		errmsg += "-";
 
 	errmsg += "^\n" + errdescribe;
-	throw std::logic_error (errmsg.STDString());
+	throw std::logic_error (errmsg.stdString());
 }
 
 // =============================================================================
 //
-String FormatArgs (const String& fmtstr, const std::vector<String>& args)
+String formatArgs (const String& fmtstr, const std::vector<String>& args)
 {
 	String fmt = fmtstr;
 	String out;
 	int pos = 0;
 
-	while ((pos = fmt.FirstIndexOf ("%", pos)) != -1)
+	while ((pos = fmt.firstIndexOf ("%", pos)) != -1)
 	{
 		if (fmt[pos + 1] == '%')
 		{
-			fmt.Replace (pos, 2, "%");
+			fmt.replace (pos, 2, "%");
 			pos++;
 			continue;
 		}
@@ -74,26 +74,26 @@ String FormatArgs (const String& fmtstr, const std::vector<String>& args)
 		}
 
 		if (!isdigit (fmt[pos + ofs]))
-			FormatError (fmtstr, "bad format string, expected digit with optional "
+			formatError (fmtstr, "bad format string, expected digit with optional "
 				"modifier after '%%'", pos);
 
 		int i = fmt[pos + ofs]  - '0';
 
 		if (i > static_cast<signed> (args.size()))
-			FormatError (fmtstr, String ("Format argument #") + i + " used but not defined.", pos);
+			formatError (fmtstr, String ("Format argument #") + i + " used but not defined.", pos);
 
 		String replacement = args[i - 1];
 
 		switch (mod)
 		{
 			case 's': replacement = (replacement == "1") ? "" : "s";		break;
-			case 'd': replacement.SPrintf ("%d", replacement[0]);			break;
-			case 'x': replacement.SPrintf ("0x%X", replacement.ToLong());	break;
+			case 'd': replacement.sprintf ("%d", replacement[0]);			break;
+			case 'x': replacement.sprintf ("0x%X", replacement.toLong());	break;
 			default: break;
 		}
 
-		fmt.Replace (pos, 1 + ofs, replacement);
-		pos += replacement.Length();
+		fmt.replace (pos, 1 + ofs, replacement);
+		pos += replacement.length();
 	}
 
 	return fmt;
@@ -101,15 +101,15 @@ String FormatArgs (const String& fmtstr, const std::vector<String>& args)
 
 // =============================================================================
 //
-void Error (String msg)
+void error (String msg)
 {
-	Lexer* lx = Lexer::GetCurrentLexer();
+	Lexer* lx = Lexer::getCurrentLexer();
 	String fileinfo;
 
-	if (lx != null && lx->HasValidToken())
+	if (lx != null && lx->hasValidToken())
 	{
-		Lexer::TokenInfo* tk = lx->Token();
-		fileinfo = Format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
+		Lexer::TokenInfo* tk = lx->token();
+		fileinfo = format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
 	}
 
 	throw std::runtime_error (fileinfo + msg);

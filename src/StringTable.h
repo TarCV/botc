@@ -31,8 +31,8 @@
 
 #include "Main.h"
 
-int StringTableIndex (const String& a);
-const StringList& GetStringTable();
-int CountStringsInTable();
+int getStringTableIndex (const String& a);
+const StringList& getStringTable();
+int countStringsInTable();
 
 #endif // BOTC_STRINGTABLE_H

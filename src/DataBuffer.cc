@@ -32,31 +32,31 @@
 //
 DataBuffer::DataBuffer (int size)
 {
-	SetBuffer (new char[size]);
-	SetPosition (&Buffer()[0]);
-	SetAllocatedSize (size);
+	setBuffer (new char[size]);
+	setPosition (&buffer()[0]);
+	setAllocatedSize (size);
 }
 
 // ============================================================================
 //
 DataBuffer::~DataBuffer()
 {
-	assert (Marks().Size() == 0 && References().Size() == 0);
-	delete Buffer();
+	assert (marks().isEmpty() && references().isEmpty());
+	delete buffer();
 }
 
 // ============================================================================
 //
-void DataBuffer::MergeAndDestroy (DataBuffer* other)
+void DataBuffer::mergeAndDestroy (DataBuffer* other)
 {
-	if (!other)
+	if (other == null)
 		return;
 
 	// Note: We transfer the marks before the buffer is copied, so that the
 	// offset uses the proper value (which is the written size of @other, which
 	// we don't want our written size to be added to yet).
-	other->TransferMarks (this);
-	CopyBuffer (other);
+	other->transferMarksTo (this);
+	copyBuffer (other);
 	delete other;
 }
 
@@ -65,177 +65,177 @@ void DataBuffer::MergeAndDestroy (DataBuffer* other)
 // Clones this databuffer to a new one and returns it. Note that the original
 // transfers its marks and references and loses them in the process.
 //
-DataBuffer* DataBuffer::Clone()
+DataBuffer* DataBuffer::clone()
 {
 	DataBuffer* other = new DataBuffer;
-	TransferMarks (other);
-	other->CopyBuffer (this);
+	transferMarksTo (other);
+	other->copyBuffer (this);
 	return other;
 }
 
 // ============================================================================
 //
-void DataBuffer::CopyBuffer (const DataBuffer* buf)
+void DataBuffer::copyBuffer (const DataBuffer* buf)
 {
-	CheckSpace (buf->WrittenSize());
-	memcpy (mPosition, buf->Buffer(), buf->WrittenSize());
-	mPosition += buf->WrittenSize();
+	checkSpace (buf->writtenSize());
+	memcpy (m_position, buf->buffer(), buf->writtenSize());
+	m_position += buf->writtenSize();
 }
 
 // ============================================================================
 //
-void DataBuffer::TransferMarks (DataBuffer* other)
+void DataBuffer::transferMarksTo (DataBuffer* dest)
 {
-	int offset = other->WrittenSize();
+	int offset = dest->writtenSize();
 
-	for (ByteMark* mark : Marks())
+	for (ByteMark* mark : marks())
 	{
 		mark->pos += offset;
-		other->mMarks << mark;
+		dest->m_marks << mark;
 	}
 
-	for (MarkReference* ref : References())
+	for (MarkReference* ref : references())
 	{
 		ref->pos += offset;
-		other->mReferences << ref;
+		dest->m_references << ref;
 	}
 
-	mMarks.Clear();
-	mReferences.Clear();
+	m_marks.clear();
+	m_references.clear();
 }
 
 // ============================================================================
 //
-ByteMark* DataBuffer::AddMark (String name)
+ByteMark* DataBuffer::addMark (const String& name)
 {
 	ByteMark* mark = new ByteMark;
 	mark->name = name;
-	mark->pos = WrittenSize();
-	mMarks << mark;
+	mark->pos = writtenSize();
+	m_marks << mark;
 	return mark;
 }
 
 // ============================================================================
 //
-MarkReference* DataBuffer::AddReference (ByteMark* mark)
+MarkReference* DataBuffer::addReference (ByteMark* mark)
 {
 	MarkReference* ref = new MarkReference;
 	ref->target = mark;
-	ref->pos = WrittenSize();
-	mReferences << ref;
+	ref->pos = writtenSize();
+	m_references << ref;
 
 	// Write a dummy placeholder for the reference
-	WriteDWord (0xBEEFCAFE);
+	writeDWord (0xBEEFCAFE);
 
 	return ref;
 }
 
 // ============================================================================
 //
-void DataBuffer::AdjustMark (ByteMark* mark)
+void DataBuffer::adjustMark (ByteMark* mark)
 {
-	mark->pos = WrittenSize();
+	mark->pos = writtenSize();
 }
 
 // ============================================================================
 //
-void DataBuffer::OffsetMark (ByteMark* mark, int offset)
+void DataBuffer::offsetMark (ByteMark* mark, int position)
 {
-	mark->pos += offset;
+	mark->pos += position;
 }
 
 // ============================================================================
 //
-void DataBuffer::WriteStringIndex (const String& a)
+void DataBuffer::writeStringIndex (const String& a)
 {
-	WriteDWord (DH_PushStringIndex);
-	WriteDWord (StringTableIndex (a));
+	writeDWord (DH_PushStringIndex);
+	writeDWord (getStringTableIndex (a));
 }
 
 // ============================================================================
 //
-void DataBuffer::Dump()
+void DataBuffer::dump()
 {
-	for (int i = 0; i < WrittenSize(); ++i)
-		printf ("%d. [0x%X]\n", i, Buffer()[i]);
+	for (int i = 0; i < writtenSize(); ++i)
+		printf ("%d. [0x%X]\n", i, buffer()[i]);
 }
 
 // ============================================================================
 //
-void DataBuffer::CheckSpace (int bytes)
+void DataBuffer::checkSpace (int bytes)
 {
-	int writesize = WrittenSize();
+	int writesize = writtenSize();
 
-	if (writesize + bytes < AllocatedSize())
+	if (writesize + bytes < allocatedSize())
 		return;
 
 	// We don't have enough space in the buffer to write
 	// the stuff - thus resize. First, store the old
 	// buffer temporarily:
-	char* copy = new char[AllocatedSize()];
-	memcpy (copy, Buffer(), AllocatedSize());
+	char* copy = new char[allocatedSize()];
+	memcpy (copy, buffer(), allocatedSize());
 
 	// Remake the buffer with the new size. Have enough space
 	// for the stuff we're going to write, as well as a bit
 	// of leeway so we don't have to resize immediately again.
-	int newsize = AllocatedSize() + bytes + 512;
+	int newsize = allocatedSize() + bytes + 512;
 
-	delete Buffer();
-	SetBuffer (new char[newsize]);
-	SetAllocatedSize (newsize);
+	delete buffer();
+	setBuffer (new char[newsize]);
+	setAllocatedSize (newsize);
 
 	// Now, copy the stuff back.
-	memcpy (mBuffer, copy, AllocatedSize());
-	SetPosition (Buffer() + writesize);
+	memcpy (m_buffer, copy, allocatedSize());
+	setPosition (buffer() + writesize);
 	delete copy;
 }
 
 // =============================================================================
 //
-void DataBuffer::WriteByte (int8_t data)
+void DataBuffer::writeByte (int8_t data)
 {
-	CheckSpace (1);
-	*mPosition++ = data;
+	checkSpace (1);
+	*m_position++ = data;
 }
 
 // =============================================================================
 //
-void DataBuffer::WriteWord (int16_t data)
+void DataBuffer::writeWord (int16_t data)
 {
-	CheckSpace (2);
+	checkSpace (2);
 
 	for (int i = 0; i < 2; ++i)
-		*mPosition++ = (data >> (i * 8)) & 0xFF;
+		*m_position++ = (data >> (i * 8)) & 0xFF;
 }
 
 // =============================================================================
 //
-void DataBuffer::WriteDWord (int32_t data)
+void DataBuffer::writeDWord (int32_t data)
 {
-	CheckSpace (4);
+	checkSpace (4);
 
 	for (int i = 0; i < 4; ++i)
-		*mPosition++ = (data >> (i * 8)) & 0xFF;
+		*m_position++ = (data >> (i * 8)) & 0xFF;
 }
 
 // =============================================================================
 //
-void DataBuffer::WriteString (const String& a)
+void DataBuffer::writeString (const String& a)
 {
-	CheckSpace (a.Length() + 4);
-	WriteDWord (a.Length());
+	checkSpace (a.length() + 4);
+	writeDWord (a.length());
 
 	for (char c : a)
-		WriteByte (c);
+		writeByte (c);
 }
 
 
 // =============================================================================
 //
-ByteMark* DataBuffer::FindMarkByName (const String& target)
+ByteMark* DataBuffer::findMarkByName (const String& name)
 {
-	for (ByteMark* mark : Marks())
-		if (mark->name == target)
+	for (ByteMark* mark : marks())
+		if (mark->name == name)
 			return mark;
 
 	return null;

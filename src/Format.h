@@ -35,50 +35,50 @@
 class FormatArgument
 {
 	public:
-		FormatArgument (const String& a) : mText (a) {}
-		FormatArgument (char a) : mText (a) {}
-		FormatArgument (int a) : mText (String::FromNumber (a)) {}
-		FormatArgument (long a) : mText (String::FromNumber (a)) {}
-		FormatArgument (const char* a) : mText (a) {}
+		FormatArgument (const String& a) : m_text (a) {}
+		FormatArgument (char a) : m_text (a) {}
+		FormatArgument (int a) : m_text (String::fromNumber (a)) {}
+		FormatArgument (long a) : m_text (String::fromNumber (a)) {}
+		FormatArgument (const char* a) : m_text (a) {}
 
 		FormatArgument (void* a)
 		{
-			mText.SPrintf ("%p", a);
+			m_text.sprintf ("%p", a);
 		}
 
 		FormatArgument (const void* a)
 		{
-			mText.SPrintf ("%p", a);
+			m_text.sprintf ("%p", a);
 		}
 
 		template<class T> FormatArgument (const List<T>& list)
 		{
-			if (list.IsEmpty())
+			if (list.isEmpty())
 			{
-				mText = "{}";
+				m_text = "{}";
 				return;
 			}
 
-			mText = "{ ";
+			m_text = "{ ";
 
-			for (const T & a : list)
+			for (const T& a : list)
 			{
 				if (&a != &list[0])
-					mText += ", ";
+					m_text += ", ";
 
-				mText += FormatArgument (a).AsString();
+				m_text += FormatArgument (a).text();
 			}
 
-			mText += " }";
+			m_text += " }";
 		}
 
-		inline const String& AsString() const
+		inline const String& text() const
 		{
-			return mText;
+			return m_text;
 		}
 
 	private:
-		String mText;
+		String m_text;
 };
 
 #ifndef IN_IDE_PARSER
@@ -105,7 +105,7 @@ void dvalof (void a);
  * @param args Args to format with the string.
  * @see format()
  */
-String FormatArgs (const String& fmtstr, const std::vector<String>& args);
+String formatArgs (const String& fmtstr, const std::vector<String>& args);
 
 /**
  * Expands the given arguments into a vector of strings.
@@ -115,17 +115,17 @@ String FormatArgs (const String& fmtstr, const std::vector<String>& args);
  * @param rest... Rest of the arguments.
  */
 template<typename T, typename... RestTypes>
-void ExpandFormatArguments (std::vector<String>& data, const T& arg, const RestTypes& ... rest)
+void expandFormatArguments (std::vector<String>& data, const T& arg, const RestTypes& ... rest)
 {
-	data.push_back (FormatArgument (arg).AsString());
-	ExpandFormatArguments (data, rest...);
+	data.push_back (FormatArgument (arg).text());
+	expandFormatArguments (data, rest...);
 }
 
 /**
  * This is an overload of @c ExpandFormatArguments for end-of-args support.
  */
-static void ExpandFormatArguments (std::vector<String>& data) __attribute__ ( (unused));
-static void ExpandFormatArguments (std::vector<String>& data)
+static void expandFormatArguments (std::vector<String>& data) __attribute__ ( (unused));
+static void expandFormatArguments (std::vector<String>& data)
 {
 	(void) data;
 }
@@ -161,49 +161,49 @@ static void ExpandFormatArguments (std::vector<String>& data)
  * @see PrintTo
  */
 template<typename... argtypes>
-String Format (const String& fmtstr, const argtypes&... raw_args)
+String format (const String& fmtstr, const argtypes&... raw_args)
 {
 	std::vector<String> args;
-	ExpandFormatArguments (args, raw_args...);
+	expandFormatArguments (args, raw_args...);
 	assert (args.size() == sizeof... (raw_args));
-	return FormatArgs (fmtstr, args);
+	return formatArgs (fmtstr, args);
 }
 
 /**
- * This is an overload of @c Format where no arguments are supplied.
+ * This is an overload of @c format where no arguments are supplied.
  * @return the formatter string as-is.
  */
-static String Format (const String& fmtstr) __attribute__ ( (unused));
-static String Format (const String& fmtstr)
+static String format (const String& fmtstr) __attribute__ ( (unused));
+static String format (const String& fmtstr)
 {
 	return fmtstr;
 }
 
 /**
- * Processes the given formatter string using @c Format and prints it to the
+ * Processes the given formatter string using @c format and prints it to the
  * specified file pointer.
  *
  * @param fp File pointer to print the formatted string to
- * @param fmtstr Formatter string for @c Format
+ * @param fmtstr Formatter string for @c format
  * @param args Arguments for @c fmtstr
  */
 template<typename... argtypes>
-void PrintTo (FILE* fp, const String& fmtstr, const argtypes&... args)
+void printTo (FILE* fp, const String& fmtstr, const argtypes&... args)
 {
-	fprintf (fp, "%s", Format (fmtstr, args...).c_str());
+	fprintf (fp, "%s", format (fmtstr, args...).c_str());
 }
 
 /**
- * Processes the given formatter string using @c Format and prints the result to
+ * Processes the given formatter string using @c format and prints the result to
  * @c stdout.
  *
- * @param fmtstr Formatter string for @c Format
+ * @param fmtstr Formatter string for @c format
  * @param args Arguments for @c fmtstr
  */
 template<typename... argtypes>
-void Print (const String& fmtstr, const argtypes&... args)
+void print (const String& fmtstr, const argtypes&... args)
 {
-	PrintTo (stdout, fmtstr, args...);
+	printTo (stdout, fmtstr, args...);
 }
 
 /**
@@ -216,9 +216,9 @@ void Print (const String& fmtstr, const argtypes&... args)
  * @see Format
  */
 template<typename... argtypes>
-void Error (const String& fmtstr, const argtypes&... args)
+void error (const String& fmtstr, const argtypes&... args)
 {
-	Error (Format (fmtstr, args...));
+	error (format (fmtstr, args...));
 }
 
 /**
@@ -226,6 +226,6 @@ void Error (const String& fmtstr, const argtypes&... args)
  *
  * @param msg The error message.
  */
-void Error (String msg);
+void error (String msg);
 
 #endif // BOTC_FORMAT_H

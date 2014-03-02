@@ -34,17 +34,17 @@
 #include <deque>
 #include <initializer_list>
 
-template<class T>
+template<typename T>
 class List
 {
 	public:
-		using ListType					= typename std::deque<T>;
-		using Iterator					= typename ListType::iterator;
-		using ConstIterator				= typename ListType::const_iterator;
-		using ReverseIterator			= typename ListType::reverse_iterator;
-		using ConstReverseIterator		= typename ListType::const_reverse_iterator;
+		using WrappedList				= typename std::deque<T>;
+		using Iterator					= typename WrappedList::iterator;
+		using ConstIterator				= typename WrappedList::const_iterator;
+		using ReverseIterator			= typename WrappedList::reverse_iterator;
+		using ConstReverseIterator		= typename WrappedList::const_reverse_iterator;
 		using ValueType					= T;
-		using SelfType					= List<T>;
+		using Self						= List<T>;
 
 		// =====================================================================
 		//
@@ -59,7 +59,7 @@ class List
 
 		// =====================================================================
 		//
-		List (const ListType& a) :
+		List (const WrappedList& a) :
 			m_data (a) {}
 
 		// =====================================================================
@@ -120,15 +120,15 @@ class List
 
 		// =====================================================================
 		//
-		inline void RemoveAt (int pos)
+		inline void removeAt (int pos)
 		{
-			assert (pos < Size());
+			assert (pos < size());
 			m_data.erase (m_data.begin() + pos);
 		}
 
 		// =====================================================================
 		//
-		ValueType& Prepend (const ValueType& value)
+		ValueType& prepend (const ValueType& value)
 		{
 			m_data.push_front (value);
 			return m_data[0];
@@ -136,7 +136,7 @@ class List
 
 		// =====================================================================
 		//
-		ValueType& Append (const ValueType& value)
+		ValueType& append (const ValueType& value)
 		{
 			m_data.push_back (value);
 			return m_data[m_data.size() - 1];
@@ -144,51 +144,51 @@ class List
 
 		// =====================================================================
 		//
-		void Merge (const SelfType& other)
+		void merge (const Self& other)
 		{
-			m_data.resize (Size() + other.Size());
-			std::copy (other.begin(), other.end(), begin() + other.Size());
+			resize (size() + other.size());
+			std::copy (other.begin(), other.end(), begin() + other.size());
 		}
 
 		// =====================================================================
 		//
-		bool Pop (T& val)
+		bool pop (T& val)
 		{
-			if (IsEmpty())
+			if (isEmpty())
 				return false;
 
-			val = m_data[Size() - 1];
+			val = m_data[size() - 1];
 			m_data.erase (m_data.end() - 1);
 			return true;
 		}
 
 		// =====================================================================
 		//
-		SelfType& operator<< (const T& value)
+		Self& operator<< (const T& value)
 		{
-			Append (value);
+			append (value);
 			return *this;
 		}
 
 		// =====================================================================
 		//
-		void operator<< (const SelfType& vals)
+		void operator<< (const Self& vals)
 		{
-			Merge (vals);
+			merge (vals);
 		}
 
 		// =====================================================================
 		//
 		bool operator>> (T& value)
 		{
-			return Pop (value);
+			return pop (value);
 		}
 
 		// =====================================================================
 		//
-		SelfType Reverse() const
+		Self reverse() const
 		{
-			SelfType rev;
+			Self rev;
 
 			for (const T & val : *this)
 				val >> rev;
@@ -198,32 +198,32 @@ class List
 
 		// =====================================================================
 		//
-		void Clear()
+		void clear()
 		{
 			m_data.clear();
 		}
 
 		// =====================================================================
 		//
-		void Insert (int pos, const ValueType& value)
+		void insert (int pos, const ValueType& value)
 		{
 			m_data.insert (m_data.begin() + pos, value);
 		}
 
 		// =====================================================================
 		//
-		void RemoveDuplicates()
+		void removeDuplicates()
 		{
 			// Remove duplicate entries. For this to be effective, the vector must be
 			// sorted first.
-			Sort();
+			sort();
 			Iterator pos = std::unique (begin(), end());
-			Resize (std::distance (begin(), pos));
+			resize (std::distance (begin(), pos));
 		}
 
 		// =====================================================================
 		//
-		int Size() const
+		int size() const
 		{
 			return m_data.size();
 		}
@@ -232,7 +232,7 @@ class List
 		//
 		ValueType& operator[] (int n)
 		{
-			assert (n < Size());
+			assert (n < size());
 			return m_data[n];
 		}
 
@@ -240,27 +240,27 @@ class List
 		//
 		const ValueType& operator[] (int n) const
 		{
-			assert (n < Size());
+			assert (n < size());
 			return m_data[n];
 		}
 
 		// =====================================================================
 		//
-		void Resize (int size)
+		void resize (int size)
 		{
 			m_data.resize (size);
 		}
 
 		// =====================================================================
 		//
-		void Sort()
+		void sort()
 		{
 			std::sort (begin(), end());
 		}
 
 		// =====================================================================
 		//
-		int Find (const ValueType& needle) const
+		int find (const ValueType& needle) const
 		{
 			int i = 0;
 
@@ -277,27 +277,27 @@ class List
 
 		// =====================================================================
 		//
-		void Remove (const ValueType& it)
+		void removeOne (const ValueType& it)
 		{
 			int idx;
 
-			if ((idx = Find (it)) != -1)
-				RemoveAt (idx);
+			if ((idx = find (it)) != -1)
+				removeAt (idx);
 		}
 
 		// =====================================================================
 		//
-		inline bool IsEmpty() const
+		inline bool isEmpty() const
 		{
-			return Size() == 0;
+			return size() == 0;
 		}
 
 		// =====================================================================
 		//
-		SelfType Mid (int a, int b) const
+		Self splice (int a, int b) const
 		{
-			assert (a >= 0 && b >= 0 && a < Size() && b < Size() && a <= b);
-			SelfType result;
+			assert (a >= 0 && b >= 0 && a < size() && b < size() && a <= b);
+			Self result;
 
 			for (int i = a; i <= b; ++i)
 				result << operator[] (i);
@@ -307,51 +307,51 @@ class List
 
 		// =====================================================================
 		//
-		inline const ListType& GetDeque() const
+		inline const WrappedList& deque() const
 		{
 			return m_data;
 		}
 
 		// =====================================================================
 		//
-		inline const ValueType& First() const
+		inline const ValueType& first() const
 		{
 			return *m_data.begin();
 		}
 
 		// =====================================================================
 		//
-		inline const ValueType& Last() const
+		inline const ValueType& last() const
 		{
 			return *(m_data.end() - 1);
 		}
 
 		// =====================================================================
 		//
-		inline bool Contains (const ValueType& a) const
+		inline bool contains (const ValueType& a) const
 		{
-			return Find (a) != -1;
+			return find (a) != -1;
 		}
 
 		// =====================================================================
 		//
-		SelfType operator+ (const SelfType& other) const
+		Self operator+ (const Self& other) const
 		{
-			SelfType out (*this);
-			out.Merge (other);
+			Self out (*this);
+			out.merge (other);
 			return out;
 		}
 
 	private:
-		ListType m_data;
+		WrappedList m_data;
 };
 
 // =============================================================================
 //
-template<class T>
+template<typename T>
 List<T>& operator>> (const T& value, List<T>& haystack)
 {
-	haystack.push_front (value);
+	haystack.prepend (value);
 	return haystack;
 }
 

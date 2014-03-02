@@ -34,11 +34,10 @@
 
 class LexerScanner
 {
-	types:
+	public:
 		struct PositionInfo
 		{
 			char*	pos;
-			char*	line_break_pos;
 			int		line;
 		};
 
@@ -49,8 +48,7 @@ class LexerScanner
 			FCheckPeek = (1 << 1),   // don't advance cursor
 		};
 
-	public:
-		static inline bool IsSymbolChar (char c, bool allownumbers)
+		static inline bool isSymbolChar (char c, bool allownumbers)
 		{
 			if (allownumbers && (c >= '0' && c <= '9'))
 				return true;
@@ -62,53 +60,53 @@ class LexerScanner
 
 		LexerScanner (FILE* fp);
 		~LexerScanner();
-		bool GetNextToken();
-		String ReadLine();
+		bool getNextToken();
+		String readLine();
 
-		inline const String& GetTokenText() const
+		inline const String& getTokenText() const
 		{
-			return mTokenText;
+			return m_tokenText;
 		}
 
-		inline int GetLine() const
+		inline int getLine() const
 		{
-			return mLine;
+			return m_line;
 		}
 
-		inline int GetColumn() const
+		inline int getColumn() const
 		{
-			return mPosition - mLineBreakPosition;
+			return m_position - m_lineBreakPosition;
 		}
 
-		inline ETokenType GetTokenType() const
+		inline ETokenType getTokenType() const
 		{
-			return mTokenType;
+			return m_tokenType;
 		}
 
-		static String GetTokenString (ETokenType a);
+		static String getTokenString (ETokenType a);
 
 	private:
-		char*			mData;
-		char*			mPosition;
-		char*			mLineBreakPosition;
-		String			mTokenText,
-						mLastToken;
-		ETokenType		mTokenType;
-		int				mLine;
+		char*			m_data;
+		char*			m_position;
+		char*			m_lineBreakPosition;
+		String			m_tokenText,
+						m_lastToken;
+		ETokenType		m_tokenType;
+		int				m_line;
 
-		bool			CheckString (const char* c, int flags = 0);
+		bool			checkString (const char* c, int flags = 0);
 
 		// Yields a copy of the current position information.
-		PositionInfo	GetPosition() const;
+		PositionInfo	getPosition() const;
 
 		// Sets the current position based on given data.
-		void			SetPosition (const PositionInfo& a);
+		void			setPosition (const PositionInfo& a);
 
 		// Skips one character
-		void			Skip();
+		void			skip();
 
 		// Skips many characters
-		void			Skip (int chars);
+		void			skip (int chars);
 };
 
 #endif // BOTC_LEXER_SCANNER_H

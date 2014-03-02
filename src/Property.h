@@ -30,12 +30,12 @@
 
 #define PROPERTY( ACCESS, TYPE, READ, WRITE, WRITETYPE )			\
 	private:														\
-		TYPE m##READ;												\
+		TYPE m_##READ;												\
 																	\
 	public:															\
 		inline TYPE const& READ() const								\
 		{															\
-			return m##READ; 										\
+			return m_##READ; 										\
 		}															\
 																	\
 	ACCESS:															\
@@ -43,7 +43,7 @@
 
 #define PROPERTY_STOCK_WRITE( READ )	\
 		{								\
-			m##READ = a;				\
+			m_##READ = a;				\
 		}
 
 #define PROPERTY_CUSTOM_WRITE( READ ) ;
