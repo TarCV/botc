@@ -10,7 +10,7 @@ struct OperatorInfo
 	DataHeader	header;
 };
 
-static const OperatorInfo gOperators[] =
+static const OperatorInfo g_Operators[] =
 {
 	{TK_ExclamationMark,	0,		1,	DH_NegateLogical,	},
 	{TK_Minus,				0,		1,	DH_UnaryMinus,		},
@@ -38,31 +38,31 @@ static const OperatorInfo gOperators[] =
 // =============================================================================
 //
 Expression::Expression (BotscriptParser* parser, Lexer* lx, DataType reqtype) :
-	mParser (parser),
-	mLexer (lx),
-	mType (reqtype)
+	m_parser (parser),
+	m_lexer (lx),
+	m_type (reqtype)
 {
 	ExpressionSymbol* sym;
 
-	while ((sym = ParseSymbol()) != null)
-		mSymbols << sym;
+	while ((sym = parseSymbol()) != null)
+		m_symbols << sym;
 
 	// If we were unable to get any expression symbols, something's wonky with
 	// the script. Report an error. mBadTokenText is set to the token that
 	// ParseSymbol ends at when it returns false.
-	if (mSymbols.IsEmpty())
-		Error ("unknown identifier '%1'", mBadTokenText);
+	if (m_symbols.isEmpty())
+		error ("unknown identifier '%1'", m_badTokenText);
 
-	AdjustOperators();
-	Verify();
-	Evaluate();
+	adjustOperators();
+	verify();
+	evaluate();
 }
 
 // =============================================================================
 //
 Expression::~Expression()
 {
-	for (ExpressionSymbol* sym : mSymbols)
+	for (ExpressionSymbol* sym : m_symbols)
 		delete sym;
 }
 
@@ -71,171 +71,171 @@ Expression::~Expression()
 // Try to parse an expression symbol (i.e. an OPER_erator or OPER_erand or a colon)
 // from the lexer.
 //
-ExpressionSymbol* Expression::ParseSymbol()
+ExpressionSymbol* Expression::parseSymbol()
 {
-	int pos = mLexer->Position();
+	int pos = m_lexer->position();
 	ExpressionValue* op = null;
 
-	if (mLexer->Next (TK_Colon))
+	if (m_lexer->next (TK_Colon))
 		return new ExpressionColon;
 
 	// Check for OPER_erator
-	for (const OperatorInfo& op : gOperators)
-		if (mLexer->Next (op.token))
-			return new ExpressionOperator ((ExpressionOperatorType) (&op - &gOperators[0]));
+	for (const OperatorInfo& op : g_Operators)
+		if (m_lexer->next (op.token))
+			return new ExpressionOperator ((ExpressionOperatorType) (&op - &g_Operators[0]));
 
 	// Check sub-expression
-	if (mLexer->Next (TK_ParenStart))
+	if (m_lexer->next (TK_ParenStart))
 	{
-		Expression expr (mParser, mLexer, mType);
-		mLexer->MustGetNext (TK_ParenEnd);
-		return expr.Result()->Clone();
+		Expression expr (m_parser, m_lexer, m_type);
+		m_lexer->mustGetNext (TK_ParenEnd);
+		return expr.getResult()->clone();
 	}
 
-	op = new ExpressionValue (mType);
+	op = new ExpressionValue (m_type);
 
 	// Check function
-	if (CommandInfo* comm = FindCommandByName (mLexer->PeekNextString()))
+	if (CommandInfo* comm = findCommandByName (m_lexer->peekNextString()))
 	{
-		mLexer->Skip();
+		m_lexer->skip();
 
-		if (mType != TYPE_Unknown && comm->returnvalue != mType)
-			Error ("%1 returns an incompatible data type", comm->name);
+		if (m_type != TYPE_Unknown && comm->returnvalue != m_type)
+			error ("%1 returns an incompatible data type", comm->name);
 
-		op->SetBuffer (mParser->ParseCommand (comm));
+		op->setBuffer (m_parser->parseCommand (comm));
 		return op;
 	}
 
 	// Check for variables
-	if (mLexer->Next (TK_DollarSign))
+	if (m_lexer->next (TK_DollarSign))
 	{
-		mLexer->MustGetNext (TK_Symbol);
-		Variable* var = mParser->FindVariable (TokenString());
+		m_lexer->mustGetNext (TK_Symbol);
+		Variable* var = m_parser->findVariable (getTokenString());
 
 		if (var == null)
-			Error ("unknown variable %1", TokenString());
+			error ("unknown variable %1", getTokenString());
 
-		if (var->type != mType)
-			Error ("expression requires %1, variable $%2 is of type %3",
-				DataTypeName (mType), var->name, DataTypeName (var->type));
+		if (var->type != m_type)
+			error ("expression requires %1, variable $%2 is of type %3",
+				dataTypeName (m_type), var->name, dataTypeName (var->type));
 
 		if (var->isarray)
 		{
-			mLexer->MustGetNext (TK_BracketStart);
-			Expression expr (mParser, mLexer, TYPE_Int);
-			expr.Result()->ConvertToBuffer();
-			DataBuffer* buf = expr.Result()->Buffer()->Clone();
-			buf->WriteDWord (DH_PushGlobalArray);
-			buf->WriteDWord (var->index);
-			op->SetBuffer (buf);
-			mLexer->MustGetNext (TK_BracketEnd);
+			m_lexer->mustGetNext (TK_BracketStart);
+			Expression expr (m_parser, m_lexer, TYPE_Int);
+			expr.getResult()->convertToBuffer();
+			DataBuffer* buf = expr.getResult()->buffer()->clone();
+			buf->writeDWord (DH_PushGlobalArray);
+			buf->writeDWord (var->index);
+			op->setBuffer (buf);
+			m_lexer->mustGetNext (TK_BracketEnd);
 		}
 		elif (var->writelevel == WRITE_Constexpr)
-			op->SetValue (var->value);
+			op->setValue (var->value);
 		else
 		{
 			DataBuffer* buf = new DataBuffer (8);
 
 			if (var->IsGlobal())
-				buf->WriteDWord (DH_PushGlobalVar);
+				buf->writeDWord (DH_PushGlobalVar);
 			else
-				buf->WriteDWord (DH_PushLocalVar);
+				buf->writeDWord (DH_PushLocalVar);
 
-			buf->WriteDWord (var->index);
-			op->SetBuffer (buf);
+			buf->writeDWord (var->index);
+			op->setBuffer (buf);
 		}
 
 		return op;
 	}
 
 	// Check for literal
-	switch (mType)
+	switch (m_type)
 	{
 		case TYPE_Void:
 		case TYPE_Unknown:
 		{
-			Error ("unknown identifier `%1` (expected keyword, function or variable)", TokenString());
+			error ("unknown identifier `%1` (expected keyword, function or variable)", getTokenString());
 			break;
 		}
 
 		case TYPE_Bool:
 		{
-			if (mLexer->Next (TK_True) || mLexer->Next (TK_False))
+			if (m_lexer->next (TK_True) || m_lexer->next (TK_False))
 			{
-				ETokenType tt = mLexer->TokenType();
-				op->SetValue (tt == TK_True ? 1 : 0);
+				ETokenType tt = m_lexer->tokenType();
+				op->setValue (tt == TK_True ? 1 : 0);
 				return op;
 			}
 		}
 
 		case TYPE_Int:
 		{
-			if (mLexer->Next (TK_Number))
+			if (m_lexer->next (TK_Number))
 			{
-				op->SetValue (TokenString().ToLong());
+				op->setValue (getTokenString().toLong());
 				return op;
 			}
 		}
 
 		case TYPE_String:
 		{
-			if (mLexer->Next (TK_String))
+			if (m_lexer->next (TK_String))
 			{
-				op->SetValue (StringTableIndex (TokenString()));
+				op->setValue (getStringTableIndex (getTokenString()));
 				return op;
 			}
 		}
 	}
 
-	mBadTokenText = mLexer->Token()->text;
-	mLexer->SetPosition (pos);
+	m_badTokenText = m_lexer->token()->text;
+	m_lexer->setPosition (pos);
 	delete op;
 	return null;
 }
 
 // =============================================================================
 //
-// The symbol parsing process only does token-based checking for OPER_erators. Thus
-// ALL minus OPER_erators are actually unary minuses simply because both have
-//TK_Minus as their token and the unary minus is prior to the binary minus in
-// the OPER_erator table. Now that we have all symbols present, we can correct
-// cases like this.
+// The symbol parsing process only does token-based checking for OPER_erators.
+// Thus ALL minus OPER_erators are actually unary minuses simply because both
+// have TK_Minus as their token and the unary minus is prior to the binary minus
+// in the OPER_erator table. Now that we have all symbols present, we can
+// correct cases like this.
 //
-void Expression::AdjustOperators()
+void Expression::adjustOperators()
 {
-	for (auto it = mSymbols.begin() + 1; it != mSymbols.end(); ++it)
+	for (auto it = m_symbols.begin() + 1; it != m_symbols.end(); ++it)
 	{
-		if ((*it)->Type() != EXPRSYM_Operator)
+		if ((*it)->type() != EXPRSYM_Operator)
 			continue;
 
 		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
 
 		// Unary minus with a value as the previous symbol cannot really be
 		// unary; replace with binary minus.
-		if (op->ID() == OPER_UnaryMinus && (*(it - 1))->Type() == EXPRSYM_Value)
-			op->SetID (OPER_Subtraction);
+		if (op->id() == OPER_UnaryMinus && (*(it - 1))->type() == EXPRSYM_Value)
+			op->setID (OPER_Subtraction);
 	}
 }
 
 // =============================================================================
 //
-// Verifies a single value. Helper function for Expression::Verify.
+// Verifies a single value. Helper function for Expression::verify.
 //
-void Expression::TryVerifyValue (bool* verified, SymbolList::Iterator it)
+void Expression::tryVerifyValue (bool* verified, SymbolList::Iterator it)
 {
 	// If it's an unary OPER_erator we skip to its value. The actual OPER_erator will
 	// be verified separately.
-	if ((*it)->Type() == EXPRSYM_Operator &&
-		gOperators[static_cast<ExpressionOperator*> (*it)->ID()].numoperands == 1)
+	if ((*it)->type() == EXPRSYM_Operator &&
+			g_Operators[static_cast<ExpressionOperator*> (*it)->id()].numoperands == 1)
 	{
 		++it;
 	}
 
-	int i = it - mSymbols.begin();
+	int i = it - m_symbols.begin();
 
 	// Ensure it's an actual value
-	if ((*it)->Type() != EXPRSYM_Value)
-		Error ("malformed expression (symbol #%1 is not a value)", i);
+	if ((*it)->type() != EXPRSYM_Value)
+		error ("malformed expression (symbol #%1 is not a value)", i);
 
 	verified[i] = true;
 }
@@ -245,33 +245,33 @@ void Expression::TryVerifyValue (bool* verified, SymbolList::Iterator it)
 // Ensures the expression is valid and well-formed and not OMGWTFBBQ. Throws an
 // error if this is not the case.
 //
-void Expression::Verify()
+void Expression::verify()
 {
-	if (mSymbols.Size() == 1)
+	if (m_symbols.size() == 1)
 	{
-		if (mSymbols[0]->Type() != EXPRSYM_Value)
-			Error ("bad expression");
+		if (m_symbols[0]->type() != EXPRSYM_Value)
+			error ("bad expression");
 
 		return;
 	}
 
-	if (mType == TYPE_String)
-		Error ("Cannot perform OPER_erations on strings");
+	if (m_type == TYPE_String)
+		error ("Cannot perform OPER_erations on strings");
 
-	bool* verified = new bool[mSymbols.Size()];
-	memset (verified, 0, mSymbols.Size() * sizeof (decltype (*verified)));
-	const auto last = mSymbols.end() - 1;
-	const auto first = mSymbols.begin();
+	bool* verified = new bool[m_symbols.size()];
+	memset (verified, 0, m_symbols.size() * sizeof (decltype (*verified)));
+	const auto last = m_symbols.end() - 1;
+	const auto first = m_symbols.begin();
 
-	for (auto it = mSymbols.begin(); it != mSymbols.end(); ++it)
+	for (auto it = m_symbols.begin(); it != m_symbols.end(); ++it)
 	{
 		int i = (it - first);
 
-		if ((*it)->Type() != EXPRSYM_Operator)
+		if ((*it)->type() != EXPRSYM_Operator)
 			continue;
 
 		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
-		int numoperands = gOperators[op->ID()].numoperands;
+		int numoperands = g_Operators[op->id()].numoperands;
 
 		switch (numoperands)
 		{
@@ -281,10 +281,10 @@ void Expression::Verify()
 				// -	unary OPER_erator is not the last symbol
 				// -	unary OPER_erator is succeeded by a value symbol
 				// -	neither symbol overlaps with something already verified
-				TryVerifyValue (verified, it + 1);
+				tryVerifyValue (verified, it + 1);
 
 				if (it == last || verified[i] == true)
-					Error ("malformed expression");
+					error ("malformed expression");
 
 				verified[i] = true;
 				break;
@@ -299,10 +299,10 @@ void Expression::Verify()
 				//
 				// Basically similar logic as above.
 				if (it == first || it == last || verified[i] == true)
-					Error ("malformed expression");
+					error ("malformed expression");
 
-				TryVerifyValue (verified, it + 1);
-				TryVerifyValue (verified, it - 1);
+				tryVerifyValue (verified, it + 1);
+				tryVerifyValue (verified, it - 1);
 				verified[i] = true;
 				break;
 			}
@@ -323,17 +323,17 @@ void Expression::Verify()
 				// -	the value after the colon (+3) is valid
 				// -	none of the five tokens are verified
 				//
-				TryVerifyValue (verified, it - 1);
-				TryVerifyValue (verified, it + 1);
-				TryVerifyValue (verified, it + 3);
+				tryVerifyValue (verified, it - 1);
+				tryVerifyValue (verified, it + 1);
+				tryVerifyValue (verified, it + 3);
 
 				if (it == first ||
-					it >= mSymbols.end() - 3 ||
+					it >= m_symbols.end() - 3 ||
 					verified[i] == true ||
 					verified[i + 2] == true ||
-					(*(it + 2))->Type() != EXPRSYM_Colon)
+					(*(it + 2))->type() != EXPRSYM_Colon)
 				{
-					Error ("malformed expression");
+					error ("malformed expression");
 				}
 
 				verified[i] = true;
@@ -342,13 +342,13 @@ void Expression::Verify()
 			}
 
 			default:
-				Error ("WTF OPER_erator with %1 OPER_erands", numoperands);
+				error ("WTF OPER_erator with %1 OPER_erands", numoperands);
 		}
 	}
 
-	for (int i = 0; i < mSymbols.Size(); ++i)
+	for (int i = 0; i < m_symbols.size(); ++i)
 		if (verified[i] == false)
-			Error ("malformed expression: expr symbol #%1 is was left unverified", i);
+			error ("malformed expression: expr symbol #%1 is was left unverified", i);
 
 	delete verified;
 }
@@ -356,20 +356,20 @@ void Expression::Verify()
 
 // =============================================================================
 //
-// Which OPER_erator to evaluate?
+// Which operator to evaluate?
 //
-Expression::SymbolList::Iterator Expression::FindPrioritizedOperator()
+Expression::SymbolList::Iterator Expression::findPrioritizedOperator()
 {
-	SymbolList::Iterator	best = mSymbols.end();
+	SymbolList::Iterator	best = m_symbols.end();
 	int						bestpriority = __INT_MAX__;
 
-	for (SymbolList::Iterator it = mSymbols.begin(); it != mSymbols.end(); ++it)
+	for (SymbolList::Iterator it = m_symbols.begin(); it != m_symbols.end(); ++it)
 	{
-		if ((*it)->Type() != EXPRSYM_Operator)
+		if ((*it)->type() != EXPRSYM_Operator)
 			continue;
 
 		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
-		const OperatorInfo* info = &gOperators[op->ID()];
+		const OperatorInfo* info = &g_Operators[op->id()];
 
 		if (info->priority < bestpriority)
 		{
@@ -385,16 +385,16 @@ Expression::SymbolList::Iterator Expression::FindPrioritizedOperator()
 //
 // Process the given OPER_erator and values into a new value.
 //
-ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
+ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 											   const List<ExpressionValue*>& values)
 {
-	const OperatorInfo* info = &gOperators[op->ID()];
+	const OperatorInfo* info = &g_Operators[op->id()];
 	bool isconstexpr = true;
-	assert (values.Size() == info->numoperands);
+	assert (values.size() == info->numoperands);
 
 	for (ExpressionValue* val : values)
 	{
-		if (val->IsConstexpr() == false)
+		if (val->isConstexpr() == false)
 		{
 			isconstexpr = false;
 			break;
@@ -404,41 +404,41 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 	// If not all of the values are constant expressions, none of them shall be.
 	if (isconstexpr == false)
 		for (ExpressionValue* val : values)
-			val->ConvertToBuffer();
+			val->convertToBuffer();
 
-	ExpressionValue* newval = new ExpressionValue (mType);
+	ExpressionValue* newval = new ExpressionValue (m_type);
 
 	if (isconstexpr == false)
 	{
 		// This is not a constant expression so we'll have to use databuffers
 		// to convey the expression to bytecode. Actual value cannot be evaluated
 		// until Zandronum processes it at run-time.
-		newval->SetBuffer (new DataBuffer);
+		newval->setBuffer (new DataBuffer);
 
-		if (op->ID() == OPER_Ternary)
+		if (op->id() == OPER_Ternary)
 		{
 			// There isn't a dataheader for ternary OPER_erator. Instead, we use DH_IfNotGoto
 			// to create an "if-block" inside an expression.
 			// Behold, big block of writing madness! :P
 			//
-			DataBuffer* buf = newval->Buffer();
-			DataBuffer* b0 = values[0]->Buffer();
-			DataBuffer* b1 = values[1]->Buffer();
-			DataBuffer* b2 = values[2]->Buffer();
-			ByteMark* mark1 = buf->AddMark (""); // start of "else" case
-			ByteMark* mark2 = buf->AddMark (""); // end of expression
-			buf->MergeAndDestroy (b0);
-			buf->WriteDWord (DH_IfNotGoto); // if the first OPER_erand (condition)
-			buf->AddReference (mark1); // didn't eval true, jump into mark1
-			buf->MergeAndDestroy (b1); // otherwise, perform second OPER_erand (true case)
-			buf->WriteDWord (DH_Goto); // afterwards, jump to the end, which is
-			buf->AddReference (mark2); // marked by mark2.
-			buf->AdjustMark (mark1); // move mark1 at the end of the true case
-			buf->MergeAndDestroy (b2); // perform third OPER_erand (false case)
-			buf->AdjustMark (mark2); // move the ending mark2 here
+			DataBuffer* buf = newval->buffer();
+			DataBuffer* b0 = values[0]->buffer();
+			DataBuffer* b1 = values[1]->buffer();
+			DataBuffer* b2 = values[2]->buffer();
+			ByteMark* mark1 = buf->addMark (""); // start of "else" case
+			ByteMark* mark2 = buf->addMark (""); // end of expression
+			buf->mergeAndDestroy (b0);
+			buf->writeDWord (DH_IfNotGoto); // if the first OPER_erand (condition)
+			buf->addReference (mark1); // didn't eval true, jump into mark1
+			buf->mergeAndDestroy (b1); // otherwise, perform second OPER_erand (true case)
+			buf->writeDWord (DH_Goto); // afterwards, jump to the end, which is
+			buf->addReference (mark2); // marked by mark2.
+			buf->adjustMark (mark1); // move mark1 at the end of the true case
+			buf->mergeAndDestroy (b2); // perform third OPER_erand (false case)
+			buf->adjustMark (mark2); // move the ending mark2 here
 
 			for (int i = 0; i < 3; ++i)
-				values[i]->SetBuffer (null);
+				values[i]->setBuffer (null);
 		}
 		else
 		{
@@ -446,14 +446,14 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 			// data header.
 			for (ExpressionValue* val : values)
 			{
-				newval->Buffer()->MergeAndDestroy (val->Buffer());
+				newval->buffer()->mergeAndDestroy (val->buffer());
 
 				// Null the pointer out so that the value's destructor will not
 				// attempt to double-free it.
-				val->SetBuffer (null);
+				val->setBuffer (null);
 			}
 
-			newval->Buffer()->WriteDWord (info->header);
+			newval->buffer()->writeDWord (info->header);
 		}
 	}
 	else
@@ -464,11 +464,11 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 		int a;
 
 		for (ExpressionValue* val : values)
-			nums << val->Value();
+			nums << val->value();
 
-		switch (op->ID())
+		switch (op->id())
 		{
-			case OPER_Addition:			a = nums[0] + nums[1];					break;
+			case OPER_Addition:				a = nums[0] + nums[1];					break;
 			case OPER_Subtraction:			a = nums[0] - nums[1];					break;
 			case OPER_Multiplication:		a = nums[0] * nums[1];					break;
 			case OPER_UnaryMinus:			a = -nums[0];							break;
@@ -480,7 +480,7 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 			case OPER_CompareAtLeast:		a = (nums[0] <= nums[1]) ? 1 : 0;		break;
 			case OPER_CompareAtMost:		a = (nums[0] >= nums[1]) ? 1 : 0;		break;
 			case OPER_CompareEquals:		a = (nums[0] == nums[1]) ? 1 : 0;		break;
-			case OPER_CompareNotEquals:	a = (nums[0] != nums[1]) ? 1 : 0;		break;
+			case OPER_CompareNotEquals:		a = (nums[0] != nums[1]) ? 1 : 0;		break;
 			case OPER_BitwiseAnd:			a = nums[0] & nums[1];					break;
 			case OPER_BitwiseOr:			a = nums[0] | nums[1];					break;
 			case OPER_BitwiseXOr:			a = nums[0] ^ nums[1];					break;
@@ -491,7 +491,7 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 			case OPER_Division:
 			{
 				if (nums[1] == 0)
-					Error ("division by zero in constant expression");
+					error ("division by zero in constant expression");
 
 				a = nums[0] / nums[1];
 				break;
@@ -500,14 +500,14 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 			case OPER_Modulus:
 			{
 				if (nums[1] == 0)
-					Error ("modulus by zero in constant expression");
+					error ("modulus by zero in constant expression");
 
 				a = nums[0] % nums[1];
 				break;
 			}
 		}
 
-		newval->SetValue (a);
+		newval->setValue (a);
 	}
 
 	// The new value has been generated. We don't need the old stuff anymore.
@@ -520,16 +520,16 @@ ExpressionValue* Expression::EvaluateOperator (const ExpressionOperator* op,
 
 // =============================================================================
 //
-ExpressionValue* Expression::Evaluate()
+ExpressionValue* Expression::evaluate()
 {
 	SymbolList::Iterator it;
 
-	while ((it = FindPrioritizedOperator()) != mSymbols.end())
+	while ((it = findPrioritizedOperator()) != m_symbols.end())
 	{
-		int i = it - mSymbols.begin();
+		int i = it - m_symbols.begin();
 		List<SymbolList::Iterator> OPER_erands;
 		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
-		const OperatorInfo* info = &gOperators[op->ID()];
+		const OperatorInfo* info = &g_Operators[op->id()];
 		int lower, upper; // Boundaries of area to replace
 
 		switch (info->numoperands)
@@ -571,76 +571,76 @@ ExpressionValue* Expression::Evaluate()
 			values << static_cast<ExpressionValue*> (*it);
 
 		// Note: @op and all of @values are invalid after this call.
-		ExpressionValue* newvalue = EvaluateOperator (op, values);
+		ExpressionValue* newvalue = evaluateOperator (op, values);
 
 		for (int i = upper; i >= lower; --i)
-			mSymbols.RemoveAt (i);
+			m_symbols.removeAt (i);
 
-		mSymbols.Insert (lower, newvalue);
+		m_symbols.insert (lower, newvalue);
 	}
 
-	assert (mSymbols.Size() == 1 && mSymbols.First()->Type() == EXPRSYM_Value);
-	ExpressionValue* val = static_cast<ExpressionValue*> (mSymbols.First());
+	assert (m_symbols.size() == 1 && m_symbols.first()->type() == EXPRSYM_Value);
+	ExpressionValue* val = static_cast<ExpressionValue*> (m_symbols.first());
 	return val;
 }
 
 // =============================================================================
 //
-ExpressionValue* Expression::Result()
+ExpressionValue* Expression::getResult()
 {
-	return static_cast<ExpressionValue*> (mSymbols.First());
+	return static_cast<ExpressionValue*> (m_symbols.first());
 }
 
 // =============================================================================
 //
-String Expression::TokenString()
+String Expression::getTokenString()
 {
-	return mLexer->Token()->text;
+	return m_lexer->token()->text;
 }
 
 // =============================================================================
 //
 ExpressionOperator::ExpressionOperator (ExpressionOperatorType id) :
 	ExpressionSymbol (EXPRSYM_Operator),
-	mID (id) {}
+	m_id (id) {}
 
 // =============================================================================
 //
 ExpressionValue::ExpressionValue (DataType valuetype) :
 	ExpressionSymbol (EXPRSYM_Value),
-	mBuffer (null),
-	mValueType (valuetype) {}
+	m_buffer (null),
+	m_valueType (valuetype) {}
 
 // =============================================================================
 //
 ExpressionValue::~ExpressionValue()
 {
-	delete mBuffer;
+	delete m_buffer;
 }
 
 // =============================================================================
 //
-void ExpressionValue::ConvertToBuffer()
+void ExpressionValue::convertToBuffer()
 {
-	if (IsConstexpr() == false)
+	if (isConstexpr() == false)
 		return;
 
-	SetBuffer (new DataBuffer);
+	setBuffer (new DataBuffer);
 
-	switch (mValueType)
+	switch (m_valueType)
 	{
 		case TYPE_Bool:
 		case TYPE_Int:
-			Buffer()->WriteDWord (DH_PushNumber);
-			Buffer()->WriteDWord (abs (mValue));
+			buffer()->writeDWord (DH_PushNumber);
+			buffer()->writeDWord (abs (value()));
 
-			if (mValue < 0)
-				Buffer()->WriteDWord (DH_UnaryMinus);
+			if (value() < 0)
+				buffer()->writeDWord (DH_UnaryMinus);
 			break;
 
 		case TYPE_String:
-			Buffer()->WriteDWord (DH_PushStringIndex);
-			Buffer()->WriteDWord (mValue);
+			buffer()->writeDWord (DH_PushStringIndex);
+			buffer()->writeDWord (value());
 			break;
 
 		case TYPE_Void:

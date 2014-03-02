@@ -38,12 +38,12 @@ static List<CommandInfo*> gCommands;
 
 // ============================================================================
 //
-void AddCommandDefinition (CommandInfo* comm)
+void addCommandDefinition (CommandInfo* comm)
 {
 	// Ensure that there is no conflicts
 	for (CommandInfo* it : gCommands)
 		if (it->number == comm->number)
-			Error ("Attempted to redefine command #%1 (%2) as %3",
+			error ("Attempted to redefine command #%1 (%2) as %3",
 				   gCommands[comm->number]->name, comm->name);
 
 	gCommands << comm;
@@ -51,11 +51,11 @@ void AddCommandDefinition (CommandInfo* comm)
 
 // ============================================================================
 // Finds a command by name
-CommandInfo* FindCommandByName (String fname)
+CommandInfo* findCommandByName (String fname)
 {
 	for (CommandInfo* comm : gCommands)
 	{
-		if (fname.ToUppercase() == comm->name.ToUppercase())
+		if (fname.toUppercase() == comm->name.toUppercase())
 			return comm;
 	}
 
@@ -66,21 +66,21 @@ CommandInfo* FindCommandByName (String fname)
 //
 // Returns the prototype of the command
 //
-String CommandInfo::GetSignature()
+String CommandInfo::signature()
 {
 	String text;
-	text += DataTypeName (returnvalue);
+	text += dataTypeName (returnvalue);
 	text += ' ';
 	text += name;
 
-	if (args.IsEmpty() == false)
+	if (args.isEmpty() == false)
 		text += ' ';
 
 	text += '(';
 
 	bool hasoptionals = false;
 
-	for (int i = 0; i < args.Size(); i++)
+	for (int i = 0; i < args.size(); i++)
 	{
 		if (i == minargs)
 		{
@@ -91,22 +91,21 @@ String CommandInfo::GetSignature()
 		if (i)
 			text += ", ";
 
-		text += DataTypeName (args[i].type);
+		text += dataTypeName (args[i].type);
 		text += ' ';
 		text += args[i].name;
 
 		if (i >= minargs)
 		{
+			bool isString = args[i].type == TYPE_String;
 			text += " = ";
 
-			bool is_string = args[i].type == TYPE_String;
-
-			if (is_string)
+			if (isString)
 				text += '"';
 
-			text += String::FromNumber (args[i].defvalue);
+			text += String::fromNumber (args[i].defvalue);
 
-			if (is_string)
+			if (isString)
 				text += '"';
 		}
 	}
@@ -118,7 +117,7 @@ String CommandInfo::GetSignature()
 	return text;
 }
 
-const List<CommandInfo*>& GetCommands()
+const List<CommandInfo*>& getCommands()
 {
 	return gCommands;
 }

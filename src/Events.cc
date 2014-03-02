@@ -26,6 +26,8 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// TODO: this file is a freeloader, I should probably get rid of it
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "Main.h"
@@ -33,32 +35,32 @@
 #include "Events.h"
 #include "Lexer.h"
 
-static List<EventDefinition*> gEvents;
+static List<EventDefinition*> g_Events;
 
 // ============================================================================
 //
-void AddEvent (EventDefinition* e)
+void addEvent (EventDefinition* e)
 {
-	gEvents << e;
+	g_Events << e;
 }
 
 // ============================================================================
 //
 // Finds an event definition by index
 //
-EventDefinition* FindEventByIndex (int idx)
+EventDefinition* findEventByIndex (int idx)
 {
-	return gEvents[idx];
+	return g_Events[idx];
 }
 
 // ============================================================================
 //
 // Finds an event definition by name
 //
-EventDefinition* FindEventByName (String a)
+EventDefinition* findEventByName (String a)
 {
-	for (EventDefinition* e : gEvents)
-		if (a.ToUppercase() == e->name.ToUppercase())
+	for (EventDefinition* e : g_Events)
+		if (a.toUppercase() == e->name.toUppercase())
 			return e;
 
 	return null;

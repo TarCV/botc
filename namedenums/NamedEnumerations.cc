@@ -219,21 +219,21 @@ int main (int argc, char* argv[])
 		auto pos = std::unique (filesToInclude.begin(), filesToInclude.end());
 		filesToInclude.resize (std::distance (filesToInclude.begin(), pos));
 
-		for (const string & a : filesToInclude)
+		for (const string& a : filesToInclude)
 			fprintf (fp, "#include \"%s\"\n", basename (a.c_str()));
 
-		for (NamedEnumInfo & e : namedEnumerations)
+		for (NamedEnumInfo& e : namedEnumerations)
 		{
-			fprintf (fp, "\nstatic const char* g%sNames[] =\n{\n", e.name.c_str());
+			fprintf (fp, "\nstatic const char* g_%sNames[] =\n{\n", e.name.c_str());
 
-			for (const string & a : e.enumerators)
+			for (const string& a : e.enumerators)
 				fprintf (fp, "\t\"%s\",\n", a.c_str());
 
 			fprintf (fp, "};\n\n");
 
-			fprintf (fp, "inline const char* Get%sString (%s a)\n"
+			fprintf (fp, "inline const char* get%sString (%s a)\n"
 				"{\n"
-				"\treturn g%sNames[a];\n"
+				"\treturn g_%sNames[a];\n"
 				"}\n",
 				e.name.c_str(), e.name.c_str(), e.name.c_str());
 		}

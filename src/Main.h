@@ -41,11 +41,11 @@
 #include "BotStuff.h"
 #include "Tokens.h"
 
-String MakeObjectFileName (String s);
-DataType GetTypeByName (String token);
-String DataTypeName (DataType type);
-String GetVersionString (bool longform);
-String MakeVersionString (int major, int minor, int patch);
+String makeObjectFileName (String s);
+DataType getTypeByName (String token);
+String dataTypeName (DataType type);
+String versionString (bool longform);
+String makeVersionString (int major, int minor, int patch);
 
 template<typename T>
 inline T max (T a, T b)

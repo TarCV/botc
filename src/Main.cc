@@ -44,35 +44,35 @@ int main (int argc, char** argv)
 		// I guess there should be a better way to do this.
 		if (argc == 2 && String (argv[1]) == "-l")
 		{
-			Print ("Begin list of commands:\n");
-			Print ("------------------------------------------------------\n");
+			print ("Begin list of commands:\n");
+			print ("------------------------------------------------------\n");
 
 			BotscriptParser parser;
-			parser.SetReadOnly (true);
-			parser.ParseBotscript ("botc_defs.bts");
+			parser.setReadOnly (true);
+			parser.parseBotscript ("botc_defs.bts");
 
-			for (CommandInfo* comm : GetCommands())
-				Print ("%1\n", comm->GetSignature());
+			for (CommandInfo* comm : getCommands())
+				print ("%1\n", comm->signature());
 
-			Print ("------------------------------------------------------\n");
-			Print ("End of command list\n");
+			print ("------------------------------------------------------\n");
+			print ("End of command list\n");
 			exit (0);
 		}
 
 		// Print header
 		String header;
 		String headerline;
-		header = Format (APPNAME " version %1", GetVersionString (true));
+		header = format (APPNAME " version %1", versionString (true));
 
 #ifdef DEBUG
 		header += " (debug build)";
 #endif
 
-		for (int i = 0; i < header.Length() / 2; ++i)
+		for (int i = 0; i < header.length() / 2; ++i)
 			headerline += "-=";
 
 		headerline += '-';
-		Print ("%2\n\n%1\n\n%2\n\n", header, headerline);
+		print ("%2\n\n%1\n\n%2\n\n", header, headerline);
 
 		if (argc < 2)
 		{
@@ -84,7 +84,7 @@ int main (int argc, char** argv)
 		String outfile;
 
 		if (argc < 3)
-			outfile = MakeObjectFileName (argv[1]);
+			outfile = makeObjectFileName (argv[1]);
 		else
 			outfile = argv[2];
 
@@ -92,21 +92,21 @@ int main (int argc, char** argv)
 		BotscriptParser* parser = new BotscriptParser;
 
 		// We're set, begin parsing :)
-		Print ("Parsing script...\n");
-		parser->ParseBotscript (argv[1]);
-		Print ("Script parsed successfully.\n");
+		print ("Parsing script...\n");
+		parser->parseBotscript (argv[1]);
+		print ("Script parsed successfully.\n");
 
 		// Parse done, print statistics and write to file
-		int globalcount = parser->GetHighestVarIndex (true) + 1;
-		int statelocalcount = parser->GetHighestVarIndex (false) + 1;
-		int stringcount = CountStringsInTable();
-		Print ("%1 / %2 strings\n", stringcount, gMaxStringlistSize);
-		Print ("%1 / %2 global variable indices\n", globalcount, gMaxGlobalVars);
-		Print ("%1 / %2 state variable indices\n", statelocalcount, gMaxGlobalVars);
-		Print ("%1 / %2 events\n", parser->GetNumEvents(), gMaxEvents);
-		Print ("%1 state%s1\n", parser->GetNumStates());
+		int globalcount = parser->getHighestVarIndex (true) + 1;
+		int statelocalcount = parser->getHighestVarIndex (false) + 1;
+		int stringcount = countStringsInTable();
+		print ("%1 / %2 strings\n", stringcount, gMaxStringlistSize);
+		print ("%1 / %2 global variable indices\n", globalcount, gMaxGlobalVars);
+		print ("%1 / %2 state variable indices\n", statelocalcount, gMaxGlobalVars);
+		print ("%1 / %2 events\n", parser->numEvents(), gMaxEvents);
+		print ("%1 state%s1\n", parser->numStates());
 
-		parser->WriteToFile (outfile);
+		parser->writeToFile (outfile);
 		delete parser;
 		return 0;
 	}
@@ -121,13 +121,13 @@ int main (int argc, char** argv)
 //
 // Mutates given filename to an object filename
 //
-String MakeObjectFileName (String s)
+String makeObjectFileName (String s)
 {
 	// Locate the extension and chop it out
-	int extdot = s.LastIndexOf (".");
+	int extdot = s.lastIndexOf (".");
 
-	if (extdot >= s.Length() - 4)
-		s -= (s.Length() - extdot);
+	if (extdot >= s.length() - 4)
+		s -= (s.length() - extdot);
 
 	s += ".o";
 	return s;
@@ -135,13 +135,13 @@ String MakeObjectFileName (String s)
 
 // ============================================================================
 //
-DataType GetTypeByName (String t)
+DataType getTypeByName (String token)
 {
-	t = t.ToLowercase();
-	return	(t == "int") ? TYPE_Int :
-			(t == "str") ? TYPE_String :
-			(t == "void") ? TYPE_Void :
-			(t == "bool") ? TYPE_Bool :
+	token = token.toLowercase();
+	return	(token == "int") ? TYPE_Int :
+			(token == "str") ? TYPE_String :
+			(token == "void") ? TYPE_Void :
+			(token == "bool") ? TYPE_Bool :
 			TYPE_Unknown;
 }
 
@@ -150,7 +150,7 @@ DataType GetTypeByName (String t)
 //
 // Inverse operation - type name by value
 //
-String DataTypeName (DataType type)
+String dataTypeName (DataType type)
 {
 	switch (type)
 	{
@@ -166,9 +166,9 @@ String DataTypeName (DataType type)
 
 // =============================================================================
 //
-String MakeVersionString (int major, int minor, int patch)
+String makeVersionString (int major, int minor, int patch)
 {
-	String ver = Format ("%1.%2", major, minor);
+	String ver = format ("%1.%2", major, minor);
 
 	if (patch != 0)
 	{
@@ -181,13 +181,13 @@ String MakeVersionString (int major, int minor, int patch)
 
 // =============================================================================
 //
-String GetVersionString (bool longform)
+String versionString (bool longform)
 {
 	String tag (GIT_DESCRIPTION);
 	String version = tag;
 
-	if (longform && tag.EndsWith ("-pre"))
-		version += "-" + String (GIT_HASH).Mid (0, 8);
+	if (longform && tag.endsWith ("-pre"))
+		version += "-" + String (GIT_HASH).mid (0, 8);
 
 	return version;
 }

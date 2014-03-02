@@ -37,8 +37,8 @@ struct EventDefinition
 	int number;
 };
 
-void AddEvent (EventDefinition* e);
-EventDefinition* FindEventByIndex (int idx);
-EventDefinition* FindEventByName (String a);
+void addEvent (EventDefinition* e);
+EventDefinition* findEventByIndex (int idx);
+EventDefinition* findEventByName (String a);
 
 #endif // BOTC_EVENTS_H

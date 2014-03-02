@@ -26,55 +26,57 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// TODO: Another freeloader...
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "StringTable.h"
 
-static StringList gStringTable;
+static StringList g_StringTable;
 
 // ============================================================================
 //
-const StringList& GetStringTable()
+const StringList& getStringTable()
 {
-	return gStringTable;
+	return g_StringTable;
 }
 
 // ============================================================================
 //
 // Potentially adds a string to the table and returns the index of it.
 //
-int StringTableIndex (const String& a)
+int getStringTableIndex (const String& a)
 {
 	// Find a free slot in the table.
 	int idx;
 
-	for (idx = 0; idx < gStringTable.Size(); idx++)
+	for (idx = 0; idx < g_StringTable.size(); idx++)
 	{
 		// String is already in the table, thus return it.
-		if (gStringTable[idx] == a)
+		if (g_StringTable[idx] == a)
 			return idx;
 	}
 
 	// Must not be too long.
-	if (a.Length() >= gMaxStringLength)
-		Error ("string `%1` too long (%2 characters, max is %3)\n",
-			   a, a.Length(), gMaxStringLength);
+	if (a.length() >= gMaxStringLength)
+		error ("string `%1` too long (%2 characters, max is %3)\n",
+			   a, a.length(), gMaxStringLength);
 
 	// Check if the table is already full
-	if (gStringTable.Size() == gMaxStringlistSize - 1)
-		Error ("too many strings!\n");
+	if (g_StringTable.size() == gMaxStringlistSize - 1)
+		error ("too many strings!\n");
 
 	// Now, dump the string into the slot
-	gStringTable.Append (a);
-	return (gStringTable.Size() - 1);
+	g_StringTable.append (a);
+	return (g_StringTable.size() - 1);
 }
 
 // ============================================================================
 //
 // Counts the amount of strings in the table.
 //
-int CountStringsInTable()
+int countStringsInTable()
 {
-	return gStringTable.Size();
+	return g_StringTable.size();
 }

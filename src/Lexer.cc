@@ -49,114 +49,114 @@ Lexer::~Lexer()
 
 // =============================================================================
 //
-void Lexer::ProcessFile (String fileName)
+void Lexer::processFile (String fileName)
 {
 	gFileNameStack << fileName;
 	FILE* fp = fopen (fileName, "r");
 
 	if (fp == null)
-		Error ("couldn't open %1 for reading: %2", fileName, strerror (errno));
+		error ("couldn't open %1 for reading: %2", fileName, strerror (errno));
 
 	LexerScanner sc (fp);
-	CheckFileHeader (sc);
+	checkFileHeader (sc);
 
-	while (sc.GetNextToken())
+	while (sc.getNextToken())
 	{
 		// Preprocessor commands:
-		if (sc.GetTokenType() ==TK_Hash)
+		if (sc.getTokenType() ==TK_Hash)
 		{
-			MustGetFromScanner (sc,TK_Symbol);
+			mustGetFromScanner (sc,TK_Symbol);
 
-			if (sc.GetTokenText() == "include")
+			if (sc.getTokenText() == "include")
 			{
-				MustGetFromScanner (sc,TK_String);
-				String fileName = sc.GetTokenText();
+				mustGetFromScanner (sc,TK_String);
+				String fileName = sc.getTokenText();
 
-				if (gFileNameStack.Contains (fileName))
-					Error ("attempted to #include %1 recursively", sc.GetTokenText());
+				if (gFileNameStack.contains (fileName))
+					error ("attempted to #include %1 recursively", sc.getTokenText());
 
-				ProcessFile (fileName);
+				processFile (fileName);
 			}
 			else
-				Error ("unknown preprocessor directive \"#%1\"", sc.GetTokenText());
+				error ("unknown preprocessor directive \"#%1\"", sc.getTokenText());
 		}
 		else
 		{
 			TokenInfo tok;
 			tok.file = fileName;
-			tok.line = sc.GetLine();
-			tok.column = sc.GetColumn();
-			tok.type = sc.GetTokenType();
-			tok.text = sc.GetTokenText();
+			tok.line = sc.getLine();
+			tok.column = sc.getColumn();
+			tok.type = sc.getTokenType();
+			tok.text = sc.getTokenText();
 
-			// devf ("Token #%1: %2:%3:%4: %5 (%6)\n", mTokens.Size(),
+			// devf ("Token #%1: %2:%3:%4: %5 (%6)\n", mTokens.size(),
 			// 	tok.file, tok.line, tok.column, DescribeToken (&tok),
 			// 	GetTokenTypeString (tok.type));
 
-			mTokens << tok;
+			m_tokens << tok;
 		}
 	}
 
-	mTokenPosition = mTokens.begin() - 1;
-	gFileNameStack.Remove (fileName);
+	m_tokenPosition = m_tokens.begin() - 1;
+	gFileNameStack.removeOne (fileName);
 }
 
 // ============================================================================
 //
 static bool IsValidHeader (String header)
 {
-	if (header.EndsWith ("\n"))
-		header.RemoveFromEnd (1);
+	if (header.endsWith ("\n"))
+		header.removeFromEnd (1);
 
-	StringList tokens = header.Split (" ");
+	StringList tokens = header.split (" ");
 
-	if (tokens.Size() != 2 || tokens[0] != "#!botc" || tokens[1].IsEmpty())
+	if (tokens.size() != 2 || tokens[0] != "#!botc" || tokens[1].isEmpty())
 		return false;
 
-	StringList nums = tokens[1].Split (".");
+	StringList nums = tokens[1].split (".");
 
-	if (nums.Size() == 2)
+	if (nums.size() == 2)
 		nums << "0";
-	elif (nums.Size() != 3)
+	elif (nums.size() != 3)
 		return false;
 
 	bool okA, okB, okC;
-	long major = nums[0].ToLong (&okA);
-	long minor = nums[1].ToLong (&okB);
-	long patch = nums[2].ToLong (&okC);
+	long major = nums[0].toLong (&okA);
+	long minor = nums[1].toLong (&okB);
+	long patch = nums[2].toLong (&okC);
 
 	if (!okA || !okB || !okC)
 		return false;
 
 	if (VERSION_NUMBER < MAKE_VERSION_NUMBER (major, minor, patch))
-		Error ("The script file requires " APPNAME " v%1, this is v%2",
-			MakeVersionString (major, minor, patch), GetVersionString (false));
+		error ("The script file requires " APPNAME " v%1, this is v%2",
+			makeVersionString (major, minor, patch), versionString (false));
 
 	return true;
 }
 
 // ============================================================================
 //
-void Lexer::CheckFileHeader (LexerScanner& sc)
+void Lexer::checkFileHeader (LexerScanner& sc)
 {
-	if (!IsValidHeader (sc.ReadLine()))
-		Error ("Not a valid botscript file! File must start with '#!botc <version>'");
+	if (!IsValidHeader (sc.readLine()))
+		error ("Not a valid botscript file! File must start with '#!botc <version>'");
 }
 
 // =============================================================================
 //
-bool Lexer::Next (ETokenType req)
+bool Lexer::next (ETokenType req)
 {
-	Iterator pos = mTokenPosition;
+	Iterator pos = m_tokenPosition;
 
-	if (mTokens.IsEmpty())
+	if (m_tokens.isEmpty())
 		return false;
 
-	mTokenPosition++;
+	m_tokenPosition++;
 
-	if (IsAtEnd() || (req !=TK_Any && TokenType() != req))
+	if (isAtEnd() || (req !=TK_Any && tokenType() != req))
 	{
-		mTokenPosition = pos;
+		m_tokenPosition = pos;
 		return false;
 	}
 
@@ -165,99 +165,99 @@ bool Lexer::Next (ETokenType req)
 
 // =============================================================================
 //
-void Lexer::MustGetNext (ETokenType tok)
+void Lexer::mustGetNext (ETokenType tok)
 {
-	if (!Next())
-		Error ("unexpected EOF");
+	if (!next())
+		error ("unexpected EOF");
 
 	if (tok !=TK_Any)
-		TokenMustBe (tok);
+		tokenMustBe (tok);
 }
 
 // =============================================================================
 // eugh..
 //
-void Lexer::MustGetFromScanner (LexerScanner& sc, ETokenType tt)
+void Lexer::mustGetFromScanner (LexerScanner& sc, ETokenType tt)
 {
-	if (!sc.GetNextToken())
-		Error ("unexpected EOF");
+	if (sc.getNextToken() == false)
+		error ("unexpected EOF");
 
-	if (tt !=TK_Any && sc.GetTokenType() != tt)
+	if (tt != TK_Any && sc.getTokenType() != tt)
 	{
 		// TODO
 		TokenInfo tok;
-		tok.type = sc.GetTokenType();
-		tok.text = sc.GetTokenText();
+		tok.type = sc.getTokenType();
+		tok.text = sc.getTokenText();
 
-		Error ("at %1:%2: expected %3, got %4",
-			   gFileNameStack.Last(),
-			sc.GetLine(),
-			DescribeTokenType (tt),
-			DescribeToken (&tok));
+		error ("at %1:%2: expected %3, got %4",
+			gFileNameStack.last(),
+			sc.getLine(),
+			describeTokenType (tt),
+			describeToken (&tok));
 	}
 }
 
 // =============================================================================
 //
-void Lexer::MustGetAnyOf (const List<ETokenType>& toks)
+void Lexer::mustGetAnyOf (const List<ETokenType>& toks)
 {
-	if (!Next())
-		Error ("unexpected EOF");
+	if (!next())
+		error ("unexpected EOF");
 
 	for (ETokenType tok : toks)
-		if (TokenType() == tok)
+		if (tokenType() == tok)
 			return;
 
 	String toknames;
 
 	for (const ETokenType& tokType : toks)
 	{
-		if (&tokType == &toks.Last())
+		if (&tokType == &toks.last())
 			toknames += " or ";
-		elif (toknames.IsEmpty() == false)
+		elif (toknames.isEmpty() == false)
 			toknames += ", ";
 
-		toknames += DescribeTokenType (tokType);
+		toknames += describeTokenType (tokType);
 	}
 
-	Error ("expected %1, got %2", toknames, DescribeToken (Token()));
+	error ("expected %1, got %2", toknames, describeToken (token()));
 }
 
 // =============================================================================
 //
-int Lexer::GetOneSymbol (const StringList& syms)
+int Lexer::getOneSymbol (const StringList& syms)
 {
-	if (!Next())
-		Error ("unexpected EOF");
+	if (!next())
+		error ("unexpected EOF");
 
-	if (TokenType() ==TK_Symbol)
+	if (tokenType() ==TK_Symbol)
 	{
-		for (int i = 0; i < syms.Size(); ++i)
+		for (int i = 0; i < syms.size(); ++i)
 		{
-			if (syms[i] == Token()->text)
+			if (syms[i] == token()->text)
 				return i;
 		}
 	}
 
-	Error ("expected one of %1, got %2", syms, DescribeToken (Token()));
+	error ("expected one of %1, got %2", syms, describeToken (token()));
 	return -1;
 }
 
 // =============================================================================
 //
-void Lexer::TokenMustBe (ETokenType tok)
+void Lexer::tokenMustBe (ETokenType tok)
 {
-	if (TokenType() != tok)
-		Error ("expected %1, got %2", DescribeTokenType (tok),
-			DescribeToken (Token()));
+	if (tokenType() != tok)
+		error ("expected %1, got %2", describeTokenType (tok),
+			describeToken (token()));
 }
 
 // =============================================================================
 //
-String Lexer::DescribeTokenPrivate (ETokenType tokType, Lexer::TokenInfo* tok)
+String Lexer::describeTokenPrivate (ETokenType tokType, Lexer::TokenInfo* tok)
 {
 	if (tokType <gLastNamedToken)
-		return "\"" + LexerScanner::GetTokenString (tokType) + "\"";
+		return "\"" + LexerScanner::getTokenString (tokType) + "\"";
 
 	switch (tokType)
 	{
@@ -273,63 +273,63 @@ String Lexer::DescribeTokenPrivate (ETokenType tokType, Lexer::TokenInfo* tok)
 
 // =============================================================================
 //
-bool Lexer::PeekNext (Lexer::TokenInfo* tk)
+bool Lexer::peekNext (Lexer::TokenInfo* tk)
 {
-	Iterator pos = mTokenPosition;
-	bool r = Next();
+	Iterator pos = m_tokenPosition;
+	bool r = next();
 
 	if (r && tk != null)
-		*tk = *mTokenPosition;
+		*tk = *m_tokenPosition;
 
-	mTokenPosition = pos;
+	m_tokenPosition = pos;
 	return r;
 }
 
 // =============================================================================
 //
-bool Lexer::PeekNextType (ETokenType req)
+bool Lexer::peekNextType (ETokenType req)
 {
-	Iterator pos = mTokenPosition;
+	Iterator pos = m_tokenPosition;
 	bool result = false;
 
-	if (Next() && TokenType() == req)
+	if (next() && tokenType() == req)
 		result = true;
 
-	mTokenPosition = pos;
+	m_tokenPosition = pos;
 	return result;
 }
 
 // =============================================================================
 //
-Lexer* Lexer::GetCurrentLexer()
+Lexer* Lexer::getCurrentLexer()
 {
 	return gMainLexer;
 }
 
 // =============================================================================
 //
-String Lexer::PeekNextString (int a)
+String Lexer::peekNextString (int a)
 {
-	if (mTokenPosition + a >= mTokens.end())
+	if (m_tokenPosition + a >= m_tokens.end())
 		return "";
 
-	Iterator oldpos = mTokenPosition;
-	mTokenPosition += a;
-	String result = Token()->text;
-	mTokenPosition = oldpos;
+	Iterator oldpos = m_tokenPosition;
+	m_tokenPosition += a;
+	String result = token()->text;
+	m_tokenPosition = oldpos;
 	return result;
 }
 
 // =============================================================================
 //
-String Lexer::DescribeCurrentPosition()
+String Lexer::describeCurrentPosition()
 {
-	return Token()->file + ":" + Token()->line;
+	return token()->file + ":" + token()->line;
 }
 
 // =============================================================================
 //
-String Lexer::DescribeTokenPosition()
+String Lexer::describeTokenPosition()
 {
-	return Format ("%1 / %2", mTokenPosition - mTokens.begin(), mTokens.Size());
+	return format ("%1 / %2", m_tokenPosition - m_tokens.begin(), m_tokens.size());
 }

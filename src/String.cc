@@ -32,31 +32,31 @@
 
 // =============================================================================
 //
-int String::Compare (const String& other) const
+int String::compare (const String& other) const
 {
-	return mString.compare (other.STDString());
+	return m_string.compare (other.stdString());
 }
 
 // =============================================================================
 //
-void String::Trim (int n)
+void String::trim (int n)
 {
 	if (n > 0)
-		mString = Mid (0, Length() - n).STDString();
+		m_string = mid (0, length() - n).stdString();
 	else
-		mString = Mid (n, -1).STDString();
+		m_string = mid (n, -1).stdString();
 }
 
 // =============================================================================
 //
-String String::Strip (const List< char >& unwanted)
+String String::strip (const List< char >& unwanted)
 {
-	String copy (mString);
+	String copy (m_string);
 
 	for (char c : unwanted)
-		for (int i = 0; i < copy.Length(); ++i)
+		for (int i = 0; i < copy.length(); ++i)
 			if (copy[i] == c)
-				copy.RemoveAt (i);
+				copy.removeAt (i);
 
 	/*
 	int pos = 0;
@@ -69,9 +69,9 @@ String String::Strip (const List< char >& unwanted)
 
 // =============================================================================
 //
-String String::ToUppercase() const
+String String::toUppercase() const
 {
-	String newstr = mString;
+	String newstr = m_string;
 
 	for (char& c : newstr)
 		if (c >= 'a' && c <= 'z')
@@ -82,9 +82,9 @@ String String::ToUppercase() const
 
 // =============================================================================
 //
-String String::ToLowercase() const
+String String::toLowercase() const
 {
-	String newstr = mString;
+	String newstr = m_string;
 
 	for (char & c : newstr)
 		if (c >= 'A' && c <= 'Z')
@@ -95,16 +95,16 @@ String String::ToLowercase() const
 
 // =============================================================================
 //
-StringList String::Split (char del) const
+StringList String::split (char del) const
 {
 	String delimstr;
 	delimstr += del;
-	return Split (delimstr);
+	return split (delimstr);
 }
 
 // =============================================================================
 //
-StringList String::Split (String del) const
+StringList String::split (const String& del) const
 {
 	StringList res;
 	long a = 0;
@@ -112,43 +112,43 @@ StringList String::Split (String del) const
 	// Find all separators and store the text left to them.
 	for (;;)
 	{
-		long b = FirstIndexOf (del, a);
+		long b = firstIndexOf (del, a);
 
 		if (b == -1)
 			break;
 
-		String sub = Mid (a, b);
+		String sub = mid (a, b);
 
-		if (sub.Length() > 0)
-			res.Append (Mid (a, b));
+		if (sub.length() > 0)
+			res.append (mid (a, b));
 
-		a = b + del.Length();
+		a = b + del.length();
 	}
 
 	// Add the string at the right of the last separator
-	if (a < (int) Length())
-		res.Append (Mid (a, Length()));
+	if (a < (int) length())
+		res.append (mid (a, length()));
 
 	return res;
 }
 
 // =============================================================================
 //
-void String::Replace (const char* a, const char* b)
+void String::replace (const char* a, const char* b)
 {
 	long pos;
 
-	while ( (pos = FirstIndexOf (a)) != -1)
-		mString = mString.replace (pos, strlen (a), b);
+	while ((pos = firstIndexOf (a)) != -1)
+		m_string = m_string.replace (pos, strlen (a), b);
 }
 
 // =============================================================================
 //
-int String::Count (char needle) const
+int String::count (char needle) const
 {
 	int needles = 0;
 
-	for (const char & c : mString)
+	for (const char & c : m_string)
 		if (c == needle)
 			needles++;
 
@@ -157,10 +157,10 @@ int String::Count (char needle) const
 
 // =============================================================================
 //
-String String::Mid (long a, long b) const
+String String::mid (long a, long b) const
 {
 	if (b == -1)
-		b = Length();
+		b = length();
 
 	if (b == a)
 		return "";
@@ -174,7 +174,7 @@ String String::Mid (long a, long b) const
 	}
 
 	char* newstr = new char[b - a + 1];
-	strncpy (newstr, mString.c_str() + a, b - a);
+	strncpy (newstr, m_string.c_str() + a, b - a);
 	newstr[b - a] = '\0';
 
 	String other (newstr);
@@ -184,13 +184,13 @@ String String::Mid (long a, long b) const
 
 // =============================================================================
 //
-int String::WordPosition (int n) const
+int String::wordPosition (int n) const
 {
 	int count = 0;
 
-	for (int i = 0; i < Length(); ++i)
+	for (int i = 0; i < length(); ++i)
 	{
-		if (mString[i] != ' ')
+		if (m_string[i] != ' ')
 			continue;
 
 		if (++count < n)
@@ -204,10 +204,10 @@ int String::WordPosition (int n) const
 
 // =============================================================================
 //
-int String::FirstIndexOf (const char* c, int a) const
+int String::firstIndexOf (const char* c, int a) const
 {
-	for (; a < Length(); a++)
-		if (mString[a] == c[0] && strncmp (mString.c_str() + a, c, strlen (c)) == 0)
+	for (; a < length(); a++)
+		if (m_string[a] == c[0] && strncmp (m_string.c_str() + a, c, strlen (c)) == 0)
 			return a;
 
 	return -1;
@@ -215,13 +215,13 @@ int String::FirstIndexOf (const char* c, int a) const
 
 // =============================================================================
 //
-int String::LastIndexOf (const char* c, int a) const
+int String::lastIndexOf (const char* c, int a) const
 {
-	if (a == -1 || a >= Length())
-		a = Length() - 1;
+	if (a == -1 || a >= length())
+		a = length() - 1;
 
 	for (; a > 0; a--)
-		if (mString[a] == c[0] && strncmp (mString.c_str() + a, c, strlen (c)) == 0)
+		if (m_string[a] == c[0] && strncmp (m_string.c_str() + a, c, strlen (c)) == 0)
 			return a;
 
 	return -1;
@@ -229,22 +229,22 @@ int String::LastIndexOf (const char* c, int a) const
 
 // =============================================================================
 //
-void String::Dump() const
+void String::dump() const
 {
-	Print ("`%1`:\n", CString());
+	print ("`%1`:\n", chars());
 	int i = 0;
 
-	for (char u : mString)
-		Print ("\t%1. [%d2] `%3`\n", i++, u, String (u));
+	for (char u : m_string)
+		print ("\t%1. [%d2] `%3`\n", i++, u, String (u));
 }
 
 // =============================================================================
 //
-long String::ToLong (bool* ok, int base) const
+long String::toLong (bool* ok, int base) const
 {
 	errno = 0;
 	char* endptr;
-	long i = strtol (mString.c_str(), &endptr, base);
+	long i = strtol (m_string.c_str(), &endptr, base);
 
 	if (ok)
 		*ok = (errno == 0 && *endptr == '\0');
@@ -254,11 +254,11 @@ long String::ToLong (bool* ok, int base) const
 
 // =============================================================================
 //
-float String::ToFloat (bool* ok) const
+float String::toFloat (bool* ok) const
 {
 	errno = 0;
 	char* endptr;
-	float i = strtof (mString.c_str(), &endptr);
+	float i = strtof (m_string.c_str(), &endptr);
 
 	if (ok)
 		*ok = (errno == 0 && *endptr == '\0');
@@ -268,11 +268,11 @@ float String::ToFloat (bool* ok) const
 
 // =============================================================================
 //
-double String::ToDouble (bool* ok) const
+double String::toDouble (bool* ok) const
 {
 	errno = 0;
 	char* endptr;
-	double i = strtod (mString.c_str(), &endptr);
+	double i = strtod (m_string.c_str(), &endptr);
 
 	if (ok)
 		*ok = (errno == 0 && *endptr == '\0');
@@ -285,7 +285,7 @@ double String::ToDouble (bool* ok) const
 String String::operator+ (const String& data) const
 {
 	String newString = *this;
-	newString.Append (data);
+	newString.append (data);
 	return newString;
 }
 
@@ -294,20 +294,20 @@ String String::operator+ (const String& data) const
 String String::operator+ (const char* data) const
 {
 	String newstr = *this;
-	newstr.Append (data);
+	newstr.append (data);
 	return newstr;
 }
 
 // =============================================================================
 //
-bool String::IsNumeric() const
+bool String::isNumeric() const
 {
 	bool gotDot = false;
 
-	for (const char & c : mString)
+	for (const char & c : m_string)
 	{
 		// Allow leading hyphen for negatives
-		if (&c == &mString[0] && c == '-')
+		if (&c == &m_string[0] && c == '-')
 			continue;
 
 		// Check for decimal point
@@ -330,28 +330,28 @@ bool String::IsNumeric() const
 
 // =============================================================================
 //
-bool String::EndsWith (const String& other)
+bool String::endsWith (const String& other)
 {
-	if (Length() < other.Length())
+	if (length() < other.length())
 		return false;
 
-	const int ofs = Length() - other.Length();
-	return strncmp (CString() + ofs, other.CString(), other.Length()) == 0;
+	const int ofs = length() - other.length();
+	return strncmp (chars() + ofs, other.chars(), other.length()) == 0;
 }
 
 // =============================================================================
 //
-bool String::StartsWith (const String& other)
+bool String::startsWith (const String& other)
 {
-	if (Length() < other.Length())
+	if (length() < other.length())
 		return false;
 
-	return strncmp (CString(), other.CString(), other.Length()) == 0;
+	return strncmp (chars(), other.chars(), other.length()) == 0;
 }
 
 // =============================================================================
 //
-void String::SPrintf (const char* fmtstr, ...)
+void String::sprintf (const char* fmtstr, ...)
 {
 	char* buf;
 	int bufsize = 256;
@@ -363,19 +363,19 @@ void String::SPrintf (const char* fmtstr, ...)
 	while (vsnprintf (buf, bufsize, fmtstr, va) >= bufsize);
 
 	va_end (va);
-	mString = buf;
+	m_string = buf;
 	delete[] buf;
 }
 
 // =============================================================================
 //
-String StringList::Join (const String& delim)
+String StringList::join (const String& delim)
 {
 	String result;
 
-	for (const String& it : GetDeque())
+	for (const String& it : deque())
 	{
-		if (result.IsEmpty() == false)
+		if (result.isEmpty() == false)
 			result += delim;
 
 		result += it;
@@ -386,15 +386,15 @@ String StringList::Join (const String& delim)
 
 // =============================================================================
 //
-bool String::MaskAgainst (const String& pattern) const
+bool String::maskAgainst (const String& pattern) const
 {
 	// Elevate to uppercase for case-insensitive matching
-	String pattern_upper = pattern.ToUppercase();
-	String this_upper = ToUppercase();
-	const char* maskstring = pattern_upper.CString();
+	String pattern_upper = pattern.toUppercase();
+	String this_upper = toUppercase();
+	const char* maskstring = pattern_upper.chars();
 	const char* mptr = &maskstring[0];
 
-	for (const char* sptr = this_upper.CString(); *sptr != '\0'; sptr++)
+	for (const char* sptr = this_upper.chars(); *sptr != '\0'; sptr++)
 	{
 		if (*mptr == '?')
 		{
@@ -434,18 +434,18 @@ bool String::MaskAgainst (const String& pattern) const
 
 // =============================================================================
 //
-String String::FromNumber (int a)
+String String::fromNumber (int a)
 {
 	char buf[32];
-	sprintf (buf, "%d", a);
+	::sprintf (buf, "%d", a);
 	return String (buf);
 }
 
 // =============================================================================
 //
-String String::FromNumber (long a)
+String String::fromNumber (long a)
 {
 	char buf[32];
-	sprintf (buf, "%ld", a);
+	::sprintf (buf, "%ld", a);
 	return String (buf);
 }

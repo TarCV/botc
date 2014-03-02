@@ -50,160 +50,160 @@ class String
 		String() {}
 
 		explicit String (char a) :
-			mString (&a) {}
+			m_string (&a) {}
 
 		String (const char* data) :
-			mString (data) {}
+			m_string (data) {}
 
 		String (const StringType& data) :
-			mString (data) {}
+			m_string (data) {}
 
-		void				Dump() const;
-		int					Compare (const String& other) const;
-		bool				EndsWith (const String& other);
-		int					Count (char needle) const;
-		int					FirstIndexOf (const char* c, int a = 0) const;
-		int					LastIndexOf (const char* c, int a = -1) const;
-		String				ToLowercase() const;
-		bool				IsNumeric() const;
-		bool				MaskAgainst (const String& pattern) const;
-		int					WordPosition (int n) const;
-		void				Replace (const char* a, const char* b);
-		StringList			Split (String del) const;
-		StringList			Split (char del) const;
-		void				SPrintf (const char* fmtstr, ...);
-		bool				StartsWith (const String& other);
-		String				Strip (const List<char>& unwanted);
-		String				Mid (long a, long b = -1) const;
-		double				ToDouble (bool* ok = nullptr) const;
-		float				ToFloat (bool* ok = nullptr) const;
-		long				ToLong (bool* ok = nullptr, int base = 10) const;
-		void				Trim (int n);
-		String				ToUppercase() const;
+		void				dump() const;
+		int					compare (const String& other) const;
+		bool				endsWith (const String& other);
+		int					count (char needle) const;
+		int					firstIndexOf (const char* c, int a = 0) const;
+		int					lastIndexOf (const char* c, int a = -1) const;
+		String				toLowercase() const;
+		bool				isNumeric() const;
+		bool				maskAgainst (const String& pattern) const;
+		int					wordPosition (int n) const;
+		void				replace (const char* a, const char* b);
+		StringList			split (const String& del) const;
+		StringList			split (char del) const;
+		void				sprintf (const char* fmtstr, ...);
+		bool				startsWith (const String& other);
+		String				strip (const List<char>& unwanted);
+		String				mid (long a, long b = -1) const;
+		double				toDouble (bool* ok = nullptr) const;
+		float				toFloat (bool* ok = nullptr) const;
+		long				toLong (bool* ok = nullptr, int base = 10) const;
+		void				trim (int n);
+		String				toUppercase() const;
 
 		String				operator+ (const String& data) const;
 		String				operator+ (const char* data) const;
 
-		static String		FromNumber (int a);
-		static String		FromNumber (long a);
+		static String		fromNumber (int a);
+		static String		fromNumber (long a);
 
-		inline bool IsEmpty() const
+		inline bool isEmpty() const
 		{
-			return mString[0] == '\0';
+			return m_string[0] == '\0';
 		}
 
-		inline void Append (const char* data)
+		inline void append (const char* data)
 		{
-			mString.append (data);
+			m_string.append (data);
 		}
 
-		inline void Append (const char data)
+		inline void append (char data)
 		{
-			mString.push_back (data);
+			m_string.push_back (data);
 		}
 
-		inline void Append (const String& data)
+		inline void append (const String& data)
 		{
-			mString.append (data.CString());
+			m_string.append (data.chars());
 		}
 
 		inline Iterator begin()
 		{
-			return mString.begin();
+			return m_string.begin();
 		}
 
 		inline ConstIterator begin() const
 		{
-			return mString.cbegin();
+			return m_string.cbegin();
 		}
 
-		inline const char* CString() const
+		inline const char* chars() const
 		{
-			return mString.c_str();
+			return m_string.c_str();
 		}
 
 		inline const char* c_str() const
 		{
-			return mString.c_str();
+			return m_string.c_str();
 		}
 
 		inline Iterator end()
 		{
-			return mString.end();
+			return m_string.end();
 		}
 
 		inline ConstIterator end() const
 		{
-			return mString.end();
+			return m_string.end();
 		}
 
-		inline void Clear()
+		inline void clear()
 		{
-			mString.clear();
+			m_string.clear();
 		}
 
-		inline void RemoveAt (int pos)
+		inline void removeAt (int pos)
 		{
-			mString.erase (mString.begin() + pos);
+			m_string.erase (m_string.begin() + pos);
 		}
 
-		inline void Insert (int pos, char c)
+		inline void insert (int pos, char c)
 		{
-			mString.insert (mString.begin() + pos, c);
+			m_string.insert (m_string.begin() + pos, c);
 		}
 
-		inline int Length() const
+		inline int length() const
 		{
-			return mString.length();
+			return m_string.length();
 		}
 
-		inline void Remove (int pos, int len)
+		inline void remove (int pos, int len)
 		{
-			mString.replace (pos, len, "");
+			m_string.replace (pos, len, "");
 		}
 
-		inline void RemoveFromStart (int len)
+		inline void removeFromStart (int len)
 		{
-			Remove (0, len);
+			remove (0, len);
 		}
 
-		inline void RemoveFromEnd (int len)
+		inline void removeFromEnd (int len)
 		{
-			Remove (Length() - len, len);
+			remove (length() - len, len);
 		}
 
-		inline void Replace (int pos, int n, const String& a)
+		inline void replace (int pos, int n, const String& a)
 		{
-			mString.replace (pos, n, a.CString());
+			m_string.replace (pos, n, a.chars());
 		}
 
-		inline void ShrinkToFit()
+		inline void shrinkToFit()
 		{
-			mString.shrink_to_fit();
+			m_string.shrink_to_fit();
 		}
 
-		inline const StringType& STDString() const
+		inline const StringType& stdString() const
 		{
-			return mString;
+			return m_string;
 		}
 
-		inline String Strip (char unwanted)
+		inline String strip (char unwanted)
 		{
-			return Strip ({unwanted});
+			return strip ({unwanted});
 		}
 
 		// =============================================================================
 		//
 		inline String operator+ (int num) const
 		{
-			return *this + String::FromNumber (num);
+			return *this + String::fromNumber (num);
 		}
 
 		// =============================================================================
 		//
 		inline String& operator+= (const String data)
 		{
-			Append (data);
+			append (data);
 			return *this;
 		}
 
@@ -211,7 +211,7 @@ class String
 		//
 		inline String& operator+= (const char* data)
 		{
-			Append (data);
+			append (data);
 			return *this;
 		}
 
@@ -219,21 +219,21 @@ class String
 		//
 		inline String& operator+= (int num)
 		{
-			return operator+= (String::FromNumber (num));
+			return operator+= (String::fromNumber (num));
 		}
 
 		// =============================================================================
 		//
-		inline void Prepend (String a)
+		inline void prepend (String a)
 		{
-			mString = (a + mString).STDString();
+			m_string = (a + m_string).stdString();
 		}
 
 		// =============================================================================
 		//
 		inline String& operator+= (const char data)
 		{
-			Append (data);
+			append (data);
 			return *this;
 		}
 
@@ -241,7 +241,7 @@ class String
 		//
 		inline String operator- (int n) const
 		{
-			String newString = mString;
+			String newString = m_string;
 			newString -= n;
 			return newString;
 		}
@@ -250,7 +250,7 @@ class String
 		//
 		inline String& operator-= (int n)
 		{
-			Trim (n);
+			trim (n);
 			return *this;
 		}
 
@@ -258,21 +258,21 @@ class String
 		//
 		inline String operator+() const
 		{
-			return ToUppercase();
+			return toUppercase();
 		}
 
 		// =============================================================================
 		//
 		inline String operator-() const
 		{
-			return ToLowercase();
+			return toLowercase();
 		}
 
 		// =============================================================================
 		//
 		inline bool operator== (const String& other) const
 		{
-			return STDString() == other.STDString();
+			return stdString() == other.stdString();
 		}
 
 		// =============================================================================
@@ -286,7 +286,7 @@ class String
 		//
 		inline bool operator!= (const String& other) const
 		{
-			return STDString() != other.STDString();
+			return stdString() != other.stdString();
 		}
 
 		// =============================================================================
@@ -300,28 +300,28 @@ class String
 		//
 		inline bool operator> (const String& other) const
 		{
-			return STDString() > other.STDString();
+			return stdString() > other.stdString();
 		}
 
 		// =============================================================================
 		//
 		inline bool operator< (const String& other) const
 		{
-			return STDString() < other.STDString();
+			return stdString() < other.stdString();
 		}
 
 		// =============================================================================
 		//
 		inline operator const char*() const
 		{
-			return CString();
+			return chars();
 		}
 
 		// =============================================================================
 		//
 		inline operator const StringType&() const
 		{
-			return STDString();
+			return stdString();
 		}
 
 		// =============================================================================
@@ -329,14 +329,14 @@ class String
 		// Difference between indices @a and @b. @b can be -1, in which
 		// case it will be length() - 1.
 		//
-		inline int IndexDifference (int a, int b)
+		inline int indexDifference (int a, int b)
 		{
 			assert (b == -1 || b >= a);
-			return (b != -1 ? b - a : Length() - 1 - a);
+			return (b != -1 ? b - a : length() - 1 - a);
 		}
 
 	private:
-		StringType mString;
+		StringType m_string;
 };
 
 // =============================================================================
@@ -347,10 +347,10 @@ class StringList : public List<String>
 		StringList() {}
 		StringList (std::initializer_list<String> vals) :
 			List<String> (vals) {}
-		StringList (const List<String>& a) : List<String> (a.GetDeque()) {}
-		StringList (const ListType& a) : List<String> (a) {}
+		StringList (const List<String>& a) : List<String> (a.deque()) {}
+		StringList (const WrappedList& a) : List<String> (a) {}
 
-		String Join (const String& delim);
+		String join (const String& delim);
 };
 
 

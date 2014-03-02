@@ -51,76 +51,76 @@ public:
 	Lexer();
 	~Lexer();
 
-	void	ProcessFile (String file_name);
-	bool	Next (ETokenType req = TK_Any);
-	void	MustGetNext (ETokenType tok);
-	void	MustGetAnyOf (const List<ETokenType>& toks);
-	int		GetOneSymbol (const StringList& syms);
-	void	TokenMustBe (ETokenType tok);
-	bool	PeekNext (TokenInfo* tk = null);
-	bool	PeekNextType (ETokenType req);
-	String	PeekNextString (int a = 1);
-	String	DescribeCurrentPosition();
-	String	DescribeTokenPosition();
+	void	processFile (String fileName);
+	bool	next (ETokenType req = TK_Any);
+	void	mustGetNext (ETokenType tok);
+	void	mustGetAnyOf (const List<ETokenType>& toks);
+	int		getOneSymbol (const StringList& syms);
+	void	tokenMustBe (ETokenType tok);
+	bool	peekNext (TokenInfo* tk = null);
+	bool	peekNextType (ETokenType req);
+	String	peekNextString (int a = 1);
+	String	describeCurrentPosition();
+	String	describeTokenPosition();
 
-	static Lexer* GetCurrentLexer();
+	static Lexer* getCurrentLexer();
 
-	inline bool HasValidToken() const
+	inline bool hasValidToken() const
 	{
-		return (mTokenPosition < mTokens.end() && mTokenPosition >= mTokens.begin());
+		return (m_tokenPosition < m_tokens.end() && m_tokenPosition >= m_tokens.begin());
 	}
 
-	inline TokenInfo* Token() const
+	inline TokenInfo* token() const
 	{
-		assert (HasValidToken() == true);
-		return &(*mTokenPosition);
+		assert (hasValidToken() == true);
+		return &(*m_tokenPosition);
 	}
 
-	inline bool IsAtEnd() const
+	inline bool isAtEnd() const
 	{
-		return mTokenPosition == mTokens.end();
+		return m_tokenPosition == m_tokens.end();
 	}
 
-	inline ETokenType TokenType() const
+	inline ETokenType tokenType() const
 	{
-		return Token()->type;
+		return token()->type;
 	}
 
-	inline void Skip (int a = 1)
+	inline void skip (int a = 1)
 	{
-		mTokenPosition += a;
+		m_tokenPosition += a;
 	}
 
-	inline int Position()
+	inline int position()
 	{
-		return mTokenPosition - mTokens.begin();
+		return m_tokenPosition - m_tokens.begin();
 	}
 
-	inline void SetPosition (int pos)
+	inline void setPosition (int pos)
 	{
-		mTokenPosition = mTokens.begin() + pos;
+		m_tokenPosition = m_tokens.begin() + pos;
 	}
 
 	// If @tok is given, describes the token. If not, describes @tok_type.
-	static inline String DescribeTokenType (ETokenType toktype)
+	static inline String describeTokenType (ETokenType toktype)
 	{
-		return DescribeTokenPrivate (toktype, null);
+		return describeTokenPrivate (toktype, null);
 	}
 
-	static inline String DescribeToken (TokenInfo* tok)
+	static inline String describeToken (TokenInfo* tok)
 	{
-		return DescribeTokenPrivate (tok->type, tok);
+		return describeTokenPrivate (tok->type, tok);
 	}
 
 private:
-	TokenList		mTokens;
-	Iterator		mTokenPosition;
+	TokenList		m_tokens;
+	Iterator		m_tokenPosition;
 
 	// read a mandatory token from scanner
-	void MustGetFromScanner (LexerScanner& sc, ETokenType tt =TK_Any);
-	void CheckFileHeader (LexerScanner& sc);
+	void mustGetFromScanner (LexerScanner& sc, ETokenType tt =TK_Any);
+	void checkFileHeader (LexerScanner& sc);
 
-	static String DescribeTokenPrivate (ETokenType tok_type, TokenInfo* tok);
+	static String describeTokenPrivate (ETokenType tok_type, TokenInfo* tok);
 };
 
 #endif // BOTC_LEXER_H
