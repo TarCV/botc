@@ -333,3 +333,12 @@ String Lexer::describeTokenPosition()
 {
 	return format ("%1 / %2", m_tokenPosition - m_tokens.begin(), m_tokens.size());
 }
+
+// =============================================================================
+//
+void Lexer::mustGetSymbol (const String& a)
+{
+	mustGetNext (TK_Any);
+	if (token()->text != a)
+		error ("expected \"%1\", got \"%2\"", a, token()->text);
+}

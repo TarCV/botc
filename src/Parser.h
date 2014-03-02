@@ -224,6 +224,8 @@ class BotscriptParser
 		int				m_highestStateVarIndex;
 		int				m_numWrittenBytes;
 		List<ScopeInfo>	m_scopeStack;
+		int				m_zandronumVersion;
+		bool			m_defaultZandronumVersion;
 
 		DataBuffer*		currentBuffer();
 		void			parseStateBlock();
@@ -246,6 +248,7 @@ class BotscriptParser
 		void			parseLabel();
 		void			parseEventdef();
 		void			parseFuncdef();
+		void			parseUsing();
 		void			writeMemberBuffers();
 		void			writeStringTable();
 		DataBuffer*		parseExpression (DataType reqtype, bool fromhere = false);
