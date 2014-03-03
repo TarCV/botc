@@ -85,6 +85,7 @@ static const String gTokenStrings[] =
 	"case",
 	"continue",
 	"const",
+	"constexpr",
 	"default",
 	"do",
 	"else",
