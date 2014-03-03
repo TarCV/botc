@@ -88,6 +88,7 @@ named_enum ETokenType
 	TK_Case,
 	TK_Continue,
 	TK_Const,
+	TK_Constexpr,
 	TK_Default,
 	TK_Do,
 	TK_Else,
