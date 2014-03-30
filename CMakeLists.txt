@@ -47,7 +47,7 @@ add_custom_target (revision_check ALL
 get_target_property (NAMEDENUMS_EXE namedenums LOCATION)
 
 add_custom_target (botc_enum_strings ALL
-    COMMAND ${NAMEDENUMS_EXE} ${BOTC_HEADERS} src/enumStrings.h
+    COMMAND ${NAMEDENUMS_EXE} ${BOTC_HEADERS} src/enumstrings.h
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     DEPENDS namedenums)
 
