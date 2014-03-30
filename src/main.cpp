@@ -64,9 +64,24 @@ int main (int argc, char** argv)
 		String headerline;
 		header = format (APPNAME " version %1", versionString (true));
 
+		if (String (GIT_BRANCH) != "master")
+		{
+			header += " (";
+			header += GIT_BRANCH;
+			header += " branch";
+		}
+
 #ifdef DEBUG
-		header += " (debug build)";
+		if (header.firstIndexOf ("(") != -1)
+			header += ", ";
+		else
+			header += " (";
+
+		header += "debug build";
 #endif
+
+		if (header.firstIndexOf ("(") != -1)
+			header += ")";
 
 		for (int i = 0; i < header.length() / 2; ++i)
 			headerline += "-=";
