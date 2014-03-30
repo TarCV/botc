@@ -30,7 +30,7 @@
 #define BOTC_LEXER_SCANNER_H
 
 #include <climits>
-#include "Main.h"
+#include "main.h"
 
 class LexerScanner
 {

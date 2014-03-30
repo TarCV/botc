@@ -31,8 +31,8 @@
 #include <cassert>
 #include <cstring>
 #include <string>
-#include "LexerScanner.h"
-#include "Lexer.h"
+#include "lexerScanner.h"
+#include "lexer.h"
 
 static const String gTokenStrings[] =
 {

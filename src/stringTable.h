@@ -29,7 +29,7 @@
 #ifndef BOTC_STRINGTABLE_H
 #define BOTC_STRINGTABLE_H
 
-#include "Main.h"
+#include "main.h"
 
 int getStringTableIndex (const String& a);
 const StringList& getStringTable();

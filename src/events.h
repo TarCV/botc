@@ -26,33 +26,19 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_COMMANDS_H
-#define BOTC_COMMANDS_H
+#ifndef BOTC_EVENTS_H
+#define BOTC_EVENTS_H
 
-#include "Main.h"
-#include "String.h"
+#include "string.h"
 
-struct CommandArgument
+struct EventDefinition
 {
-	DataType				type;
-	String					name;
-	int						defvalue;
+	String name;
+	int number;
 };
 
-struct CommandInfo
-{
-	String					name;
-	int						number;
-	int						minargs;
-	DataType				returnvalue;
-	List<CommandArgument>	args;
-	String					origin;
+void addEvent (EventDefinition* e);
+EventDefinition* findEventByIndex (int idx);
+EventDefinition* findEventByName (String a);
 
-	String	signature();
-};
-
-void						addCommandDefinition (CommandInfo* comm);
-CommandInfo*				findCommandByName (String a);
-const List<CommandInfo*>&	getCommands();
-
-#endif // BOTC_COMMANDS_H
+#endif // BOTC_EVENTS_H

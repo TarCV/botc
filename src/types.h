@@ -26,37 +26,54 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_MAIN_H
-#define BOTC_MAIN_H
+#ifndef BOTC_TYPES_H
+#define BOTC_TYPES_H
 
-#include <cstdio>
-#include <cstdarg>
-#include <cstdint>
-#include "Macros.h"
-#include "Property.h"
-#include "Types.h"
-#include "Containers.h"
-#include "String.h"
-#include "Format.h"
-#include "BotStuff.h"
-#include "Tokens.h"
+#include <cstdlib>
+#include <stdexcept>
+#include "macros.h"
+#include "string.h"
 
-String makeObjectFileName (String s);
-DataType getTypeByName (String token);
-String dataTypeName (DataType type);
-String versionString (bool longform);
-String makeVersionString (int major, int minor, int patch);
+static const std::nullptr_t null = nullptr;
 
-template<typename T>
-inline T max (T a, T b)
+// =============================================================================
+//
+named_enum DataType
 {
-	return a > b ? a : b;
+	TYPE_Unknown,
+	TYPE_Void,
+	TYPE_Int,
+	TYPE_String,
+	TYPE_Bool,
+};
+
+// =============================================================================
+//
+struct ByteMark
+{
+	String		name;
+	int			pos;
+};
+
+// =============================================================================
+//
+struct MarkReference
+{
+	ByteMark*	target;
+	int			pos;
+};
+
+// =============================================================================
+//
+// Get absolute value of @a
+//
+template<class T> inline T abs (T a)
+{
+	return (a >= 0) ? a : -a;
 }
 
-template<typename T>
-inline T min (T a, T b)
-{
-	return a < b ? a : b;
-}
+#ifdef IN_IDE_PARSER
+using FILE = void;
+#endif
 
-#endif // BOTC_MAIN_H
+#endif // BOTC_TYPES_H

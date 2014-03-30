@@ -31,8 +31,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "Main.h"
-#include "StringTable.h"
+#include "main.h"
+#include "stringTable.h"
 
 /**
  *    @class DataBuffer

@@ -27,9 +27,9 @@
 */
 
 #include <cstdio>
-#include "Main.h"
-#include "Format.h"
-#include "Lexer.h"
+#include "main.h"
+#include "format.h"
+#include "lexer.h"
 
 // =============================================================================
 //

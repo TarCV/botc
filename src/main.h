@@ -26,42 +26,37 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// TODO: this file is a freeloader, I should probably get rid of it
+#ifndef BOTC_MAIN_H
+#define BOTC_MAIN_H
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "Main.h"
-#include "String.h"
-#include "Events.h"
-#include "Lexer.h"
+#include <cstdio>
+#include <cstdarg>
+#include <cstdint>
+#include "macros.h"
+#include "property.h"
+#include "types.h"
+#include "list.h"
+#include "string.h"
+#include "format.h"
+#include "botStuff.h"
+#include "tokens.h"
 
-static List<EventDefinition*> g_Events;
+String makeObjectFileName (String s);
+DataType getTypeByName (String token);
+String dataTypeName (DataType type);
+String versionString (bool longform);
+String makeVersionString (int major, int minor, int patch);
 
-// ============================================================================
-//
-void addEvent (EventDefinition* e)
+template<typename T>
+inline T max (T a, T b)
 {
-	g_Events << e;
+	return a > b ? a : b;
 }
 
-// ============================================================================
-//
-// Finds an event definition by index
-//
-EventDefinition* findEventByIndex (int idx)
+template<typename T>
+inline T min (T a, T b)
 {
-	return g_Events[idx];
+	return a < b ? a : b;
 }
 
-// ============================================================================
-//
-// Finds an event definition by name
-//
-EventDefinition* findEventByName (String a)
-{
-	for (EventDefinition* e : g_Events)
-		if (a.toUppercase() == e->name.toUppercase())
-			return e;
-
-	return null;
-}
+#endif // BOTC_MAIN_H

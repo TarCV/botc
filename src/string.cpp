@@ -27,8 +27,8 @@
 */
 
 #include <cstring>
-#include "Main.h"
-#include "String.h"
+#include "main.h"
+#include "string.h"
 
 // =============================================================================
 //

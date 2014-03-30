@@ -30,10 +30,10 @@
 #define BOTC_PARSER_H
 
 #include <stdio.h>
-#include "Main.h"
-#include "Commands.h"
-#include "LexerScanner.h"
-#include "Tokens.h"
+#include "main.h"
+#include "commands.h"
+#include "lexerScanner.h"
+#include "tokens.h"
 
 class DataBuffer;
 class Lexer;

@@ -32,8 +32,8 @@
 #include <deque>
 #include <string>
 #include <stdarg.h>
-#include "Types.h"
-#include "Containers.h"
+#include "types.h"
+#include "list.h"
 
 class String;
 class StringList;
