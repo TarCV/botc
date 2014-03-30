@@ -198,6 +198,7 @@ String makeVersionString (int major, int minor, int patch)
 //
 String versionString (bool longform)
 {
+#if defined(GIT_DESCRIPTION) && defined (DEBUG)
 	String tag (GIT_DESCRIPTION);
 	String version = tag;
 
@@ -205,4 +206,9 @@ String versionString (bool longform)
 		version += "-" + String (GIT_HASH).mid (0, 8);
 
 	return version;
+#elif VERSION_PATCH != 0
+	return format ("%1.%2.%3", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+#else
+	return format ("%1.%2", VERSION_MAJOR, VERSION_MINOR);
+#endif
 }
