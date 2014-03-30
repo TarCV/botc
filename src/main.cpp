@@ -26,14 +26,14 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "Main.h"
-#include "Events.h"
-#include "Commands.h"
-#include "StringTable.h"
-#include "DataBuffer.h"
-#include "Parser.h"
-#include "Lexer.h"
-#include "GitInformation.h"
+#include "main.h"
+#include "events.h"
+#include "commands.h"
+#include "stringTable.h"
+#include "dataBuffer.h"
+#include "parser.h"
+#include "lexer.h"
+#include "gitinfo.h"
 
 int main (int argc, char** argv)
 {

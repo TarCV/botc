@@ -29,8 +29,8 @@
 #ifndef BOTC_LEXER_H
 #define BOTC_LEXER_H
 
-#include "Main.h"
-#include "LexerScanner.h"
+#include "main.h"
+#include "lexerScanner.h"
 
 class Lexer
 {

@@ -32,7 +32,7 @@
 #ifndef BOTC_BOTSTUFF_H
 #define BOTC_BOTSTUFF_H
 
-#include "Main.h"
+#include "main.h"
 
 static const int gMaxStates			= 256;
 static const int gMaxEvents			= 32;

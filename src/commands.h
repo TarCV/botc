@@ -26,57 +26,33 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// TODO: Another freeloader...
+#ifndef BOTC_COMMANDS_H
+#define BOTC_COMMANDS_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "StringTable.h"
+#include "main.h"
+#include "string.h"
 
-static StringList g_StringTable;
-
-// ============================================================================
-//
-const StringList& getStringTable()
+struct CommandArgument
 {
-	return g_StringTable;
-}
+	DataType				type;
+	String					name;
+	int						defvalue;
+};
 
-// ============================================================================
-//
-// Potentially adds a string to the table and returns the index of it.
-//
-int getStringTableIndex (const String& a)
+struct CommandInfo
 {
-	// Find a free slot in the table.
-	int idx;
+	String					name;
+	int						number;
+	int						minargs;
+	DataType				returnvalue;
+	List<CommandArgument>	args;
+	String					origin;
 
-	for (idx = 0; idx < g_StringTable.size(); idx++)
-	{
-		// String is already in the table, thus return it.
-		if (g_StringTable[idx] == a)
-			return idx;
-	}
+	String	signature();
+};
 
-	// Must not be too long.
-	if (a.length() >= gMaxStringLength)
-		error ("string `%1` too long (%2 characters, max is %3)\n",
-			   a, a.length(), gMaxStringLength);
+void						addCommandDefinition (CommandInfo* comm);
+CommandInfo*				findCommandByName (String a);
+const List<CommandInfo*>&	getCommands();
 
-	// Check if the table is already full
-	if (g_StringTable.size() == gMaxStringlistSize - 1)
-		error ("too many strings!\n");
-
-	// Now, dump the string into the slot
-	g_StringTable.append (a);
-	return (g_StringTable.size() - 1);
-}
-
-// ============================================================================
-//
-// Counts the amount of strings in the table.
-//
-int countStringsInTable()
-{
-	return g_StringTable.size();
-}
+#endif // BOTC_COMMANDS_H

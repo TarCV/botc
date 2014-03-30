@@ -29,8 +29,8 @@
 #ifndef BOTC_FORMAT_H
 #define BOTC_FORMAT_H
 
-#include "String.h"
-#include "Containers.h"
+#include "string.h"
+#include "list.h"
 
 class FormatArgument
 {

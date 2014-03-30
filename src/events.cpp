@@ -26,19 +26,42 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_EVENTS_H
-#define BOTC_EVENTS_H
+// TODO: this file is a freeloader, I should probably get rid of it
 
-#include "String.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include "main.h"
+#include "string.h"
+#include "events.h"
+#include "lexer.h"
 
-struct EventDefinition
+static List<EventDefinition*> g_Events;
+
+// ============================================================================
+//
+void addEvent (EventDefinition* e)
 {
-	String name;
-	int number;
-};
+	g_Events << e;
+}
 
-void addEvent (EventDefinition* e);
-EventDefinition* findEventByIndex (int idx);
-EventDefinition* findEventByName (String a);
+// ============================================================================
+//
+// Finds an event definition by index
+//
+EventDefinition* findEventByIndex (int idx)
+{
+	return g_Events[idx];
+}
 
-#endif // BOTC_EVENTS_H
+// ============================================================================
+//
+// Finds an event definition by name
+//
+EventDefinition* findEventByName (String a)
+{
+	for (EventDefinition* e : g_Events)
+		if (a.toUppercase() == e->name.toUppercase())
+			return e;
+
+	return null;
+}

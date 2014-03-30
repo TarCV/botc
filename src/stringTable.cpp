@@ -26,54 +26,57 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BOTC_TYPES_H
-#define BOTC_TYPES_H
+// TODO: Another freeloader...
 
-#include <cstdlib>
-#include <stdexcept>
-#include "Macros.h"
-#include "String.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "stringTable.h"
 
-static const std::nullptr_t null = nullptr;
+static StringList g_StringTable;
 
-// =============================================================================
+// ============================================================================
 //
-named_enum DataType
+const StringList& getStringTable()
 {
-	TYPE_Unknown,
-	TYPE_Void,
-	TYPE_Int,
-	TYPE_String,
-	TYPE_Bool,
-};
-
-// =============================================================================
-//
-struct ByteMark
-{
-	String		name;
-	int			pos;
-};
-
-// =============================================================================
-//
-struct MarkReference
-{
-	ByteMark*	target;
-	int			pos;
-};
-
-// =============================================================================
-//
-// Get absolute value of @a
-//
-template<class T> inline T abs (T a)
-{
-	return (a >= 0) ? a : -a;
+	return g_StringTable;
 }
 
-#ifdef IN_IDE_PARSER
-using FILE = void;
-#endif
+// ============================================================================
+//
+// Potentially adds a string to the table and returns the index of it.
+//
+int getStringTableIndex (const String& a)
+{
+	// Find a free slot in the table.
+	int idx;
 
-#endif // BOTC_TYPES_H
+	for (idx = 0; idx < g_StringTable.size(); idx++)
+	{
+		// String is already in the table, thus return it.
+		if (g_StringTable[idx] == a)
+			return idx;
+	}
+
+	// Must not be too long.
+	if (a.length() >= gMaxStringLength)
+		error ("string `%1` too long (%2 characters, max is %3)\n",
+			   a, a.length(), gMaxStringLength);
+
+	// Check if the table is already full
+	if (g_StringTable.size() == gMaxStringlistSize - 1)
+		error ("too many strings!\n");
+
+	// Now, dump the string into the slot
+	g_StringTable.append (a);
+	return (g_StringTable.size() - 1);
+}
+
+// ============================================================================
+//
+// Counts the amount of strings in the table.
+//
+int countStringsInTable()
+{
+	return g_StringTable.size();
+}

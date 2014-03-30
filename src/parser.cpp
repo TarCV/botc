@@ -26,14 +26,14 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "Parser.h"
-#include "Events.h"
-#include "Commands.h"
-#include "StringTable.h"
-#include "Containers.h"
-#include "Lexer.h"
-#include "DataBuffer.h"
-#include "Expression.h"
+#include "parser.h"
+#include "events.h"
+#include "commands.h"
+#include "stringTable.h"
+#include "list.h"
+#include "lexer.h"
+#include "dataBuffer.h"
+#include "expression.h"
 
 #define SCOPE(n) (m_scopeStack[m_scopeCursor - n])
 

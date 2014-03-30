@@ -29,10 +29,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "Main.h"
-#include "String.h"
-#include "Commands.h"
-#include "Lexer.h"
+#include "main.h"
+#include "string.h"
+#include "commands.h"
+#include "lexer.h"
 
 static List<CommandInfo*> gCommands;
 

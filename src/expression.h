@@ -1,6 +1,6 @@
 #ifndef BOTC_EXPRESSION_H
 #define BOTC_EXPRESSION_H
-#include "Parser.h"
+#include "parser.h"
 
 class DataBuffer;
 class ExpressionSymbol;

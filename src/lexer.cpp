@@ -27,7 +27,7 @@
 */
 
 #include <cstring>
-#include "Lexer.h"
+#include "lexer.h"
 
 static StringList	gFileNameStack;
 static Lexer*		gMainLexer = null;
@@ -103,7 +103,7 @@ void Lexer::processFile (String fileName)
 
 // ============================================================================
 //
-static bool IsValidHeader (String header)
+static bool isValidHeader (String header)
 {
 	if (header.endsWith ("\n"))
 		header.removeFromEnd (1);
@@ -139,7 +139,7 @@ static bool IsValidHeader (String header)
 //
 void Lexer::checkFileHeader (LexerScanner& sc)
 {
-	if (!IsValidHeader (sc.readLine()))
+	if (!isValidHeader (sc.readLine()))
 		error ("Not a valid botscript file! File must start with '#!botc <version>'");
 }
 

@@ -1,6 +1,6 @@
-#include "Expression.h"
-#include "DataBuffer.h"
-#include "Lexer.h"
+#include "expression.h"
+#include "dataBuffer.h"
+#include "lexer.h"
 
 struct OperatorInfo
 {
