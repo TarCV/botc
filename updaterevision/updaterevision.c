@@ -4,6 +4,8 @@
  * various bits of repository status for a particular directory
  * and writes it into a header file so that it can be used for a
  * project's versioning.
+ *
+ * 2014-03-30: [crimsondusk] added GIT_BRANCH, doubled buffer sizes
  */
 
 #define _CRT_SECURE_NO_DEPRECATE
@@ -34,12 +36,13 @@ void stripnl(char *str)
 
 int main(int argc, char **argv)
 {
-	char vertag[64], lastlog[64], lasthash[64], *hash = NULL;
+	char vertag[128], lastlog[128], lasthash[128], branch[128], *hash = NULL;
 	FILE *stream = NULL;
 	int gotrev = 0, needupdate = 1;
 
 	vertag[0] = '\0';
 	lastlog[0] = '\0';
+	branch[0] = '\0';
 
 	if (argc != 2)
 	{
@@ -51,15 +54,18 @@ int main(int argc, char **argv)
 	// on a tag, it returns that tag. Otherwise it returns <most recent tag>-<number of
 	// commits since the tag>-<short hash>.
 	// Use git log to get the time of the latest commit in ISO 8601 format and its full hash.
-	stream = popen("git describe --tags && git log -1 --format=%ai*%H", "r");
+	// [crimsondusk] Use git rev-parse --abbrev-ref HEAD to get the branch.
+	stream = popen("git describe --tags && git log -1 --format=%ai*%H && git rev-parse --abbrev-ref HEAD", "r");
 
 	if (NULL != stream)
 	{
 		if (fgets(vertag, sizeof vertag, stream) == vertag &&
-			fgets(lastlog, sizeof lastlog, stream) == lastlog)
+			fgets(lastlog, sizeof lastlog, stream) == lastlog &&
+			fgets(branch, sizeof branch, stream) == branch)
 		{
 			stripnl(vertag);
 			stripnl(lastlog);
+			stripnl(branch);
 			gotrev = 1;
 		}
 
@@ -83,6 +89,7 @@ int main(int argc, char **argv)
 		lastlog[1] = '0';
 		lastlog[2] = '\0';
 		hash = lastlog + 1;
+		strcpy(branch, "<unknown branch>");
 	}
 
 	stream = fopen (argv[1], "r");
@@ -122,8 +129,9 @@ int main(int argc, char **argv)
 "\n"
 "#define GIT_DESCRIPTION \"%s\"\n"
 "#define GIT_HASH \"%s\"\n"
-"#define GIT_TIME \"%s\"\n",
-			hash, vertag, hash, lastlog);
+"#define GIT_TIME \"%s\"\n"
+"#define GIT_BRANCH \"%s\"\n",
+			hash, vertag, hash, lastlog, branch);
 		fclose(stream);
 		fprintf(stderr, "%s updated to commit %s.\n", argv[1], vertag);
 	}
