@@ -59,6 +59,13 @@ int main (int argc, char** argv)
 			exit (0);
 		}
 
+		if (argc < 2)
+		{
+			fprintf (stderr, "usage: %s <infile> [outfile] # compiles botscript\n", argv[0]);
+			fprintf (stderr, "       %s -l                 # lists commands\n", argv[0]);
+			exit (1);
+		}
+
 		// Print header
 		String header;
 		String headerline;
@@ -88,13 +95,6 @@ int main (int argc, char** argv)
 
 		headerline += '-';
 		print ("%2\n\n%1\n\n%2\n\n", header, headerline);
-
-		if (argc < 2)
-		{
-			fprintf (stderr, "usage: %s <infile> [outfile] # compiles botscript\n", argv[0]);
-			fprintf (stderr, "       %s -l                 # lists commands\n", argv[0]);
-			exit (1);
-		}
 
 		String outfile;
 
