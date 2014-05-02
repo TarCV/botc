@@ -28,7 +28,6 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cassert>
 #include <cstring>
 #include <string>
 #include "lexerScanner.h"
@@ -128,7 +127,7 @@ LexerScanner::LexerScanner (FILE* fp) :
 	m_data = new char[fsize];
 	m_position = m_lineBreakPosition = &m_data[0];
 	bytes = fread (m_data, 1, fsize, fp);
-	assert (bytes >= fsize);
+	ASSERT_GT_EQ (bytes, fsize)
 }
 
 // =============================================================================
@@ -291,7 +290,7 @@ void LexerScanner::skip (int chars)
 //
 String LexerScanner::getTokenString (ETokenType a)
 {
-	assert ((int) a <= gLastNamedToken);
+	ASSERT_LT_EQ (a, gLastNamedToken);
 	return gTokenStrings[a];
 }
 
