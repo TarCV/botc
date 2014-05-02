@@ -26,7 +26,8 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#ifndef BOTC_MACROS_H
+#define BOTC_MACROS_H
 
 #if !defined (__cplusplus) || __cplusplus < 201103L
 # error botc requires a C++11-compliant compiler to be built
@@ -43,7 +44,7 @@
 
 // On Windows, files are case-insensitive
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
-#define FILE_CASEINSENSITIVE
+# define FILE_CASEINSENSITIVE
 #endif
 
 #define named_enum enum
@@ -56,3 +57,20 @@
 #endif
 
 #define deprecated __attribute__ ((deprecated))
+
+template<typename... argtypes>
+void error (const char* fmtstr, const argtypes&... args);
+
+#define BOTC_GENERIC_ASSERT(A,B,OP,COMPLAINT) ((A OP B) ? (void) 0 : \
+	error ("assertion failed at " __FILE__ ":%1: " #A " (%2) " COMPLAINT " " #B " (%3)", __LINE__, A, B));
+
+#define ASSERT_EQ(A,B) BOTC_GENERIC_ASSERT (A, B, ==, "does not equal")
+#define ASSERT_NE(A,B) BOTC_GENERIC_ASSERT (A, B, !=, "is no different from")
+#define ASSERT_LT(A,B) BOTC_GENERIC_ASSERT (A, B, <, "is not less than")
+#define ASSERT_GT(A,B) BOTC_GENERIC_ASSERT (A, B, >, "is not greater than")
+#define ASSERT_LT_EQ(A,B) BOTC_GENERIC_ASSERT (A, B, <=, "is not at most")
+#define ASSERT_GT_EQ(A,B) BOTC_GENERIC_ASSERT (A, B, >=, "is not at least")
+#define ASSERT_RANGE(A,MIN,MAX) { ASSERT_LT_EQ(A, MAX); ASSERT_GT_EQ(A, MIN); }
+#define ASSERT(A) ASSERT_EQ (A, true)
+
+#endif // BOTC_MACROS_H

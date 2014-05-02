@@ -390,7 +390,7 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 {
 	const OperatorInfo* info = &g_Operators[op->id()];
 	bool isconstexpr = true;
-	assert (values.size() == info->numoperands);
+	ASSERT_EQ (values.size(), info->numoperands)
 
 	for (ExpressionValue* val : values)
 	{
@@ -562,7 +562,7 @@ ExpressionValue* Expression::evaluate()
 			}
 
 			default:
-				assert (false);
+				error ("WTF bad expression with %1 operands", info->numoperands);
 		}
 
 		List<ExpressionValue*> values;
@@ -579,7 +579,8 @@ ExpressionValue* Expression::evaluate()
 		m_symbols.insert (lower, newvalue);
 	}
 
-	assert (m_symbols.size() == 1 && m_symbols.first()->type() == EXPRSYM_Value);
+	ASSERT_EQ (m_symbols.size(), 1)
+	ASSERT_EQ (m_symbols.first()->type(), EXPRSYM_Value)
 	ExpressionValue* val = static_cast<ExpressionValue*> (m_symbols.first());
 	return val;
 }
@@ -645,7 +646,6 @@ void ExpressionValue::convertToBuffer()
 
 		case TYPE_Void:
 		case TYPE_Unknown:
-			assert (false);
-			break;
+			error ("WTF: tried to convert bad expression value type %1 to buffer", m_valueType);
 	}
 }

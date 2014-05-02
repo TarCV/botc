@@ -324,15 +324,17 @@ class String
 			return stdString();
 		}
 
-		// =============================================================================
-		//
-		// Difference between indices @a and @b. @b can be -1, in which
-		// case it will be length() - 1.
-		//
-		inline int indexDifference (int a, int b)
+		void modifyIndex (int& a)
 		{
-			assert (b == -1 || b >= a);
-			return (b != -1 ? b - a : length() - 1 - a);
+			if (a < 0)
+				a = length() - a;
+		}
+
+		int indexDifference (int a, int b)
+		{
+			modifyIndex (a);
+			modifyIndex (b);
+			return b - a;
 		}
 
 	private:

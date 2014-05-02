@@ -39,6 +39,7 @@ public:
 	FormatArgument (char a) : m_text (a) {}
 	FormatArgument (int a) : m_text (String::fromNumber (a)) {}
 	FormatArgument (long a) : m_text (String::fromNumber (a)) {}
+	FormatArgument (size_t a) : m_text (String::fromNumber ((long) a)) {}
 	FormatArgument (const char* a) : m_text (a) {}
 
 	FormatArgument (void* a)
@@ -50,6 +51,9 @@ public:
 	{
 		m_text.sprintf ("%p", a);
 	}
+
+	FormatArgument (std::nullptr_t) :
+		m_text (FormatArgument ((void*) 0).text()) {}
 
 	template<class T> FormatArgument (const List<T>& list)
 	{
@@ -148,7 +152,7 @@ String format (const String& fmtstr, const argtypes&... raw_args)
 {
 	std::vector<String> args;
 	expandFormatArguments (args, raw_args...);
-	assert (args.size() == sizeof... (raw_args));
+	ASSERT_EQ (args.size(), sizeof... (raw_args))
 	return formatArgs (fmtstr, args);
 }
 
@@ -205,9 +209,9 @@ void print (const String& fmtstr, const argtypes&... args)
 // caught in main() which prints the error to stderr and then exits.
 //
 template<typename... argtypes>
-void error (const String& fmtstr, const argtypes&... args)
+void error (const char* fmtstr, const argtypes&... args)
 {
-	error (format (fmtstr, args...));
+	error (format (String (fmtstr), args...));
 }
 
 //

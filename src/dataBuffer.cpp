@@ -41,7 +41,8 @@ DataBuffer::DataBuffer (int size)
 //
 DataBuffer::~DataBuffer()
 {
-	assert (marks().isEmpty() && references().isEmpty());
+	ASSERT (marks().isEmpty());
+	ASSERT (references().isEmpty());
 	delete buffer();
 }
 
