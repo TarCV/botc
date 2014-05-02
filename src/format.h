@@ -34,51 +34,51 @@
 
 class FormatArgument
 {
-	public:
-		FormatArgument (const String& a) : m_text (a) {}
-		FormatArgument (char a) : m_text (a) {}
-		FormatArgument (int a) : m_text (String::fromNumber (a)) {}
-		FormatArgument (long a) : m_text (String::fromNumber (a)) {}
-		FormatArgument (const char* a) : m_text (a) {}
+public:
+	FormatArgument (const String& a) : m_text (a) {}
+	FormatArgument (char a) : m_text (a) {}
+	FormatArgument (int a) : m_text (String::fromNumber (a)) {}
+	FormatArgument (long a) : m_text (String::fromNumber (a)) {}
+	FormatArgument (const char* a) : m_text (a) {}
 
-		FormatArgument (void* a)
+	FormatArgument (void* a)
+	{
+		m_text.sprintf ("%p", a);
+	}
+
+	FormatArgument (const void* a)
+	{
+		m_text.sprintf ("%p", a);
+	}
+
+	template<class T> FormatArgument (const List<T>& list)
+	{
+		if (list.isEmpty())
 		{
-			m_text.sprintf ("%p", a);
+			m_text = "{}";
+			return;
 		}
 
-		FormatArgument (const void* a)
+		m_text = "{ ";
+
+		for (const T& a : list)
 		{
-			m_text.sprintf ("%p", a);
+			if (&a != &list[0])
+				m_text += ", ";
+
+			m_text += FormatArgument (a).text();
 		}
 
-		template<class T> FormatArgument (const List<T>& list)
-		{
-			if (list.isEmpty())
-			{
-				m_text = "{}";
-				return;
-			}
+		m_text += " }";
+	}
 
-			m_text = "{ ";
+	inline const String& text() const
+	{
+		return m_text;
+	}
 
-			for (const T& a : list)
-			{
-				if (&a != &list[0])
-					m_text += ", ";
-
-				m_text += FormatArgument (a).text();
-			}
-
-			m_text += " }";
-		}
-
-		inline const String& text() const
-		{
-			return m_text;
-		}
-
-	private:
-		String m_text;
+private:
+	String m_text;
 };
 
 #ifndef IN_IDE_PARSER
@@ -98,22 +98,14 @@ void dvalof (void a);
 #endif // IN_IDE_PARSER
 
 
-/**
- * Formats the given string with the given args.
- *
- * @param fmtstr Formatter string to process.
- * @param args Args to format with the string.
- * @see format()
- */
+//
+// Formats the given string with the given args.
+//
 String formatArgs (const String& fmtstr, const std::vector<String>& args);
 
-/**
- * Expands the given arguments into a vector of strings.
- *
- * @param data Where to insert the strings.
- * @param arg First argument to process
- * @param rest... Rest of the arguments.
- */
+//
+// Expands the given arguments into a vector of strings.
+//
 template<typename T, typename... RestTypes>
 void expandFormatArguments (std::vector<String>& data, const T& arg, const RestTypes& ... rest)
 {
@@ -121,45 +113,36 @@ void expandFormatArguments (std::vector<String>& data, const T& arg, const RestT
 	expandFormatArguments (data, rest...);
 }
 
-/**
- * This is an overload of @c ExpandFormatArguments for end-of-args support.
- */
 static void expandFormatArguments (std::vector<String>& data) __attribute__ ( (unused));
 static void expandFormatArguments (std::vector<String>& data)
 {
 	(void) data;
 }
 
-/**
- * Formats the given formatter string and args and returns the string.
- * This is essentially a modernized sprintf.
- *
- * Args in the format string take the form %n where n is a digit. The argument
- * will be expanded to the nth argument passed. This is essentially Qt's
- * QString::arg() syntax. Note: %0 is invalid.
- *
- * Arguments can be passed a modifier which takes the form of a character
- * just before the digit. Currently supported modifiers are s, d and x.
- *
- * - s: The argument will expand into "s" if it would've not expanded into "1"
- *      otherwise. If it would have expanded into "1" it will expand into an
- *      empty string.
- *
- * - d: The argument expands into the numeric form of the first character of
- *      its previous expansion. Use this to get numeric forms of @c char
- *      arguments.
- *
- * - x: The numeric argument will be represented in hexadecimal notation. This
- *      will work if the argument is a string representing a number. If the
- *      argument did not expand into a number in the first place, 0 is used
- *      (and 0x0 is printed).
- *
- * @param fmtstr Formatter string to process
- * @param raw_args Arguments for the formatter string.
- * @return the formatted string.
- * @see Print
- * @see PrintTo
- */
+//
+// Formats the given formatter string and args and returns the string.
+// This is essentially a modernized sprintf.
+//
+// Args in the format string take the form %n where n is a digit. The argument
+// will be expanded to the nth argument passed. This is essentially Qt's
+// QString::arg() syntax. Note: %0 is invalid.
+//
+// Arguments can be passed a modifier which takes the form of a character
+// just before the digit. Currently supported modifiers are s, d and x.
+//
+// - s: The argument will expand into "s" if it would've not expanded into "1"
+//      otherwise. If it would have expanded into "1" it will expand into an
+//      empty string.
+//
+// - d: The argument expands into the numeric form of the first character of
+//      its previous expansion. Use this to get numeric forms of @c char
+//      arguments.
+//
+// - x: The numeric argument will be represented in hexadecimal notation. This
+//      will work if the argument is a string representing a number. If the
+//      argument did not expand into a number in the first place, 0 is used
+//      and 0x0 is printed.
+//
 template<typename... argtypes>
 String format (const String& fmtstr, const argtypes&... raw_args)
 {
@@ -169,63 +152,67 @@ String format (const String& fmtstr, const argtypes&... raw_args)
 	return formatArgs (fmtstr, args);
 }
 
-/**
- * This is an overload of @c format where no arguments are supplied.
- * @return the formatter string as-is.
- */
+//
+// This is an overload of format() where no arguments are supplied.
+// It returns the formatter string as-is.
+//
 static String format (const String& fmtstr) __attribute__ ( (unused));
 static String format (const String& fmtstr)
 {
 	return fmtstr;
 }
 
-/**
- * Processes the given formatter string using @c format and prints it to the
- * specified file pointer.
- *
- * @param fp File pointer to print the formatted string to
- * @param fmtstr Formatter string for @c format
- * @param args Arguments for @c fmtstr
- */
+//
+// Processes the given formatter string using format() and prints it to the
+// specified file pointer.
+//
 template<typename... argtypes>
 void printTo (FILE* fp, const String& fmtstr, const argtypes&... args)
 {
 	fprintf (fp, "%s", format (fmtstr, args...).c_str());
 }
 
-/**
- * Processes the given formatter string using @c format and prints the result to
- * @c stdout.
- *
- * @param fmtstr Formatter string for @c format
- * @param args Arguments for @c fmtstr
- */
+//
+// Processes the given formatter string using format() and appends it to the
+// specified file by name.
+//
+template<typename... argtypes>
+void printTo (const String& filename, const String& fmtstr, const argtypes&... args)
+{
+	FILE* fp = fopen (filename, "a");
+
+	if (fp != null)
+	{
+		fprintf (fp, "%s", format (fmtstr, args...).c_str());
+		fflush (fp);
+		fclose (fp);
+	}
+}
+
+//
+// Processes the given formatter string using format() and prints the result to
+// stdout.
+//
 template<typename... argtypes>
 void print (const String& fmtstr, const argtypes&... args)
 {
 	printTo (stdout, fmtstr, args...);
 }
 
-/**
- * Throws an std::runtime_error with the processed formatted string. The program
- * execution terminates after a call to this function as the exception is first
- * caught in @c main which prints the error to stderr and then exits.
- *
- * @param fmtstr The formatter string of the error.
- * @param args The args to the formatter string.
- * @see Format
- */
+//
+// Throws an std::runtime_error with the processed formatted string. The program
+// execution terminates after a call to this function as the exception is first
+// caught in main() which prints the error to stderr and then exits.
+//
 template<typename... argtypes>
 void error (const String& fmtstr, const argtypes&... args)
 {
 	error (format (fmtstr, args...));
 }
 
-/**
- * An overload of @c Error with no string formatting in between.
- *
- * @param msg The error message.
- */
-void error (String msg);
+//
+// An overload of error() with no string formatting in between.
+//
+void error (const String& msg);
 
 #endif // BOTC_FORMAT_H

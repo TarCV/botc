@@ -348,7 +348,7 @@ class StringList : public List<String>
 		StringList (std::initializer_list<String> vals) :
 			List<String> (vals) {}
 		StringList (const List<String>& a) : List<String> (a.deque()) {}
-		StringList (const WrappedList& a) : List<String> (a) {}
+		StringList (const std::deque<String>& a) : List<String> (a) {}
 
 		String join (const String& delim);
 };
