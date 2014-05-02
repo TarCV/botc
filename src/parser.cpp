@@ -854,7 +854,7 @@ void BotscriptParser::parseFuncdef()
 	// Return value
 	m_lexer->mustGetAnyOf ({TK_Int,TK_Void,TK_Bool,TK_Str});
 	comm->returnvalue = getTypeByName (m_lexer->token()->text); // TODO
-	assert (comm->returnvalue != -1);
+	ASSERT_NE (comm->returnvalue, -1);
 
 	// Number
 	m_lexer->mustGetNext (TK_Number);
@@ -877,7 +877,8 @@ void BotscriptParser::parseFuncdef()
 		CommandArgument arg;
 		m_lexer->mustGetAnyOf ({TK_Int,TK_Bool,TK_Str});
 		DataType type = getTypeByName (m_lexer->token()->text); // TODO
-		assert (type != -1 && type != TYPE_Void);
+		ASSERT_NE (type, -1)
+		ASSERT_NE (type, TYPE_Void)
 		arg.type = type;
 
 		m_lexer->mustGetNext (TK_Symbol);
@@ -1066,7 +1067,7 @@ AssignmentOperator BotscriptParser::parseAssignmentOperator()
 		default: break;
 	}
 
-	assert (false);
+	error ("WTF bad operator token %1", m_lexer->describeToken (m_lexer->token()));
 	return (AssignmentOperator) 0;
 }
 

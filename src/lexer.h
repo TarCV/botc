@@ -73,7 +73,7 @@ public:
 
 	inline TokenInfo* token() const
 	{
-		assert (hasValidToken() == true);
+		ASSERT (hasValidToken());
 		return &(*m_tokenPosition);
 	}
 

@@ -36,7 +36,7 @@ static Lexer*		gMainLexer = null;
 //
 Lexer::Lexer()
 {
-	assert (gMainLexer == null);
+	ASSERT_EQ (gMainLexer, null);
 	gMainLexer = this;
 }
 

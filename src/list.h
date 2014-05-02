@@ -29,7 +29,7 @@
 #ifndef BOTC_LIST_H
 #define BOTC_LIST_H
 
-#include <cassert>
+#include "macros.h"
 #include <algorithm>
 #include <deque>
 #include <initializer_list>
@@ -155,7 +155,7 @@ inline typename List<T>::ConstReverseIterator List<T>::crend() const
 template<typename T>
 void List<T>::removeAt (int pos)
 {
-	assert (pos < size());
+	ASSERT_LT (pos, size());
 	_deque.erase (_deque.begin() + pos);
 }
 
@@ -241,14 +241,14 @@ int List<T>::size() const
 template<typename T>
 inline T& List<T>::operator[] (int n)
 {
-	assert (n < size());
+	ASSERT_LT (n, size());
 	return _deque[n];
 }
 
 template<typename T>
 inline const T& List<T>::operator[] (int n) const
 {
-	assert (n < size());
+	ASSERT_LT (n, size());
 	return _deque[n];
 }
 
@@ -293,7 +293,9 @@ inline bool List<T>::isEmpty() const
 template<typename T>
 List<T> List<T>::splice (int a, int b) const
 {
-	assert (a >= 0 && b >= 0 && a < size() && b < size() && a <= b);
+	ASSERT_RANGE (a, 0, size() - 1)
+	ASSERT_RANGE (b, 0, size() - 1)
+	ASSERT_LT_EQ (a, b)
 	List<T> result;
 
 	for (int i = a; i <= b; ++i)
