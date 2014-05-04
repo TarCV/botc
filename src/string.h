@@ -42,307 +42,89 @@ class StringList;
 //
 class String
 {
-	public:
-		using StringType	= std::string;
-		using Iterator		= typename StringType::iterator;
-		using ConstIterator	= StringType::const_iterator;
+public:
+	String() {}
 
-		String() {}
+	explicit String (char a) :
+		_string ({ a, '\0' }) {}
 
-		explicit String (char a) :
-			m_string (&a) {}
+	String (const char* data) :
+		_string (data) {}
 
-		String (const char* data) :
-			m_string (data) {}
+	String (const std::string& data) :
+		_string (data) {}
 
-		String (const StringType& data) :
-			m_string (data) {}
+	inline void							append (const char* data);
+	inline void							append (char data);
+	inline void							append (const String& data);
+	inline std::string::iterator		begin();
+	inline std::string::const_iterator	begin() const;
+	void								dump() const;
+	inline void							clear();
+	int									compare (const String& other) const;
+	int									count (char needle) const;
+	inline const char*					c_str() const;
+	inline std::string::iterator		end();
+	inline std::string::const_iterator	end() const;
+	bool								endsWith (const String& other);
+	int									firstIndexOf (const char* c, int a = 0) const;
+	String								toLowercase() const;
+	inline int							indexDifference (int a, int b);
+	inline void							insert (int pos, char c);
+	inline bool							isEmpty() const;
+	bool								isNumeric() const;
+	int									lastIndexOf (const char* c, int a = -1) const;
+	inline int							length() const;
+	bool								maskAgainst (const String& pattern) const;
+	String								mid (long a, long b = -1) const;
+	inline void							modifyIndex (int& a);
+	inline void							prepend (String a);
+	inline void							removeAt (int pos);
+	inline void							remove (int pos, int len);
+	inline void							removeFromEnd (int len);
+	inline void							removeFromStart (int len);
+	void								replace (const char* a, const char* b);
+	inline void							replace (int pos, int n, const String& a);
+	inline void							shrinkToFit();
+	StringList							split (const String& del) const;
+	StringList							split (char del) const;
+	void								sprintf (const char* fmtstr, ...);
+	bool								startsWith (const String& other);
+	inline const std::string&			stdString() const;
+	inline String						strip (char unwanted);
+	String								strip (const List<char>& unwanted);
+	double								toDouble (bool* ok = nullptr) const;
+	float								toFloat (bool* ok = nullptr) const;
+	long								toLong (bool* ok = nullptr, int base = 10) const;
+	void								trim (int n);
+	String								toUppercase() const;
+	int									wordPosition (int n) const;
 
-		void				dump() const;
-		int					compare (const String& other) const;
-		bool				endsWith (const String& other);
-		int					count (char needle) const;
-		int					firstIndexOf (const char* c, int a = 0) const;
-		int					lastIndexOf (const char* c, int a = -1) const;
-		String				toLowercase() const;
-		bool				isNumeric() const;
-		bool				maskAgainst (const String& pattern) const;
-		int					wordPosition (int n) const;
-		void				replace (const char* a, const char* b);
-		StringList			split (const String& del) const;
-		StringList			split (char del) const;
-		void				sprintf (const char* fmtstr, ...);
-		bool				startsWith (const String& other);
-		String				strip (const List<char>& unwanted);
-		String				mid (long a, long b = -1) const;
-		double				toDouble (bool* ok = nullptr) const;
-		float				toFloat (bool* ok = nullptr) const;
-		long				toLong (bool* ok = nullptr, int base = 10) const;
-		void				trim (int n);
-		String				toUppercase() const;
+	static String						fromNumber (int a);
+	static String						fromNumber (long a);
 
-		String				operator+ (const String& data) const;
-		String				operator+ (const char* data) const;
+	String								operator+ (const String& data) const;
+	String								operator+ (const char* data) const;
+	inline String						operator+ (int num) const;
+	inline String&						operator+= (const String data);
+	inline String&						operator+= (const char* data);
+	inline String&						operator+= (int num);
+	inline String&						operator+= (const char data);
+	inline String						operator- (int n) const;
+	inline String&						operator-= (int n);
+	inline bool							operator== (const String& other) const;
+	inline bool							operator== (const char* other) const;
+	inline bool							operator!= (const String& other) const;
+	inline bool							operator!= (const char* other) const;
+	inline bool							operator> (const String& other) const;
+	inline bool							operator< (const String& other) const;
+	inline								operator const char*() const;
+	inline								operator const std::string&() const;
 
-		static String		fromNumber (int a);
-		static String		fromNumber (long a);
-
-		inline bool isEmpty() const
-		{
-			return m_string[0] == '\0';
-		}
-
-		inline void append (const char* data)
-		{
-			m_string.append (data);
-		}
-
-		inline void append (char data)
-		{
-			m_string.push_back (data);
-		}
-
-		inline void append (const String& data)
-		{
-			m_string.append (data.chars());
-		}
-
-		inline Iterator begin()
-		{
-			return m_string.begin();
-		}
-
-		inline ConstIterator begin() const
-		{
-			return m_string.cbegin();
-		}
-
-		inline const char* chars() const
-		{
-			return m_string.c_str();
-		}
-
-		inline const char* c_str() const
-		{
-			return m_string.c_str();
-		}
-
-		inline Iterator end()
-		{
-			return m_string.end();
-		}
-
-		inline ConstIterator end() const
-		{
-			return m_string.end();
-		}
-
-		inline void clear()
-		{
-			m_string.clear();
-		}
-
-		inline void removeAt (int pos)
-		{
-			m_string.erase (m_string.begin() + pos);
-		}
-
-		inline void insert (int pos, char c)
-		{
-			m_string.insert (m_string.begin() + pos, c);
-		}
-
-		inline int length() const
-		{
-			return m_string.length();
-		}
-
-		inline void remove (int pos, int len)
-		{
-			m_string.replace (pos, len, "");
-		}
-
-		inline void removeFromStart (int len)
-		{
-			remove (0, len);
-		}
-
-		inline void removeFromEnd (int len)
-		{
-			remove (length() - len, len);
-		}
-
-		inline void replace (int pos, int n, const String& a)
-		{
-			m_string.replace (pos, n, a.chars());
-		}
-
-		inline void shrinkToFit()
-		{
-			m_string.shrink_to_fit();
-		}
-
-		inline const StringType& stdString() const
-		{
-			return m_string;
-		}
-
-		inline String strip (char unwanted)
-		{
-			return strip ({unwanted});
-		}
-
-		// =============================================================================
-		//
-		inline String operator+ (int num) const
-		{
-			return *this + String::fromNumber (num);
-		}
-
-		// =============================================================================
-		//
-		inline String& operator+= (const String data)
-		{
-			append (data);
-			return *this;
-		}
-
-		// =============================================================================
-		//
-		inline String& operator+= (const char* data)
-		{
-			append (data);
-			return *this;
-		}
-
-		// =============================================================================
-		//
-		inline String& operator+= (int num)
-		{
-			return operator+= (String::fromNumber (num));
-		}
-
-		// =============================================================================
-		//
-		inline void prepend (String a)
-		{
-			m_string = (a + m_string).stdString();
-		}
-
-		// =============================================================================
-		//
-		inline String& operator+= (const char data)
-		{
-			append (data);
-			return *this;
-		}
-
-		// =============================================================================
-		//
-		inline String operator- (int n) const
-		{
-			String newString = m_string;
-			newString -= n;
-			return newString;
-		}
-
-		// =============================================================================
-		//
-		inline String& operator-= (int n)
-		{
-			trim (n);
-			return *this;
-		}
-
-		// =============================================================================
-		//
-		inline String operator+() const
-		{
-			return toUppercase();
-		}
-
-		// =============================================================================
-		//
-		inline String operator-() const
-		{
-			return toLowercase();
-		}
-
-		// =============================================================================
-		//
-		inline bool operator== (const String& other) const
-		{
-			return stdString() == other.stdString();
-		}
-
-		// =============================================================================
-		//
-		inline bool operator== (const char* other) const
-		{
-			return operator== (String (other));
-		}
-
-		// =============================================================================
-		//
-		inline bool operator!= (const String& other) const
-		{
-			return stdString() != other.stdString();
-		}
-
-		// =============================================================================
-		//
-		inline bool operator!= (const char* other) const
-		{
-			return operator!= (String (other));
-		}
-
-		// =============================================================================
-		//
-		inline bool operator> (const String& other) const
-		{
-			return stdString() > other.stdString();
-		}
-
-		// =============================================================================
-		//
-		inline bool operator< (const String& other) const
-		{
-			return stdString() < other.stdString();
-		}
-
-		// =============================================================================
-		//
-		inline operator const char*() const
-		{
-			return chars();
-		}
-
-		// =============================================================================
-		//
-		inline operator const StringType&() const
-		{
-			return stdString();
-		}
-
-		void modifyIndex (int& a)
-		{
-			if (a < 0)
-				a = length() - a;
-		}
-
-		int indexDifference (int a, int b)
-		{
-			modifyIndex (a);
-			modifyIndex (b);
-			return b - a;
-		}
-
-	private:
-		StringType m_string;
+private:
+	std::string _string;
 };
 
-// =============================================================================
-//
 class StringList : public List<String>
 {
 	public:
@@ -355,17 +137,218 @@ class StringList : public List<String>
 		String join (const String& delim);
 };
 
+inline bool operator== (const char* a, const String& b);
+inline String operator+ (const char* a, const String& b);
 
 // =============================================================================
 //
+// IMPLEMENTATIONS
+//
+
+inline bool String::isEmpty() const
+{
+	return _string[0] == '\0';
+}
+
+inline void String::append (const char* data)
+{
+	_string.append (data);
+}
+
+inline void String::append (char data)
+{
+	_string.push_back (data);
+}
+
+inline void String::append (const String& data)
+{
+	_string.append (data.c_str());
+}
+
+inline std::string::iterator String::begin()
+{
+	return _string.begin();
+}
+
+inline std::string::const_iterator String::begin() const
+{
+	return _string.cbegin();
+}
+
+inline const char* String::c_str() const
+{
+	return _string.c_str();
+}
+
+inline std::string::iterator String::end()
+{
+	return _string.end();
+}
+
+inline std::string::const_iterator String::end() const
+{
+	return _string.end();
+}
+
+inline void String::clear()
+{
+	_string.clear();
+}
+
+inline void String::removeAt (int pos)
+{
+	_string.erase (_string.begin() + pos);
+}
+
+inline void String::insert (int pos, char c)
+{
+	_string.insert (_string.begin() + pos, c);
+}
+
+inline int String::length() const
+{
+	return _string.length();
+}
+
+inline void String::remove (int pos, int len)
+{
+	_string.replace (pos, len, "");
+}
+
+inline void String::removeFromStart (int len)
+{
+	remove (0, len);
+}
+
+inline void String::removeFromEnd (int len)
+{
+	remove (length() - len, len);
+}
+
+inline void String::replace (int pos, int n, const String& a)
+{
+	_string.replace (pos, n, a.c_str());
+}
+
+inline void String::shrinkToFit()
+{
+	_string.shrink_to_fit();
+}
+
+inline const std::string& String::stdString() const
+{
+	return _string;
+}
+
+inline String String::strip (char unwanted)
+{
+	return strip ({unwanted});
+}
+
+inline String String::operator+ (int num) const
+{
+	return *this + String::fromNumber (num);
+}
+
+inline String& String::operator+= (const String data)
+{
+	append (data);
+	return *this;
+}
+
+inline String& String::operator+= (const char* data)
+{
+	append (data);
+	return *this;
+}
+
+inline String& String::operator+= (int num)
+{
+	return operator+= (String::fromNumber (num));
+}
+
+inline void String::prepend (String a)
+{
+	_string = (a + _string).stdString();
+}
+
+inline String& String::operator+= (const char data)
+{
+	append (data);
+	return *this;
+}
+
+inline String String::operator- (int n) const
+{
+	String newString = _string;
+	newString -= n;
+	return newString;
+}
+
+inline String& String::operator-= (int n)
+{
+	trim (n);
+	return *this;
+}
+
+inline bool String::operator== (const String& other) const
+{
+	return stdString() == other.stdString();
+}
+
+inline bool String::operator== (const char* other) const
+{
+	return operator== (String (other));
+}
+
+inline bool String::operator!= (const String& other) const
+{
+	return stdString() != other.stdString();
+}
+
+inline bool String::operator!= (const char* other) const
+{
+	return operator!= (String (other));
+}
+
+inline bool String::operator> (const String& other) const
+{
+	return stdString() > other.stdString();
+}
+
+inline bool String::operator< (const String& other) const
+{
+	return stdString() < other.stdString();
+}
+
+inline String::operator const char*() const
+{
+	return c_str();
+}
+
+inline String::operator const std::string&() const
+{
+	return stdString();
+}
+
+inline void String::modifyIndex (int& a)
+{
+	if (a < 0)
+		a = length() - a;
+}
+
+inline int String::indexDifference (int a, int b)
+{
+	modifyIndex (a);
+	modifyIndex (b);
+	return b - a;
+}
+
 inline bool operator== (const char* a, const String& b)
 {
 	return b == a;
 }
 
-
-// =============================================================================
-//
 inline String operator+ (const char* a, const String& b)
 {
 	return String (a) + b;
