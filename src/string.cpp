@@ -34,7 +34,7 @@
 //
 int String::compare (const String& other) const
 {
-	return m_string.compare (other.stdString());
+	return _string.compare (other.stdString());
 }
 
 // =============================================================================
@@ -42,27 +42,23 @@ int String::compare (const String& other) const
 void String::trim (int n)
 {
 	if (n > 0)
-		m_string = mid (0, length() - n).stdString();
+		_string = mid (0, length() - n).stdString();
 	else
-		m_string = mid (n, -1).stdString();
+		_string = mid (n, -1).stdString();
 }
 
 // =============================================================================
 //
-String String::strip (const List< char >& unwanted)
+String String::strip (const List<char>& unwanted)
 {
-	String copy (m_string);
+	String copy (_string);
 
 	for (char c : unwanted)
-		for (int i = 0; i < copy.length(); ++i)
-			if (copy[i] == c)
-				copy.removeAt (i);
-
-	/*
-	int pos = 0;
-	while ((pos = copy.First (c)) != -1)
-		copy.RemoveAt (pos--);
-	*/
+	{
+		int pos = 0;
+		while ((pos = copy.firstIndexOf (String (c))) != -1)
+			copy.removeAt (pos--);
+	}
 
 	return copy;
 }
@@ -71,11 +67,13 @@ String String::strip (const List< char >& unwanted)
 //
 String String::toUppercase() const
 {
-	String newstr = m_string;
+	String newstr (_string);
 
 	for (char& c : newstr)
+	{
 		if (c >= 'a' && c <= 'z')
 			c -= 'a' - 'A';
+	}
 
 	return newstr;
 }
@@ -84,11 +82,13 @@ String String::toUppercase() const
 //
 String String::toLowercase() const
 {
-	String newstr = m_string;
+	String newstr (_string);
 
-	for (char & c : newstr)
+	for (char& c : newstr)
+	{
 		if (c >= 'A' && c <= 'Z')
 			c += 'a' - 'A';
+	}
 
 	return newstr;
 }
@@ -107,20 +107,16 @@ StringList String::split (char del) const
 StringList String::split (const String& del) const
 {
 	StringList res;
-	long a = 0;
+	int a = 0;
+	int b;
 
 	// Find all separators and store the text left to them.
-	for (;;)
+	while ((b = firstIndexOf (del, a)) != -1)
 	{
-		long b = firstIndexOf (del, a);
-
-		if (b == -1)
-			break;
-
 		String sub = mid (a, b);
 
 		if (sub.length() > 0)
-			res.append (mid (a, b));
+			res << sub;
 
 		a = b + del.length();
 	}
@@ -139,7 +135,7 @@ void String::replace (const char* a, const char* b)
 	long pos;
 
 	while ((pos = firstIndexOf (a)) != -1)
-		m_string = m_string.replace (pos, strlen (a), b);
+		_string = _string.replace (pos, strlen (a), b);
 }
 
 // =============================================================================
@@ -148,7 +144,7 @@ int String::count (char needle) const
 {
 	int needles = 0;
 
-	for (const char & c : m_string)
+	for (const char & c : _string)
 		if (c == needle)
 			needles++;
 
@@ -174,7 +170,7 @@ String String::mid (long a, long b) const
 	}
 
 	char* newstr = new char[b - a + 1];
-	strncpy (newstr, m_string.c_str() + a, b - a);
+	strncpy (newstr, _string.c_str() + a, b - a);
 	newstr[b - a] = '\0';
 
 	String other (newstr);
@@ -190,7 +186,7 @@ int String::wordPosition (int n) const
 
 	for (int i = 0; i < length(); ++i)
 	{
-		if (m_string[i] != ' ')
+		if (_string[i] != ' ')
 			continue;
 
 		if (++count < n)
@@ -206,11 +202,12 @@ int String::wordPosition (int n) const
 //
 int String::firstIndexOf (const char* c, int a) const
 {
-	for (; a < length(); a++)
-		if (m_string[a] == c[0] && strncmp (m_string.c_str() + a, c, strlen (c)) == 0)
-			return a;
+	int pos = _string.find (c, a);
 
-	return -1;
+	if (pos == (int) std::string::npos)
+		return -1;
+
+	return pos;
 }
 
 // =============================================================================
@@ -221,7 +218,7 @@ int String::lastIndexOf (const char* c, int a) const
 		a = length() - 1;
 
 	for (; a > 0; a--)
-		if (m_string[a] == c[0] && strncmp (m_string.c_str() + a, c, strlen (c)) == 0)
+		if (_string[a] == c[0] && strncmp (_string.c_str() + a, c, strlen (c)) == 0)
 			return a;
 
 	return -1;
@@ -231,10 +228,10 @@ int String::lastIndexOf (const char* c, int a) const
 //
 void String::dump() const
 {
-	print ("`%1`:\n", chars());
+	print ("`%1`:\n", c_str());
 	int i = 0;
 
-	for (char u : m_string)
+	for (char u : _string)
 		print ("\t%1. [%d2] `%3`\n", i++, u, String (u));
 }
 
@@ -244,7 +241,7 @@ long String::toLong (bool* ok, int base) const
 {
 	errno = 0;
 	char* endptr;
-	long i = strtol (m_string.c_str(), &endptr, base);
+	long i = strtol (_string.c_str(), &endptr, base);
 
 	if (ok)
 		*ok = (errno == 0 && *endptr == '\0');
@@ -258,7 +255,7 @@ float String::toFloat (bool* ok) const
 {
 	errno = 0;
 	char* endptr;
-	float i = strtof (m_string.c_str(), &endptr);
+	float i = strtof (_string.c_str(), &endptr);
 
 	if (ok)
 		*ok = (errno == 0 && *endptr == '\0');
@@ -272,7 +269,7 @@ double String::toDouble (bool* ok) const
 {
 	errno = 0;
 	char* endptr;
-	double i = strtod (m_string.c_str(), &endptr);
+	double i = strtod (_string.c_str(), &endptr);
 
 	if (ok)
 		*ok = (errno == 0 && *endptr == '\0');
@@ -304,10 +301,10 @@ bool String::isNumeric() const
 {
 	bool gotDot = false;
 
-	for (const char & c : m_string)
+	for (const char & c : _string)
 	{
 		// Allow leading hyphen for negatives
-		if (&c == &m_string[0] && c == '-')
+		if (&c == &_string[0] && c == '-')
 			continue;
 
 		// Check for decimal point
@@ -336,7 +333,7 @@ bool String::endsWith (const String& other)
 		return false;
 
 	const int ofs = length() - other.length();
-	return strncmp (chars() + ofs, other.chars(), other.length()) == 0;
+	return strncmp (c_str() + ofs, other.c_str(), other.length()) == 0;
 }
 
 // =============================================================================
@@ -346,7 +343,7 @@ bool String::startsWith (const String& other)
 	if (length() < other.length())
 		return false;
 
-	return strncmp (chars(), other.chars(), other.length()) == 0;
+	return strncmp (c_str(), other.c_str(), other.length()) == 0;
 }
 
 // =============================================================================
@@ -363,7 +360,7 @@ void String::sprintf (const char* fmtstr, ...)
 	while (vsnprintf (buf, bufsize, fmtstr, va) >= bufsize);
 
 	va_end (va);
-	m_string = buf;
+	_string = buf;
 	delete[] buf;
 }
 
@@ -391,10 +388,10 @@ bool String::maskAgainst (const String& pattern) const
 	// Elevate to uppercase for case-insensitive matching
 	String pattern_upper = pattern.toUppercase();
 	String this_upper = toUppercase();
-	const char* maskstring = pattern_upper.chars();
+	const char* maskstring = pattern_upper.c_str();
 	const char* mptr = &maskstring[0];
 
-	for (const char* sptr = this_upper.chars(); *sptr != '\0'; sptr++)
+	for (const char* sptr = this_upper.c_str(); *sptr != '\0'; sptr++)
 	{
 		if (*mptr == '?')
 		{
