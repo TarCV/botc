@@ -39,6 +39,9 @@
 #define VERSION_MINOR	0
 #define VERSION_PATCH 	0
 
+#define MACRO_TO_STRING_HELPER(A) #A
+#define MACRO_TO_STRING(A) MACRO_TO_STRING_HELPER(A)
+
 #define MAKE_VERSION_NUMBER(MAJ, MIN, PAT) ((MAJ * 10000) + (MIN * 100) + PAT)
 #define VERSION_NUMBER MAKE_VERSION_NUMBER (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 
@@ -63,7 +66,7 @@ void error (const char* fmtstr, const argtypes&... args);
 
 #ifdef DEBUG
 # define BOTC_GENERIC_ASSERT(A,B,OP,COMPLAINT) ((A OP B) ? (void) 0 : \
-	error ("assertion failed at " __FILE__ ":%1: " #A " (%2) " COMPLAINT " " #B " (%3)", __LINE__, A, B));
+	error ("assertion failed at " __FILE__ ":" MACRO_TO_STRING(__LINE__) ": " #A " (%1) " COMPLAINT " " #B " (%2)", A, B));
 #else
 # define BOTC_GENERIC_ASSERT(A,B,OP,COMPLAINT) {}
 #endif
