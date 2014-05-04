@@ -61,8 +61,12 @@
 template<typename... argtypes>
 void error (const char* fmtstr, const argtypes&... args);
 
-#define BOTC_GENERIC_ASSERT(A,B,OP,COMPLAINT) ((A OP B) ? (void) 0 : \
+#ifdef DEBUG
+# define BOTC_GENERIC_ASSERT(A,B,OP,COMPLAINT) ((A OP B) ? (void) 0 : \
 	error ("assertion failed at " __FILE__ ":%1: " #A " (%2) " COMPLAINT " " #B " (%3)", __LINE__, A, B));
+#else
+# define BOTC_GENERIC_ASSERT(A,B,OP,COMPLAINT) {}
+#endif
 
 #define ASSERT_EQ(A,B) BOTC_GENERIC_ASSERT (A, B, ==, "does not equal")
 #define ASSERT_NE(A,B) BOTC_GENERIC_ASSERT (A, B, !=, "is no different from")
