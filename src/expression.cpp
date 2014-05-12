@@ -68,7 +68,7 @@ Expression::~Expression()
 
 // =============================================================================
 //
-// Try to parse an expression symbol (i.e. an OPER_erator or OPER_erand or a colon)
+// Try to parse an expression symbol (i.e. an operator or OPER_erand or a colon)
 // from the lexer.
 //
 ExpressionSymbol* Expression::parseSymbol()
@@ -79,7 +79,7 @@ ExpressionSymbol* Expression::parseSymbol()
 	if (m_lexer->next (TK_Colon))
 		return new ExpressionColon;
 
-	// Check for OPER_erator
+	// Check for operator
 	for (const OperatorInfo& op : g_Operators)
 		if (m_lexer->next (op.token))
 			return new ExpressionOperator ((ExpressionOperatorType) (&op - &g_Operators[0]));
@@ -195,10 +195,10 @@ ExpressionSymbol* Expression::parseSymbol()
 
 // =============================================================================
 //
-// The symbol parsing process only does token-based checking for OPER_erators.
-// Thus ALL minus OPER_erators are actually unary minuses simply because both
+// The symbol parsing process only does token-based checking for operators.
+// Thus ALL minus operators are actually unary minuses simply because both
 // have TK_Minus as their token and the unary minus is prior to the binary minus
-// in the OPER_erator table. Now that we have all symbols present, we can
+// in the operator table. Now that we have all symbols present, we can
 // correct cases like this.
 //
 void Expression::adjustOperators()
@@ -223,7 +223,7 @@ void Expression::adjustOperators()
 //
 void Expression::tryVerifyValue (bool* verified, SymbolList::Iterator it)
 {
-	// If it's an unary OPER_erator we skip to its value. The actual OPER_erator will
+	// If it's an unary operator we skip to its value. The actual operator will
 	// be verified separately.
 	if ((*it)->type() == EXPRSYM_Operator &&
 			g_Operators[static_cast<ExpressionOperator*> (*it)->id()].numoperands == 1)
@@ -278,8 +278,8 @@ void Expression::verify()
 			case 1:
 			{
 				// Ensure that:
-				// -	unary OPER_erator is not the last symbol
-				// -	unary OPER_erator is succeeded by a value symbol
+				// -	unary operator is not the last symbol
+				// -	unary operator is succeeded by a value symbol
 				// -	neither symbol overlaps with something already verified
 				tryVerifyValue (verified, it + 1);
 
@@ -293,7 +293,7 @@ void Expression::verify()
 			case 2:
 			{
 				// Ensure that:
-				// -	binary OPER_erator is not the first or last symbol
+				// -	binary operator is not the first or last symbol
 				// -	is preceded and succeeded by values
 				// -	none of the three tokens are already verified
 				//
@@ -309,7 +309,7 @@ void Expression::verify()
 
 			case 3:
 			{
-				// Ternary OPER_erator case. This goes a bit nuts.
+				// Ternary operator case. This goes a bit nuts.
 				// This time we have the following:
 				//
 				// (VALUE) ? (VALUE) : (VALUE)
@@ -317,9 +317,9 @@ void Expression::verify()
 				// --------/ we are here
 				//
 				// Check that the:
-				// -	questionmark OPER_erator is not misplaced (first or last)
-				// -	the value behind the OPER_erator (-1) is valid
-				// -	the value after the OPER_erator (+1) is valid
+				// -	questionmark operator is not misplaced (first or last)
+				// -	the value behind the operator (-1) is valid
+				// -	the value after the operator (+1) is valid
 				// -	the value after the colon (+3) is valid
 				// -	none of the five tokens are verified
 				//
@@ -342,7 +342,7 @@ void Expression::verify()
 			}
 
 			default:
-				error ("WTF OPER_erator with %1 OPER_erands", numoperands);
+				error ("WTF operator with %1 OPER_erands", numoperands);
 		}
 	}
 
@@ -383,7 +383,7 @@ Expression::SymbolList::Iterator Expression::findPrioritizedOperator()
 
 // =============================================================================
 //
-// Process the given OPER_erator and values into a new value.
+// Process the given operator and values into a new value.
 //
 ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 											   const List<ExpressionValue*>& values)
@@ -417,7 +417,7 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 
 		if (op->id() == OPER_Ternary)
 		{
-			// There isn't a dataheader for ternary OPER_erator. Instead, we use DH_IfNotGoto
+			// There isn't a dataheader for ternary operator. Instead, we use DH_IfNotGoto
 			// to create an "if-block" inside an expression.
 			// Behold, big block of writing madness! :P
 			//
@@ -442,7 +442,7 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 		}
 		else
 		{
-			// Generic case: write all arguments and apply the OPER_erator's
+			// Generic case: write all arguments and apply the operator's
 			// data header.
 			for (ExpressionValue* val : values)
 			{
