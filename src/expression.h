@@ -119,7 +119,7 @@ class ExpressionValue final : public ExpressionSymbol
 // =============================================================================
 //
 // This class represents a ":" in the expression. It serves as the colon for the
-// ternary ?: operator. It's not an OPER_erand nor is an operator, nor can we just
+// ternary ?: operator. It's not an operand nor is an operator, nor can we just
 // skip it so it is its own thing here.
 //
 class ExpressionColon final : public ExpressionSymbol

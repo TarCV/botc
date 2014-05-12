@@ -68,7 +68,7 @@ Expression::~Expression()
 
 // =============================================================================
 //
-// Try to parse an expression symbol (i.e. an operator or OPER_erand or a colon)
+// Try to parse an expression symbol (i.e. an operator or operand or a colon)
 // from the lexer.
 //
 ExpressionSymbol* Expression::parseSymbol()
@@ -256,7 +256,7 @@ void Expression::verify()
 	}
 
 	if (m_type == TYPE_String)
-		error ("Cannot perform OPER_erations on strings");
+		error ("Cannot perform operations on strings");
 
 	bool* verified = new bool[m_symbols.size()];
 	memset (verified, 0, m_symbols.size() * sizeof (decltype (*verified)));
@@ -342,7 +342,7 @@ void Expression::verify()
 			}
 
 			default:
-				error ("WTF operator with %1 OPER_erands", numoperands);
+				error ("WTF operator with %1 operands", numoperands);
 		}
 	}
 
@@ -428,13 +428,13 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 			ByteMark* mark1 = buf->addMark (""); // start of "else" case
 			ByteMark* mark2 = buf->addMark (""); // end of expression
 			buf->mergeAndDestroy (b0);
-			buf->writeDWord (DH_IfNotGoto); // if the first OPER_erand (condition)
+			buf->writeDWord (DH_IfNotGoto); // if the first operand (condition)
 			buf->addReference (mark1); // didn't eval true, jump into mark1
-			buf->mergeAndDestroy (b1); // otherwise, perform second OPER_erand (true case)
+			buf->mergeAndDestroy (b1); // otherwise, perform second operand (true case)
 			buf->writeDWord (DH_Goto); // afterwards, jump to the end, which is
 			buf->addReference (mark2); // marked by mark2.
 			buf->adjustMark (mark1); // move mark1 at the end of the true case
-			buf->mergeAndDestroy (b2); // perform third OPER_erand (false case)
+			buf->mergeAndDestroy (b2); // perform third operand (false case)
 			buf->adjustMark (mark2); // move the ending mark2 here
 
 			for (int i = 0; i < 3; ++i)
@@ -527,7 +527,7 @@ ExpressionValue* Expression::evaluate()
 	while ((it = findPrioritizedOperator()) != m_symbols.end())
 	{
 		int i = it - m_symbols.begin();
-		List<SymbolList::Iterator> OPER_erands;
+		List<SymbolList::Iterator> operands;
 		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
 		const OperatorInfo* info = &g_Operators[op->id()];
 		int lower, upper; // Boundaries of area to replace
@@ -538,7 +538,7 @@ ExpressionValue* Expression::evaluate()
 			{
 				lower = i;
 				upper = i + 1;
-				OPER_erands << it + 1;
+				operands << it + 1;
 				break;
 			}
 
@@ -546,7 +546,7 @@ ExpressionValue* Expression::evaluate()
 			{
 				lower = i - 1;
 				upper = i + 1;
-				OPER_erands << it - 1
+				operands << it - 1
 				         << it + 1;
 				break;
 			}
@@ -555,7 +555,7 @@ ExpressionValue* Expression::evaluate()
 			{
 				lower = i - 1;
 				upper = i + 3;
-				OPER_erands << it - 1
+				operands << it - 1
 				         << it + 1
 				         << it + 3;
 				break;
@@ -567,7 +567,7 @@ ExpressionValue* Expression::evaluate()
 
 		List<ExpressionValue*> values;
 
-		for (auto it : OPER_erands)
+		for (auto it : operands)
 			values << static_cast<ExpressionValue*> (*it);
 
 		// Note: @op and all of @values are invalid after this call.
