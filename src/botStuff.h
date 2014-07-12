@@ -1,6 +1,6 @@
 /*
 	Copyright 2000-2010 Brad Carney
-	Copyright 2012-2014 Santeri Piippo
+	Copyright 2012-2014 Teemu Piippo
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
