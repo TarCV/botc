@@ -42,7 +42,7 @@ int main (int argc, char** argv)
 		// Intepret command-line parameters:
 		// -l: list commands
 		// I guess there should be a better way to do this.
-		if (argc == 2 && String (argv[1]) == "-l")
+		if (argc == 2 and String (argv[1]) == "-l")
 		{
 			print ("Begin list of commands:\n");
 			print ("------------------------------------------------------\n");
@@ -115,10 +115,10 @@ int main (int argc, char** argv)
 		int globalcount = parser->getHighestVarIndex (true) + 1;
 		int statelocalcount = parser->getHighestVarIndex (false) + 1;
 		int stringcount = countStringsInTable();
-		print ("%1 / %2 strings\n", stringcount, gMaxStringlistSize);
-		print ("%1 / %2 global variable indices\n", globalcount, gMaxGlobalVars);
-		print ("%1 / %2 state variable indices\n", statelocalcount, gMaxGlobalVars);
-		print ("%1 / %2 events\n", parser->numEvents(), gMaxEvents);
+		print ("%1 / %2 strings\n", stringcount, Limits::MaxStringlistSize);
+		print ("%1 / %2 global variable indices\n", globalcount, Limits::MaxGlobalVars);
+		print ("%1 / %2 state variable indices\n", statelocalcount, Limits::MaxStateVars);
+		print ("%1 / %2 events\n", parser->numEvents(), Limits::MaxEvents);
 		print ("%1 state%s1\n", parser->numStates());
 
 		parser->writeToFile (outfile);
@@ -198,11 +198,11 @@ String makeVersionString (int major, int minor, int patch)
 //
 String versionString (bool longform)
 {
-#if defined(GIT_DESCRIPTION) && defined (DEBUG)
+#if defined(GIT_DESCRIPTION) and defined (DEBUG)
 	String tag (GIT_DESCRIPTION);
 	String version = tag;
 
-	if (longform && tag.endsWith ("-pre"))
+	if (longform and tag.endsWith ("-pre"))
 		version += "-" + String (GIT_HASH).mid (0, 8);
 
 	return version;

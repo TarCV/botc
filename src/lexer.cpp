@@ -63,13 +63,13 @@ void Lexer::processFile (String fileName)
 	while (sc.getNextToken())
 	{
 		// Preprocessor commands:
-		if (sc.getTokenType() ==TK_Hash)
+		if (sc.getTokenType() ==Token::Hash)
 		{
-			mustGetFromScanner (sc,TK_Symbol);
+			mustGetFromScanner (sc,Token::Symbol);
 
 			if (sc.getTokenText() == "include")
 			{
-				mustGetFromScanner (sc,TK_String);
+				mustGetFromScanner (sc,Token::String);
 				String fileName = sc.getTokenText();
 
 				if (gFileNameStack.contains (fileName))
@@ -110,7 +110,7 @@ static bool isValidHeader (String header)
 
 	StringList tokens = header.split (" ");
 
-	if (tokens.size() != 2 || tokens[0] != "#!botc" || tokens[1].isEmpty())
+	if (tokens.size() != 2 or tokens[0] != "#!botc" or tokens[1].isEmpty())
 		return false;
 
 	StringList nums = tokens[1].split (".");
@@ -125,7 +125,7 @@ static bool isValidHeader (String header)
 	long minor = nums[1].toLong (&okB);
 	long patch = nums[2].toLong (&okC);
 
-	if (!okA || !okB || !okC)
+	if (!okA or !okB or !okC)
 		return false;
 
 	if (VERSION_NUMBER < MAKE_VERSION_NUMBER (major, minor, patch))
@@ -145,7 +145,7 @@ void Lexer::checkFileHeader (LexerScanner& sc)
 
 // =============================================================================
 //
-bool Lexer::next (ETokenType req)
+bool Lexer::next (Token req)
 {
 	Iterator pos = m_tokenPosition;
 
@@ -154,7 +154,7 @@ bool Lexer::next (ETokenType req)
 
 	m_tokenPosition++;
 
-	if (isAtEnd() || (req !=TK_Any && tokenType() != req))
+	if (isAtEnd() or (req !=Token::Any and tokenType() != req))
 	{
 		m_tokenPosition = pos;
 		return false;
@@ -165,24 +165,24 @@ bool Lexer::next (ETokenType req)
 
 // =============================================================================
 //
-void Lexer::mustGetNext (ETokenType tok)
+void Lexer::mustGetNext (Token tok)
 {
 	if (!next())
 		error ("unexpected EOF");
 
-	if (tok !=TK_Any)
+	if (tok !=Token::Any)
 		tokenMustBe (tok);
 }
 
 // =============================================================================
 // eugh..
 //
-void Lexer::mustGetFromScanner (LexerScanner& sc, ETokenType tt)
+void Lexer::mustGetFromScanner (LexerScanner& sc, Token tt)
 {
 	if (sc.getNextToken() == false)
 		error ("unexpected EOF");
 
-	if (tt != TK_Any && sc.getTokenType() != tt)
+	if (tt != Token::Any and sc.getTokenType() != tt)
 	{
 		// TODO
 		TokenInfo tok;
@@ -199,18 +199,18 @@ void Lexer::mustGetFromScanner (LexerScanner& sc, ETokenType tt)
 
 // =============================================================================
 //
-void Lexer::mustGetAnyOf (const List<ETokenType>& toks)
+void Lexer::mustGetAnyOf (const List<Token>& toks)
 {
 	if (!next())
 		error ("unexpected EOF");
 
-	for (ETokenType tok : toks)
+	for (Token tok : toks)
 		if (tokenType() == tok)
 			return;
 
 	String toknames;
 
-	for (const ETokenType& tokType : toks)
+	for (const Token& tokType : toks)
 	{
 		if (&tokType == &toks.last())
 			toknames += " or ";
@@ -230,7 +230,7 @@ int Lexer::getOneSymbol (const StringList& syms)
 	if (!next())
 		error ("unexpected EOF");
 
-	if (tokenType() ==TK_Symbol)
+	if (tokenType() ==Token::Symbol)
 	{
 		for (int i = 0; i < syms.size(); ++i)
 		{
@@ -245,7 +245,7 @@ int Lexer::getOneSymbol (const StringList& syms)
 
 // =============================================================================
 //
-void Lexer::tokenMustBe (ETokenType tok)
+void Lexer::tokenMustBe (Token tok)
 {
 	if (tokenType() != tok)
 		error ("expected %1, got %2", describeTokenType (tok),
@@ -254,17 +254,17 @@ void Lexer::tokenMustBe (ETokenType tok)
 
 // =============================================================================
 //
-String Lexer::describeTokenPrivate (ETokenType tokType, Lexer::TokenInfo* tok)
+String Lexer::describeTokenPrivate (Token tokType, Lexer::TokenInfo* tok)
 {
 	if (tokType <gLastNamedToken)
-		return "\"" + LexerScanner::getTokenString (tokType) + "\"";
+		return "\"" + LexerScanner::GetTokenString (tokType) + "\"";
 
 	switch (tokType)
 	{
-		case TK_Symbol:	return tok ? tok->text : "a symbol";
-		case TK_Number:	return tok ? tok->text : "a number";
-		case TK_String:	return tok ? ("\"" + tok->text + "\"") : "a string";
-		case TK_Any:	return tok ? tok->text : "any token";
+		case Token::Symbol:	return tok ? tok->text : "a symbol";
+		case Token::Number:	return tok ? tok->text : "a number";
+		case Token::String:	return tok ? ("\"" + tok->text + "\"") : "a string";
+		case Token::Any:	return tok ? tok->text : "any token";
 		default: break;
 	}
 
@@ -278,7 +278,7 @@ bool Lexer::peekNext (Lexer::TokenInfo* tk)
 	Iterator pos = m_tokenPosition;
 	bool r = next();
 
-	if (r && tk != null)
+	if (r and tk != null)
 		*tk = *m_tokenPosition;
 
 	m_tokenPosition = pos;
@@ -287,12 +287,12 @@ bool Lexer::peekNext (Lexer::TokenInfo* tk)
 
 // =============================================================================
 //
-bool Lexer::peekNextType (ETokenType req)
+bool Lexer::peekNextType (Token req)
 {
 	Iterator pos = m_tokenPosition;
 	bool result = false;
 
-	if (next() && tokenType() == req)
+	if (next() and tokenType() == req)
 		result = true;
 
 	m_tokenPosition = pos;
@@ -338,7 +338,7 @@ String Lexer::describeTokenPosition()
 //
 void Lexer::mustGetSymbol (const String& a)
 {
-	mustGetNext (TK_Any);
+	mustGetNext (Token::Any);
 	if (token()->text != a)
 		error ("expected \"%1\", got \"%2\"", a, token()->text);
 }

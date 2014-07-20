@@ -108,7 +108,7 @@ struct Variable
 	String			origin;
 	bool			isarray;
 
-	inline bool IsGlobal() const
+	inline bool isGlobal() const
 	{
 		return statename.isEmpty();
 	}
@@ -151,108 +151,102 @@ class BotscriptParser
 {
 	PROPERTY (public, bool, isReadOnly, setReadOnly, STOCK_WRITE)
 
-	public:
-		enum EReset
-		{
-			eNoReset,
-			SCOPE_Reset,
-		};
+public:
+	BotscriptParser();
+	~BotscriptParser();
+	void					parseBotscript (String fileName);
+	DataBuffer*				parseCommand (CommandInfo* comm);
+	DataBuffer*				parseAssignment (Variable* var);
+	AssignmentOperator		parseAssignmentOperator();
+	String					parseFloat();
+	void					pushScope (bool noreset = false);
+	DataBuffer*				parseStatement();
+	void					addSwitchCase (DataBuffer* b);
+	void					checkToplevel();
+	void					checkNotToplevel();
+	bool					tokenIs (Token a);
+	String					getTokenString();
+	String					describePosition() const;
+	void					writeToFile (String outfile);
+	Variable*				findVariable (const String& name);
+	bool					isInGlobalState() const;
+	void					suggestHighestVarIndex (bool global, int index);
+	int						getHighestVarIndex (bool global);
 
-		BotscriptParser();
-		~BotscriptParser();
-		void					parseBotscript (String fileName);
-		DataBuffer*				parseCommand (CommandInfo* comm);
-		DataBuffer*				parseAssignment (Variable* var);
-		AssignmentOperator		parseAssignmentOperator();
-		String					parseFloat();
-		void					pushScope (EReset reset = SCOPE_Reset);
-		DataBuffer*				parseStatement();
-		void					addSwitchCase (DataBuffer* b);
-		void					checkToplevel();
-		void					checkNotToplevel();
-		bool					tokenIs (ETokenType a);
-		String					getTokenString();
-		String					describePosition() const;
-		void					writeToFile (String outfile);
-		Variable*				findVariable (const String& name);
-		bool					isInGlobalState() const;
-		void					suggestHighestVarIndex (bool global, int index);
-		int						getHighestVarIndex (bool global);
+	inline ScopeInfo& scope (int offset)
+	{
+		return m_scopeStack[m_scopeCursor - offset];
+	}
 
-		inline ScopeInfo& scope (int offset)
-		{
-			return m_scopeStack[m_scopeCursor - offset];
-		}
+	inline int numEvents() const
+	{
+		return m_numEvents;
+	}
 
-		inline int numEvents() const
-		{
-			return m_numEvents;
-		}
+	inline int numStates() const
+	{
+		return m_numStates;
+	}
 
-		inline int numStates() const
-		{
-			return m_numStates;
-		}
+private:
+	// The main buffer - the contents of this is what we
+	// write to file after parsing is complete
+	DataBuffer*		m_mainBuffer;
 
-	private:
-		// The main buffer - the contents of this is what we
-		// write to file after parsing is complete
-		DataBuffer*		m_mainBuffer;
+	// onenter buffer - the contents of the onenter {} block
+	// is buffered here and is merged further at the end of state
+	DataBuffer*		m_onenterBuffer;
 
-		// onenter buffer - the contents of the onenter {} block
-		// is buffered here and is merged further at the end of state
-		DataBuffer*		m_onenterBuffer;
+	// Mainloop buffer - the contents of the mainloop {} block
+	// is buffered here and is merged further at the end of state
+	DataBuffer*		m_mainLoopBuffer;
 
-		// Mainloop buffer - the contents of the mainloop {} block
-		// is buffered here and is merged further at the end of state
-		DataBuffer*		m_mainLoopBuffer;
+	// Switch buffer - switch case data is recorded to this
+	// buffer initially, instead of into main buffer.
+	DataBuffer*		m_switchBuffer;
 
-		// Switch buffer - switch case data is recorded to this
-		// buffer initially, instead of into main buffer.
-		DataBuffer*		m_switchBuffer;
+	Lexer*			m_lexer;
+	int				m_numStates;
+	int				m_numEvents;
+	ParserMode		m_currentMode;
+	String			m_currentState;
+	bool			m_isStateSpawnDefined;
+	bool			m_gotMainLoop;
+	int				m_scopeCursor;
+	bool			m_isElseAllowed;
+	int				m_highestGlobalVarIndex;
+	int				m_highestStateVarIndex;
+	int				m_numWrittenBytes;
+	List<ScopeInfo>	m_scopeStack;
+	int				m_zandronumVersion;
+	bool			m_defaultZandronumVersion;
 
-		Lexer*			m_lexer;
-		int				m_numStates;
-		int				m_numEvents;
-		ParserMode		m_currentMode;
-		String			m_currentState;
-		bool			m_isStateSpawnDefined;
-		bool			m_gotMainLoop;
-		int				m_scopeCursor;
-		bool			m_isElseAllowed;
-		int				m_highestGlobalVarIndex;
-		int				m_highestStateVarIndex;
-		int				m_numWrittenBytes;
-		List<ScopeInfo>	m_scopeStack;
-		int				m_zandronumVersion;
-		bool			m_defaultZandronumVersion;
-
-		DataBuffer*		currentBuffer();
-		void			parseStateBlock();
-		void			parseEventBlock();
-		void			parseMainloop();
-		void			parseOnEnterExit();
-		void			parseVar();
-		void			parseGoto();
-		void			parseIf();
-		void			parseElse();
-		void			parseWhileBlock();
-		void			parseForBlock();
-		void			parseDoBlock();
-		void			parseSwitchBlock();
-		void			parseSwitchCase();
-		void			parseSwitchDefault();
-		void			parseBreak();
-		void			parseContinue();
-		void			parseBlockEnd();
-		void			parseLabel();
-		void			parseEventdef();
-		void			parseFuncdef();
-		void			parseUsing();
-		void			writeMemberBuffers();
-		void			writeStringTable();
-		DataBuffer*		parseExpression (DataType reqtype, bool fromhere = false);
-		DataHeader		getAssigmentDataHeader (AssignmentOperator op, Variable* var);
+	DataBuffer*		currentBuffer();
+	void			parseStateBlock();
+	void			parseEventBlock();
+	void			parseMainloop();
+	void			parseOnEnterExit();
+	void			parseVar();
+	void			parseGoto();
+	void			parseIf();
+	void			parseElse();
+	void			parseWhileBlock();
+	void			parseForBlock();
+	void			parseDoBlock();
+	void			parseSwitchBlock();
+	void			parseSwitchCase();
+	void			parseSwitchDefault();
+	void			parseBreak();
+	void			parseContinue();
+	void			parseBlockEnd();
+	void			parseLabel();
+	void			parseEventdef();
+	void			parseFuncdef();
+	void			parseUsing();
+	void			writeMemberBuffers();
+	void			writeStringTable();
+	DataBuffer*		parseExpression (DataType reqtype, bool fromhere = false);
+	DataHeader		getAssigmentDataHeader (AssignmentOperator op, Variable* var);
 };
 
 #endif // BOTC_PARSER_H

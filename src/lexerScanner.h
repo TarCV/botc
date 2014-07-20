@@ -48,13 +48,13 @@ public:
 		FCheckPeek = (1 << 1),   // don't advance cursor
 	};
 
-	static inline bool isSymbolChar (char c, bool allownumbers)
+	static inline bool IsSymbolCharacter (char c, bool allownumbers)
 	{
-		if (allownumbers && (c >= '0' && c <= '9'))
+		if (allownumbers and (c >= '0' and c <= '9'))
 			return true;
 
-		return (c >= 'a' && c <= 'z') ||
-				(c >= 'A' && c <= 'Z') ||
+		return (c >= 'a' and c <= 'z') or
+				(c >= 'A' and c <= 'Z') or
 				(c == '_');
 	}
 
@@ -78,12 +78,12 @@ public:
 		return m_position - m_lineBreakPosition;
 	}
 
-	inline ETokenType getTokenType() const
+	inline Token getTokenType() const
 	{
 		return m_tokenType;
 	}
 
-	static String getTokenString (ETokenType a);
+	static String GetTokenString (Token a);
 
 private:
 	char*			m_data;
@@ -91,7 +91,7 @@ private:
 	char*			m_lineBreakPosition;
 	String			m_tokenText,
 					m_lastToken;
-	ETokenType		m_tokenType;
+	Token		m_tokenType;
 	int				m_line;
 
 	bool			checkString (const char* c, int flags = 0);

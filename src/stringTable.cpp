@@ -59,12 +59,14 @@ int getStringTableIndex (const String& a)
 	}
 
 	// Must not be too long.
-	if (a.length() >= gMaxStringLength)
+	if (a.length() >= Limits::MaxStringLength)
+	{
 		error ("string `%1` too long (%2 characters, max is %3)\n",
-			   a, a.length(), gMaxStringLength);
+			   a, a.length(), Limits::MaxStringLength);
+	}
 
 	// Check if the table is already full
-	if (g_StringTable.size() == gMaxStringlistSize - 1)
+	if (g_StringTable.size() == Limits::MaxStringlistSize - 1)
 		error ("too many strings!\n");
 
 	// Now, dump the string into the slot

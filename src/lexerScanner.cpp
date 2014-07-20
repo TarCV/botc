@@ -48,8 +48,8 @@ static const String gTokenStrings[] =
 	">>",
 	">=",
 	"<=",
-	"&&",
-	"||",
+	"and",
+	"or",
 	"++",
 	"--",
 	"'",
@@ -144,11 +144,11 @@ bool LexerScanner::checkString (const char* c, int flags)
 	bool r = strncmp (m_position, c, strlen (c)) == 0;
 
 	// There is to be a non-symbol character after words
-	if (r && (flags & FCheckWord) && isSymbolChar (m_position[strlen (c)], true))
+	if (r and (flags & FCheckWord) and IsSymbolCharacter (m_position[strlen (c)], true))
 		r = false;
 
 	// Advance the cursor unless we want to just peek
-	if (r && !(flags & FCheckPeek))
+	if (r and !(flags & FCheckPeek))
 		m_position += strlen (c);
 
 	return r;
@@ -198,7 +198,7 @@ bool LexerScanner::getNextToken()
 		if (checkString (gTokenStrings[i], flags))
 		{
 			m_tokenText = gTokenStrings[i];
-			m_tokenType = (ETokenType) i;
+			m_tokenType = (Token) i;
 			return true;
 		}
 	}
@@ -232,7 +232,7 @@ bool LexerScanner::getNextToken()
 			m_tokenText += *m_position++;
 		}
 
-		m_tokenType =TK_String;
+		m_tokenType =Token::String;
 		skip(); // skip the final quote
 		return true;
 	}
@@ -242,17 +242,17 @@ bool LexerScanner::getNextToken()
 		while (isdigit (*m_position))
 			m_tokenText += *m_position++;
 
-		m_tokenType =TK_Number;
+		m_tokenType =Token::Number;
 		return true;
 	}
 
-	if (isSymbolChar (*m_position, false))
+	if (IsSymbolCharacter (*m_position, false))
 	{
-		m_tokenType =TK_Symbol;
+		m_tokenType =Token::Symbol;
 
 		do
 		{
-			if (!isSymbolChar (*m_position, true))
+			if (!IsSymbolCharacter (*m_position, true))
 				break;
 
 			m_tokenText += *m_position++;
@@ -288,7 +288,7 @@ void LexerScanner::skip (int chars)
 
 // =============================================================================
 //
-String LexerScanner::getTokenString (ETokenType a)
+String LexerScanner::GetTokenString (Token a)
 {
 	ASSERT_LT_EQ (a, gLastNamedToken);
 	return gTokenStrings[a];

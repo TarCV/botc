@@ -45,7 +45,7 @@ public:
 
 	List();
 	List (const std::deque<T>& a);
-	List (std::initializer_list<T>&& a);
+	List (std::initializer_list<T>and a);
 
 	inline T&						append (const T& value);
 	inline Iterator					begin();
@@ -101,7 +101,7 @@ List<T>::List (const std::deque<T>& other) :
 	_deque (other) {}
 
 template<typename T>
-List<T>::List (std::initializer_list<T>&& a) :
+List<T>::List (std::initializer_list<T>and a) :
 	_deque (a) {}
 
 template<typename T>
