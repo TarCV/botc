@@ -70,7 +70,7 @@ String formatArgs (const String& fmtstr, const std::vector<String>& args)
 		char mod = '\0';
 
 		// handle modifiers
-		if (fmt[pos + ofs] == 's' || fmt[pos + ofs] == 'x' || fmt[pos + ofs] == 'd')
+		if (fmt[pos + ofs] == 's' or fmt[pos + ofs] == 'x' or fmt[pos + ofs] == 'd')
 		{
 			mod = fmt[pos + ofs];
 			ofs++;
@@ -111,7 +111,7 @@ void error (const String& msg)
 	Lexer* lx = Lexer::getCurrentLexer();
 	String fileinfo;
 
-	if (lx != null && lx->hasValidToken())
+	if (lx != null and lx->hasValidToken())
 	{
 		Lexer::TokenInfo* tk = lx->token();
 		fileinfo = format ("%1:%2:%3: ", tk->file, tk->line, tk->column);

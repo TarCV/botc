@@ -37,7 +37,7 @@ class Lexer
 public:
 	struct TokenInfo
 	{
-		ETokenType	type;
+		Token	type;
 		String		text;
 		String		file;
 		int			line;
@@ -52,14 +52,14 @@ public:
 	~Lexer();
 
 	void	processFile (String fileName);
-	bool	next (ETokenType req = TK_Any);
-	void	mustGetNext (ETokenType tok);
-	void	mustGetAnyOf (const List<ETokenType>& toks);
+	bool	next (Token req = Token::Any);
+	void	mustGetNext (Token tok);
+	void	mustGetAnyOf (const List<Token>& toks);
 	void	mustGetSymbol (const String& a);
 	int		getOneSymbol (const StringList& syms);
-	void	tokenMustBe (ETokenType tok);
+	void	tokenMustBe (Token tok);
 	bool	peekNext (TokenInfo* tk = null);
-	bool	peekNextType (ETokenType req);
+	bool	peekNextType (Token req);
 	String	peekNextString (int a = 1);
 	String	describeCurrentPosition();
 	String	describeTokenPosition();
@@ -68,7 +68,7 @@ public:
 
 	inline bool hasValidToken() const
 	{
-		return (m_tokenPosition < m_tokens.end() && m_tokenPosition >= m_tokens.begin());
+		return (m_tokenPosition < m_tokens.end() and m_tokenPosition >= m_tokens.begin());
 	}
 
 	inline TokenInfo* token() const
@@ -82,7 +82,7 @@ public:
 		return m_tokenPosition == m_tokens.end();
 	}
 
-	inline ETokenType tokenType() const
+	inline Token tokenType() const
 	{
 		return token()->type;
 	}
@@ -103,7 +103,7 @@ public:
 	}
 
 	// If @tok is given, describes the token. If not, describes @tok_type.
-	static inline String describeTokenType (ETokenType toktype)
+	static inline String describeTokenType (Token toktype)
 	{
 		return describeTokenPrivate (toktype, null);
 	}
@@ -118,10 +118,10 @@ private:
 	Iterator		m_tokenPosition;
 
 	// read a mandatory token from scanner
-	void mustGetFromScanner (LexerScanner& sc, ETokenType tt =TK_Any);
+	void mustGetFromScanner (LexerScanner& sc, Token tt =Token::Any);
 	void checkFileHeader (LexerScanner& sc);
 
-	static String describeTokenPrivate (ETokenType tok_type, TokenInfo* tok);
+	static String describeTokenPrivate (Token tok_type, TokenInfo* tok);
 };
 
 #endif // BOTC_LEXER_H

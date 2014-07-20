@@ -34,92 +34,95 @@
 
 #include "main.h"
 
-static const int gMaxStates			= 256;
-static const int gMaxEvents			= 32;
-static const int gMaxGlobalEvents	= 32;
-static const int gMaxGlobalVars		= 128;
-static const int gMaxGlobalArrays	= 16;
-static const int gMaxArraySize		= 65536;
-static const int gMaxStateVars		= 16;
-static const int gMaxStringlistSize	= 128;
-static const int gMaxStringLength	= 256;
-static const int gMaxReactionTime	= 52;
-static const int gMaxStoredEvents	= 64;
-
-named_enum DataHeader
+struct Limits
 {
-	DH_Command,
-	DH_StateIndex,
-	DH_StateName,
-	DH_OnEnter,
-	DH_MainLoop,
-	DH_OnExit,
-	DH_Event,
-	DH_EndOnEnter,
-	DH_EndMainLoop,
-	DH_EndOnExit,
-	DH_EndEvent,
-	DH_IfGoto,
-	DH_IfNotGoto,
-	DH_Goto,
-	DH_OrLogical,
-	DH_AndLogical,
-	DH_OrBitwise,
-	DH_EorBitwise,
-	DH_AndBitwise,
-	DH_Equals,
-	DH_NotEquals,
-	DH_LessThan,
-	DH_AtMost,
-	DH_GreaterThan,
-	DH_AtLeast,
-	DH_NegateLogical,
-	DH_LeftShift,
-	DH_RightShift,
-	DH_Add,
-	DH_Subtract,
-	DH_UnaryMinus,
-	DH_Multiply,
-	DH_Divide,
-	DH_Modulus,
-	DH_PushNumber,
-	DH_PushStringIndex,
-	DH_PushGlobalVar,
-	DH_PushLocalVar,
-	DH_DropStackPosition,
-	DH_ScriptVarList,
-	DH_StringList,
-	DH_IncreaseGlobalVar,
-	DH_DecreaseGlobalVar,
-	DH_AssignGlobalVar,
-	DH_AddGlobalVar,
-	DH_SubtractGlobalVar,
-	DH_MultiplyGlobalVar,
-	DH_DivideGlobalVar,
-	DH_ModGlobalVar,
-	DH_IncreaseLocalVar,
-	DH_DecreaseLocalVar,
-	DH_AssignLocalVar,
-	DH_AddLocalVar,
-	DH_SubtractLocalVar,
-	DH_MultiplyLocalVar,
-	DH_DivideLocalVar,
-	DH_ModLocalVar,
-	DH_CaseGoto,
-	DH_Drop,
-	DH_IncreaseGlobalArray,
-	DH_DecreaseGlobalArray,
-	DH_AssignGlobalArray,
-	DH_AddGlobalArray,
-	DH_SubtractGlobalArray,
-	DH_MultiplyGlobalArray,
-	DH_DivideGlobalArray,
-	DH_ModGlobalArray,
-	DH_PushGlobalArray,
-	DH_Swap,
-	DH_Dup,
-	DH_ArraySet,
-	numDataHeaders
+	static const int MaxStates			= 256;
+	static const int MaxEvents			= 32;
+	static const int MaxGlobalEvents	= 32;
+	static const int MaxGlobalVars		= 128;
+	static const int MaxGlobalArrays	= 16;
+	static const int MaxArraySize		= 65536;
+	static const int MaxStateVars		= 16;
+	static const int MaxStringlistSize	= 128;
+	static const int MaxStringLength	= 256;
+	static const int MaxReactionTime	= 52;
+	static const int MaxStoredEvents	= 64;
+};
+
+named_enum class DataHeader
+{
+	Command,
+	StateIndex,
+	StateName,
+	OnEnter,
+	MainLoop,
+	OnExit,
+	Event,
+	EndOnEnter,
+	EndMainLoop,
+	EndOnExit,
+	EndEvent,
+	IfGoto,
+	IfNotGoto,
+	Goto,
+	OrLogical,
+	AndLogical,
+	OrBitwise,
+	EorBitwise,
+	AndBitwise,
+	Equals,
+	NotEquals,
+	LessThan,
+	AtMost,
+	GreaterThan,
+	AtLeast,
+	NegateLogical,
+	LeftShift,
+	RightShift,
+	Add,
+	Subtract,
+	UnaryMinus,
+	Multiply,
+	Divide,
+	Modulus,
+	PushNumber,
+	PushStringIndex,
+	PushGlobalVar,
+	PushLocalVar,
+	DropStackPosition,
+	ScriptVarList,
+	StringList,
+	IncreaseGlobalVar,
+	DecreaseGlobalVar,
+	AssignGlobalVar,
+	AddGlobalVar,
+	SubtractGlobalVar,
+	MultiplyGlobalVar,
+	DivideGlobalVar,
+	ModGlobalVar,
+	IncreaseLocalVar,
+	DecreaseLocalVar,
+	AssignLocalVar,
+	AddLocalVar,
+	SubtractLocalVar,
+	MultiplyLocalVar,
+	DivideLocalVar,
+	ModLocalVar,
+	CaseGoto,
+	Drop,
+	IncreaseGlobalArray,
+	DecreaseGlobalArray,
+	AssignGlobalArray,
+	AddGlobalArray,
+	SubtractGlobalArray,
+	MultiplyGlobalArray,
+	DivideGlobalArray,
+	ModGlobalArray,
+	PushGlobalArray,
+	Swap,
+	Dup,
+	ArraySet,
+	NumDataHeaders
 };
 
 #endif	// BOTC_BOTSTUFF_H

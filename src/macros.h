@@ -29,7 +29,7 @@
 #ifndef BOTC_MACROS_H
 #define BOTC_MACROS_H
 
-#if !defined (__cplusplus) || __cplusplus < 201103L
+#if !defined (__cplusplus) or __cplusplus < 201103L
 # error botc requires a C++11-compliant compiler to be built
 #endif
 
@@ -46,7 +46,7 @@
 #define VERSION_NUMBER MAKE_VERSION_NUMBER (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 
 // On Windows, files are case-insensitive
-#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__)
+#if (defined(WIN32) or defined(_WIN32) or defined(__WIN32)) and !defined(__CYGWIN__)
 # define FILE_CASEINSENSITIVE
 #endif
 
@@ -64,7 +64,7 @@
 template<typename... argtypes>
 void error (const char* fmtstr, const argtypes&... args);
 
-#ifdef DEBUG
+#ifndef RELEASE
 # define BOTC_GENERIC_ASSERT(A,B,OP,COMPLAINT) ((A OP B) ? (void) 0 : \
 	error ("assertion failed at " __FILE__ ":" MACRO_TO_STRING(__LINE__) ": " #A " (%1) " COMPLAINT " " #B " (%2)", A, B));
 #else

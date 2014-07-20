@@ -71,7 +71,7 @@ String String::toUppercase() const
 
 	for (char& c : newstr)
 	{
-		if (c >= 'a' && c <= 'z')
+		if (c >= 'a' and c <= 'z')
 			c -= 'a' - 'A';
 	}
 
@@ -86,7 +86,7 @@ String String::toLowercase() const
 
 	for (char& c : newstr)
 	{
-		if (c >= 'A' && c <= 'Z')
+		if (c >= 'A' and c <= 'Z')
 			c += 'a' - 'A';
 	}
 
@@ -214,11 +214,11 @@ int String::firstIndexOf (const char* c, int a) const
 //
 int String::lastIndexOf (const char* c, int a) const
 {
-	if (a == -1 || a >= length())
+	if (a == -1 or a >= length())
 		a = length() - 1;
 
 	for (; a > 0; a--)
-		if (_string[a] == c[0] && strncmp (_string.c_str() + a, c, strlen (c)) == 0)
+		if (_string[a] == c[0] and strncmp (_string.c_str() + a, c, strlen (c)) == 0)
 			return a;
 
 	return -1;
@@ -244,7 +244,7 @@ long String::toLong (bool* ok, int base) const
 	long i = strtol (_string.c_str(), &endptr, base);
 
 	if (ok)
-		*ok = (errno == 0 && *endptr == '\0');
+		*ok = (errno == 0 and *endptr == '\0');
 
 	return i;
 }
@@ -258,7 +258,7 @@ float String::toFloat (bool* ok) const
 	float i = strtof (_string.c_str(), &endptr);
 
 	if (ok)
-		*ok = (errno == 0 && *endptr == '\0');
+		*ok = (errno == 0 and *endptr == '\0');
 
 	return i;
 }
@@ -272,7 +272,7 @@ double String::toDouble (bool* ok) const
 	double i = strtod (_string.c_str(), &endptr);
 
 	if (ok)
-		*ok = (errno == 0 && *endptr == '\0');
+		*ok = (errno == 0 and *endptr == '\0');
 
 	return i;
 }
@@ -304,17 +304,17 @@ bool String::isNumeric() const
 	for (const char & c : _string)
 	{
 		// Allow leading hyphen for negatives
-		if (&c == &_string[0] && c == '-')
+		if (&c == &_string[0] and c == '-')
 			continue;
 
 		// Check for decimal point
-		if (!gotDot && c == '.')
+		if (!gotDot and c == '.')
 		{
 			gotDot = true;
 			continue;
 		}
 
-		if (c >= '0' && c <= '9')
+		if (c >= '0' and c <= '9')
 			continue; // Digit
 
 		// If the above cases didn't catch this character, it was
@@ -413,7 +413,7 @@ bool String::maskAgainst (const String& pattern) const
 				return true;
 
 			// Skip to the end character
-			while (*sptr != end && *sptr != '\0')
+			while (*sptr != end and *sptr != '\0')
 				sptr++;
 
 			// String ended while the mask still had stuff

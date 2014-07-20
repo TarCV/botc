@@ -35,13 +35,13 @@
 #include "events.h"
 #include "lexer.h"
 
-static List<EventDefinition*> g_Events;
+static List<EventDefinition*> Events;
 
 // ============================================================================
 //
 void addEvent (EventDefinition* e)
 {
-	g_Events << e;
+	Events << e;
 }
 
 // ============================================================================
@@ -50,7 +50,7 @@ void addEvent (EventDefinition* e)
 //
 EventDefinition* findEventByIndex (int idx)
 {
-	return g_Events[idx];
+	return Events[idx];
 }
 
 // ============================================================================
@@ -59,9 +59,11 @@ EventDefinition* findEventByIndex (int idx)
 //
 EventDefinition* findEventByName (String a)
 {
-	for (EventDefinition* e : g_Events)
+	for (EventDefinition* e : Events)
+	{
 		if (a.toUppercase() == e->name.toUppercase())
 			return e;
+	}
 
 	return null;
 }
