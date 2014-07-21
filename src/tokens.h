@@ -123,9 +123,9 @@ named_enum class Token
 	Number,
 	String,
 	Any,
-
-	FirstNamedToken = Token::Bool,
-	LastNamedToken = Token::Return,
 };
+
+static Token const FirstNamedToken = Token::Bool;
+static Token const LastNamedToken = Token::Return;
 
 #endif

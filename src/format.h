@@ -33,50 +33,50 @@
 #include "list.h"
 #include "enumstrings.h"
 
-String MakeFormatArgument (const String& a)
+inline String MakeFormatArgument (const String& a)
 {
 	return a;
 }
 
-String MakeFormatArgument (char a)
+inline String MakeFormatArgument (char a)
 {
 	return String (a);
 }
 
-String MakeFormatArgument (int a)
+inline String MakeFormatArgument (int a)
 {
 	return String::fromNumber (a);
 }
 
-String MakeFormatArgument (long a)
+inline String MakeFormatArgument (long a)
 {
 	return String::fromNumber (a);
 }
 
-String MakeFormatArgument (size_t a)
+inline String MakeFormatArgument (size_t a)
 {
 	return String::fromNumber (long (a));
 }
 
-String MakeFormatArgument (const char* a)
+inline String MakeFormatArgument (const char* a)
 {
 	return a;
 }
 
-String MakeFormatArgument (const void* a)
+inline String MakeFormatArgument (const void* a)
 {
 	String text;
 	text.sprintf ("%p", a);
 	return text;
 }
 
-String MakeFormatArgument (std::nullptr_t)
+inline String MakeFormatArgument (std::nullptr_t)
 {
 	return "(nullptr)";
 }
 
 template<class T>
-String MakeFormatArgument (List<T> const& list)
+inline String MakeFormatArgument (List<T> const& list)
 {
 	String result;
 
