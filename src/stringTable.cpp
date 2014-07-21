@@ -27,10 +27,6 @@
 */
 
 // TODO: Another freeloader...
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "stringTable.h"
 
 static StringList g_StringTable;

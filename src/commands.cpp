@@ -30,30 +30,34 @@
 #include <stdio.h>
 #include <string.h>
 #include "main.h"
-#include "string.h"
+#include "stringClass.h"
 #include "commands.h"
 #include "lexer.h"
 
-static List<CommandInfo*> gCommands;
+static List<CommandInfo*> Commands;
 
 // ============================================================================
 //
 void addCommandDefinition (CommandInfo* comm)
 {
 	// Ensure that there is no conflicts
-	for (CommandInfo* it : gCommands)
+	for (CommandInfo* it : Commands)
+	{
 		if (it->number == comm->number)
+		{
 			error ("Attempted to redefine command #%1 (%2) as %3",
-				   gCommands[comm->number]->name, comm->name);
+				   Commands[comm->number]->name, comm->name);
+		}
+	}
 
-	gCommands << comm;
+	Commands << comm;
 }
 
 // ============================================================================
 // Finds a command by name
 CommandInfo* findCommandByName (String fname)
 {
-	for (CommandInfo* comm : gCommands)
+	for (CommandInfo* comm : Commands)
 	{
 		if (fname.toUppercase() == comm->name.toUppercase())
 			return comm;
@@ -119,5 +123,5 @@ String CommandInfo::signature()
 
 const List<CommandInfo*>& getCommands()
 {
-	return gCommands;
+	return Commands;
 }

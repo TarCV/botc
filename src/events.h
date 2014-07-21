@@ -29,7 +29,7 @@
 #ifndef BOTC_EVENTS_H
 #define BOTC_EVENTS_H
 
-#include "string.h"
+#include "stringClass.h"
 
 struct EventDefinition
 {

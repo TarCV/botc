@@ -36,7 +36,7 @@
 #include "property.h"
 #include "types.h"
 #include "list.h"
-#include "string.h"
+#include "stringClass.h"
 #include "format.h"
 #include "botStuff.h"
 #include "tokens.h"

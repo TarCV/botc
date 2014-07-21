@@ -42,7 +42,7 @@ class Variable;
 // ============================================================================
 // Mark types
 //
-named_enum MarkType
+named_enum MarkType : char
 {
 	MARK_Label,
 	MARK_If,
@@ -52,7 +52,7 @@ named_enum MarkType
 // ============================================================================
 // Scope types
 //
-named_enum ScopeType
+named_enum ScopeType : char
 {
 	SCOPE_Unknown,
 	SCOPE_If,
@@ -63,7 +63,7 @@ named_enum ScopeType
 	SCOPE_Else,
 };
 
-named_enum AssignmentOperator
+named_enum AssignmentOperator : char
 {
 	ASSIGNOP_Assign,
 	ASSIGNOP_Add,
@@ -75,7 +75,7 @@ named_enum AssignmentOperator
 	ASSIGNOP_Decrease,
 };
 
-named_enum Writability
+named_enum Writability : char
 {
 	WRITE_Mutable,		// normal read-many-write-many variable
 	WRITE_Const,		// write-once const variable
@@ -86,13 +86,13 @@ named_enum Writability
 //
 // Parser mode: where is the parser at?
 //
-named_enum ParserMode
+named_enum class ParserMode
 {
-	PARSERMODE_TopLevel,	// at top level
-	PARSERMODE_Event,		// inside event definition
-	PARSERMODE_MainLoop,	// inside mainloop
-	PARSERMODE_Onenter,		// inside onenter
-	PARSERMODE_Onexit,		// inside onexit
+	TopLevel,	// at top level
+	Event,		// inside event definition
+	MainLoop,	// inside mainloop
+	Onenter,	// inside onenter
+	Onexit,		// inside onexit
 };
 
 // ============================================================================

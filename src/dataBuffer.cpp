@@ -26,14 +26,15 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <cstring>
 #include "dataBuffer.h"
 
 // -------------------------------------------------------------------------------------------------
 //
 DataBuffer::DataBuffer (int size) :
 	m_buffer (new char[size]),
-	m_position (&buffer()[0]),
-	m_allocatedSize (size) {}
+	m_allocatedSize (size),
+	m_position (&buffer()[0]) {}
 
 // -------------------------------------------------------------------------------------------------
 //
@@ -162,8 +163,17 @@ void DataBuffer::offsetMark (ByteMark* mark, int bytes)
 //
 void DataBuffer::writeStringIndex (const String& a)
 {
-	writeDWord (DataHeader::PushStringIndex);
+	writeHeader (DataHeader::PushStringIndex);
 	writeDWord (getStringTableIndex (a));
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+//	Writes a data header. 4 bytes.
+//
+void DataBuffer::writeHeader (DataHeader data)
+{
+	writeDWord (static_cast<int32_t> (data));
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -192,7 +202,7 @@ void DataBuffer::checkSpace (int bytes)
 	// the stuff - thus resize. First, store the old
 	// buffer temporarily:
 	char* copy = new char[allocatedSize()];
-	memcpy (copy, buffer(), allocatedSize());
+	std::memcpy (copy, buffer(), allocatedSize());
 
 	// Remake the buffer with the new size. Have enough space
 	// for the stuff we're going to write, as well as a bit
@@ -204,7 +214,7 @@ void DataBuffer::checkSpace (int bytes)
 	setAllocatedSize (newsize);
 
 	// Now, copy the stuff back.
-	memcpy (m_buffer, copy, allocatedSize());
+	std::memcpy (m_buffer, copy, allocatedSize());
 	setPosition (buffer() + writesize);
 	delete copy;
 }

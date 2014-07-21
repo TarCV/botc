@@ -29,52 +29,80 @@
 #ifndef BOTC_FORMAT_H
 #define BOTC_FORMAT_H
 
-#include "string.h"
+#include "stringClass.h"
 #include "list.h"
+#include "enumstrings.h"
+
+String MakeFormatArgument (const String& a)
+{
+	return a;
+}
+
+String MakeFormatArgument (char a)
+{
+	return String (a);
+}
+
+String MakeFormatArgument (int a)
+{
+	return String::fromNumber (a);
+}
+
+String MakeFormatArgument (long a)
+{
+	return String::fromNumber (a);
+}
+
+String MakeFormatArgument (size_t a)
+{
+	return String::fromNumber (long (a));
+}
+
+String MakeFormatArgument (const char* a)
+{
+	return a;
+}
+
+String MakeFormatArgument (const void* a)
+{
+	String text;
+	text.sprintf ("%p", a);
+	return text;
+}
+
+String MakeFormatArgument (std::nullptr_t)
+{
+	return "(nullptr)";
+}
+
+template<class T>
+String MakeFormatArgument (List<T> const& list)
+{
+	String result;
+
+	if (list.isEmpty())
+		return "{}";
+
+	result = "{ ";
+
+	for (auto it = list.begin(); it != list.end(); ++it)
+	{
+		if (it != list.begin())
+			result += ", ";
+
+		result += MakeFormatArgument (*it);
+	}
+
+	result += " }";
+	return result;
+}
 
 class FormatArgument
 {
 public:
-	FormatArgument (const String& a) : m_text (a) {}
-	FormatArgument (char a) : m_text (a) {}
-	FormatArgument (int a) : m_text (String::fromNumber (a)) {}
-	FormatArgument (long a) : m_text (String::fromNumber (a)) {}
-	FormatArgument (size_t a) : m_text (String::fromNumber ((long) a)) {}
-	FormatArgument (const char* a) : m_text (a) {}
-
-	FormatArgument (void* a)
-	{
-		m_text.sprintf ("%p", a);
-	}
-
-	FormatArgument (const void* a)
-	{
-		m_text.sprintf ("%p", a);
-	}
-
-	FormatArgument (std::nullptr_t) :
-		m_text (FormatArgument ((void*) 0).text()) {}
-
-	template<class T> FormatArgument (const List<T>& list)
-	{
-		if (list.isEmpty())
-		{
-			m_text = "{}";
-			return;
-		}
-
-		m_text = "{ ";
-
-		for (const T& a : list)
-		{
-			if (&a != &list[0])
-				m_text += ", ";
-
-			m_text += FormatArgument (a).text();
-		}
-
-		m_text += " }";
-	}
+	template<typename T>
+	FormatArgument (const T& a) :
+		m_text (MakeFormatArgument (a)) {}
 
 	inline const String& text() const
 	{

@@ -33,7 +33,7 @@
 #include "macros.h"
 
 // =======================================================
-named_enum Token
+named_enum class Token
 {
 	// Non-word tokens
 	LeftShiftAssign,
@@ -124,8 +124,8 @@ named_enum Token
 	String,
 	Any,
 
-	FirstNamedToken = Bool,
-	LastNamedToken = Token (int (Symbol) - 1)
+	FirstNamedToken = Token::Bool,
+	LastNamedToken = Token::Return,
 };
 
 #endif
