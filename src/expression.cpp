@@ -4,7 +4,7 @@
 
 struct OperatorInfo
 {
-	Token	token;
+	Token		token;
 	int			priority;
 	int			numoperands;
 	DataHeader	header;
@@ -129,7 +129,7 @@ ExpressionSymbol* Expression::parseSymbol()
 			Expression expr (m_parser, m_lexer, TYPE_Int);
 			expr.getResult()->convertToBuffer();
 			DataBuffer* buf = expr.getResult()->buffer()->clone();
-			buf->writeDWord (DataHeader::PushGlobalArray);
+			buf->writeHeader (DataHeader::PushGlobalArray);
 			buf->writeDWord (var->index);
 			op->setBuffer (buf);
 			m_lexer->mustGetNext (Token::BracketEnd);
@@ -143,9 +143,9 @@ ExpressionSymbol* Expression::parseSymbol()
 			DataBuffer* buf = new DataBuffer (8);
 
 			if (var->isGlobal())
-				buf->writeDWord (DataHeader::PushGlobalVar);
+				buf->writeHeader (DataHeader::PushGlobalVar);
 			else
-				buf->writeDWord (DataHeader::PushLocalVar);
+				buf->writeHeader (DataHeader::PushLocalVar);
 
 			buf->writeDWord (var->index);
 			op->setBuffer (buf);
@@ -228,7 +228,7 @@ void Expression::adjustOperators()
 //
 // Verifies a single value. Helper function for Expression::verify.
 //
-void Expression::tryVerifyValue (bool* verified, SymbolList::Iterator it)
+void Expression::tryVerifyValue (List<bool>& verified, SymbolList::Iterator it)
 {
 	// If it's an unary operator we skip to its value. The actual operator will
 	// be verified separately.
@@ -265,8 +265,11 @@ void Expression::verify()
 	if (m_type == TYPE_String)
 		error ("Cannot perform operations on strings");
 
-	bool* verified = new bool[m_symbols.size()];
-	memset (verified, 0, m_symbols.size() * sizeof (decltype (*verified)));
+	List<bool> verified (m_symbols.size());
+
+	for (bool& a : verified)
+		a = false;
+
 	const auto last = m_symbols.end() - 1;
 	const auto first = m_symbols.begin();
 
@@ -358,8 +361,6 @@ void Expression::verify()
 		if (verified[i] == false)
 			error ("malformed expression: expr symbol #%1 is was left unverified", i);
 	}
-
-	delete verified;
 }
 
 
@@ -438,10 +439,10 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 			ByteMark* mark1 = buf->addMark (""); // start of "else" case
 			ByteMark* mark2 = buf->addMark (""); // end of expression
 			buf->mergeAndDestroy (b0);
-			buf->writeDWord (DataHeader::IfNotGoto); // if the first operand (condition)
+			buf->writeHeader (DataHeader::IfNotGoto); // if the first operand (condition)
 			buf->addReference (mark1); // didn't eval true, jump into mark1
 			buf->mergeAndDestroy (b1); // otherwise, perform second operand (true case)
-			buf->writeDWord (DataHeader::Goto); // afterwards, jump to the end, which is
+			buf->writeHeader (DataHeader::Goto); // afterwards, jump to the end, which is
 			buf->addReference (mark2); // marked by mark2.
 			buf->adjustMark (mark1); // move mark1 at the end of the true case
 			buf->mergeAndDestroy (b2); // perform third operand (false case)
@@ -465,7 +466,7 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 				val->setBuffer (null);
 			}
 
-			newval->buffer()->writeDWord (info->header);
+			newval->buffer()->writeHeader (info->header);
 		}
 	}
 	else
@@ -473,7 +474,7 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 		// We have a constant expression. We know all the values involved and
 		// can thus compute the result of this expression on compile-time.
 		List<int> nums;
-		int a;
+		int a = 0;
 
 		for (ExpressionValue* val : values)
 			nums << val->value();
@@ -542,36 +543,33 @@ ExpressionValue* Expression::evaluate()
 		List<SymbolList::Iterator> operands;
 		ExpressionOperator* op = static_cast<ExpressionOperator*> (*it);
 		const OperatorInfo* info = &g_Operators[op->id()];
-		int lower, upper; // Boundaries of area to replace
+
+		// Boundaries of area to replace
+		int lower = 0;
+		int upper = 0;
 
 		switch (info->numoperands)
 		{
 			case 1:
-			{
 				lower = i;
 				upper = i + 1;
 				operands << it + 1;
 				break;
-			}
 
 			case 2:
-			{
 				lower = i - 1;
 				upper = i + 1;
 				operands << it - 1
 				         << it + 1;
 				break;
-			}
 
 			case 3:
-			{
 				lower = i - 1;
 				upper = i + 3;
 				operands << it - 1
 				         << it + 1
 				         << it + 3;
 				break;
-			}
 
 			default:
 				error ("WTF bad expression with %1 operands", info->numoperands);
@@ -644,15 +642,15 @@ void ExpressionValue::convertToBuffer()
 	{
 		case TYPE_Bool:
 		case TYPE_Int:
-			buffer()->writeDWord (DataHeader::PushNumber);
+			buffer()->writeHeader (DataHeader::PushNumber);
 			buffer()->writeDWord (abs (value()));
 
 			if (value() < 0)
-				buffer()->writeDWord (DataHeader::UnaryMinus);
+				buffer()->writeHeader (DataHeader::UnaryMinus);
 			break;
 
 		case TYPE_String:
-			buffer()->writeDWord (DataHeader::PushStringIndex);
+			buffer()->writeHeader (DataHeader::PushStringIndex);
 			buffer()->writeDWord (value());
 			break;
 

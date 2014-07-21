@@ -44,8 +44,9 @@ public:
 	using ConstReverseIterator		= typename std::deque<T>::const_reverse_iterator;
 
 	List();
+	List (std::size_t numvalues);
 	List (const std::deque<T>& a);
-	List (std::initializer_list<T>and a);
+	List (std::initializer_list<T>&& a);
 
 	inline T&						append (const T& value);
 	inline Iterator					begin();
@@ -101,8 +102,12 @@ List<T>::List (const std::deque<T>& other) :
 	_deque (other) {}
 
 template<typename T>
-List<T>::List (std::initializer_list<T>and a) :
+List<T>::List (std::initializer_list< T > && a) :
 	_deque (a) {}
+
+template<typename T>
+List<T>::List (std::size_t numvalues) :
+	_deque (numvalues) {}
 
 template<typename T>
 inline typename List<T>::Iterator List<T>::begin()

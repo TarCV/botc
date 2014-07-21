@@ -32,13 +32,13 @@
 #include <cstdlib>
 #include <stdexcept>
 #include "macros.h"
-#include "string.h"
+#include "stringClass.h"
 
 static const std::nullptr_t null = nullptr;
 
 // =============================================================================
 //
-named_enum DataType
+named_enum DataType : char
 {
 	TYPE_Unknown,
 	TYPE_Void,

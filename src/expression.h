@@ -9,7 +9,7 @@ class ExpressionOperator;
 
 // =============================================================================
 //
-named_enum ExpressionOperatorType
+named_enum ExpressionOperatorType : char
 {
 	OPER_NegateLogical,
 	OPER_UnaryMinus,
@@ -64,7 +64,8 @@ private:
 	String					getTokenString();
 	void					adjustOperators();
 	void					verify(); // Ensure the expr is valid
-	void					tryVerifyValue (bool* verified, SymbolList::Iterator it);
+	void					tryVerifyValue (List<bool>& verified, List< ExpressionSymbol* 
+>::Iterator it);
 	ExpressionValue*		evaluateOperator (const ExpressionOperator* op,
 												const List<ExpressionValue*>& values);
 	SymbolList::Iterator	findPrioritizedOperator();

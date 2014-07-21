@@ -30,7 +30,7 @@
 #define BOTC_COMMANDS_H
 
 #include "main.h"
-#include "string.h"
+#include "stringClass.h"
 
 struct CommandArgument
 {

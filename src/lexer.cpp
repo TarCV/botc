@@ -63,7 +63,7 @@ void Lexer::processFile (String fileName)
 	while (sc.getNextToken())
 	{
 		// Preprocessor commands:
-		if (sc.getTokenType() ==Token::Hash)
+		if (sc.getTokenType() == Token::Hash)
 		{
 			mustGetFromScanner (sc,Token::Symbol);
 
@@ -256,7 +256,7 @@ void Lexer::tokenMustBe (Token tok)
 //
 String Lexer::describeTokenPrivate (Token tokType, Lexer::TokenInfo* tok)
 {
-	if (tokType <gLastNamedToken)
+	if (tokType < Token::LastNamedToken)
 		return "\"" + LexerScanner::GetTokenString (tokType) + "\"";
 
 	switch (tokType)

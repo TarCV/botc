@@ -48,8 +48,8 @@ static const String gTokenStrings[] =
 	">>",
 	">=",
 	"<=",
-	"and",
-	"or",
+	"&&",
+	"||",
 	"++",
 	"--",
 	"'",
@@ -111,7 +111,7 @@ static const String gTokenStrings[] =
 	"return",
 };
 
-static_assert (countof (gTokenStrings) == (int)gLastNamedToken + 1,
+static_assert (countof (gTokenStrings) == (int) Token::LastNamedToken + 1,
 	"Count of gTokenStrings is not the same as the amount of named token identifiers.");
 
 // =============================================================================
@@ -192,7 +192,7 @@ bool LexerScanner::getNextToken()
 	{
 		int flags = 0;
 
-		if (i >= gFirstNamedToken)
+		if (i >= int (Token::FirstNamedToken))
 			flags |= FCheckWord;
 
 		if (checkString (gTokenStrings[i], flags))
@@ -290,8 +290,8 @@ void LexerScanner::skip (int chars)
 //
 String LexerScanner::GetTokenString (Token a)
 {
-	ASSERT_LT_EQ (a, gLastNamedToken);
-	return gTokenStrings[a];
+	ASSERT_LT_EQ (a, Token::LastNamedToken);
+	return gTokenStrings[int (a)];
 }
 
 // =============================================================================

@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "main.h"
-#include "string.h"
+#include "stringClass.h"
 #include "events.h"
 #include "lexer.h"
 

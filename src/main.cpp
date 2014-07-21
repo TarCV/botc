@@ -33,7 +33,7 @@
 #include "dataBuffer.h"
 #include "parser.h"
 #include "lexer.h"
-#include "gitinfo.h"
+#include "hginfo.h"
 
 int main (int argc, char** argv)
 {
@@ -70,13 +70,6 @@ int main (int argc, char** argv)
 		String header;
 		String headerline;
 		header = format (APPNAME " version %1", versionString (true));
-
-		if (String (GIT_BRANCH) != "master")
-		{
-			header += " (";
-			header += GIT_BRANCH;
-			header += " branch";
-		}
 
 #ifdef DEBUG
 		if (header.firstIndexOf ("(") != -1)
@@ -196,7 +189,7 @@ String makeVersionString (int major, int minor, int patch)
 
 // =============================================================================
 //
-String versionString (bool longform)
+String versionString (bool)
 {
 #if defined(GIT_DESCRIPTION) and defined (DEBUG)
 	String tag (GIT_DESCRIPTION);

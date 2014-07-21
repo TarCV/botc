@@ -29,8 +29,6 @@
 #ifndef BOTC_DATABUFFER_H
 #define BOTC_DATABUFFER_H
 
-#include <stdio.h>
-#include <string.h>
 #include "main.h"
 #include "stringTable.h"
 
@@ -79,6 +77,7 @@ public:
 	void			writeByte (int8_t data);
 	void			writeWord (int16_t data);
 	void			writeDWord (int32_t data);
+	void			writeHeader (DataHeader data);
 	inline int		writtenSize() const;
 
 private:

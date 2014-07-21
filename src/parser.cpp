@@ -26,6 +26,7 @@
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <cstring>
 #include "parser.h"
 #include "events.h"
 #include "commands.h"
@@ -49,7 +50,7 @@ BotscriptParser::BotscriptParser() :
 	m_lexer (new Lexer),
 	m_numStates (0),
 	m_numEvents (0),
-	m_currentMode (PARSERMODE_TopLevel),
+	m_currentMode (ParserMode::TopLevel),
 	m_isStateSpawnDefined (false),
 	m_gotMainLoop (false),
 	m_scopeCursor (-1),
@@ -70,7 +71,7 @@ BotscriptParser::~BotscriptParser()
 //
 void BotscriptParser::checkToplevel()
 {
-	if (m_currentMode != PARSERMODE_TopLevel)
+	if (m_currentMode != ParserMode::TopLevel)
 		error ("%1-statements may only be defined at top level!", getTokenString());
 }
 
@@ -78,7 +79,7 @@ void BotscriptParser::checkToplevel()
 //
 void BotscriptParser::checkNotToplevel()
 {
-	if (m_currentMode == PARSERMODE_TopLevel)
+	if (m_currentMode == ParserMode::TopLevel)
 		error ("%1-statements must not be defined at top level!", getTokenString());
 }
 
@@ -215,7 +216,7 @@ void BotscriptParser::parseBotscript (String fileName)
 	}
 
 	// Script file ended. Do some last checks and write the last things to main buffer
-	if (m_currentMode != PARSERMODE_TopLevel)
+	if (m_currentMode != ParserMode::TopLevel)
 		error ("script did not end at top level; a `}` is missing somewhere");
 
 	if (isReadOnly() == false)
@@ -265,9 +266,9 @@ void BotscriptParser::parseStateBlock()
 	if (m_currentState.isEmpty() == false)
 		writeMemberBuffers();
 
-	currentBuffer()->writeDWord (DataHeader::StateName);
+	currentBuffer()->writeHeader (DataHeader::StateName);
 	currentBuffer()->writeString (statename);
-	currentBuffer()->writeDWord (DataHeader::StateIndex);
+	currentBuffer()->writeHeader (DataHeader::StateIndex);
 	currentBuffer()->writeDWord (m_numStates);
 
 	m_numStates++;
@@ -288,8 +289,8 @@ void BotscriptParser::parseEventBlock()
 		error ("bad event, got `%1`\n", getTokenString());
 
 	m_lexer->mustGetNext (Token::BraceStart);
-	m_currentMode = PARSERMODE_Event;
-	currentBuffer()->writeDWord (DataHeader::Event);
+	m_currentMode = ParserMode::Event;
+	currentBuffer()->writeHeader (DataHeader::Event);
 	currentBuffer()->writeDWord (e->number);
 	m_numEvents++;
 }
@@ -301,8 +302,8 @@ void BotscriptParser::parseMainloop()
 	checkToplevel();
 	m_lexer->mustGetNext (Token::BraceStart);
 
-	m_currentMode = PARSERMODE_MainLoop;
-	m_mainLoopBuffer->writeDWord (DataHeader::MainLoop);
+	m_currentMode = ParserMode::MainLoop;
+	m_mainLoopBuffer->writeHeader (DataHeader::MainLoop);
 }
 
 // ============================================================================
@@ -312,9 +313,8 @@ void BotscriptParser::parseOnEnterExit()
 	checkToplevel();
 	bool onenter = (tokenIs (Token::Onenter));
 	m_lexer->mustGetNext (Token::BraceStart);
-
-	m_currentMode = onenter ? PARSERMODE_Onenter : PARSERMODE_Onexit;
-	currentBuffer()->writeDWord (onenter ? DataHeader::OnEnter : DataHeader::OnExit);
+	m_currentMode = onenter ? ParserMode::Onenter : ParserMode::Onexit;
+	currentBuffer()->writeHeader (onenter ? DataHeader::OnEnter : DataHeader::OnExit);
 }
 
 // ============================================================================
@@ -410,7 +410,8 @@ void BotscriptParser::parseVar()
 
 	suggestHighestVarIndex (isInGlobalState(), var->index);
 	m_lexer->mustGetNext (Token::Semicolon);
-	print ("Declared %3 variable #%1 $%2\n", var->index, var->name, isInGlobalState() ? "global" : "state-local");
+	print ("Declared %3 variable #%1 $%2\n", var->index, var->name, isInGlobalState() ? "global" : 
+"state-local");
 }
 
 // ============================================================================
@@ -436,7 +437,7 @@ void BotscriptParser::parseIf()
 
 	// Use DataHeader::IfNotGoto - if the expression is not true, we goto the mark
 	// we just defined - and this mark will be at the end of the scope block.
-	currentBuffer()->writeDWord (DataHeader::IfNotGoto);
+	currentBuffer()->writeHeader (DataHeader::IfNotGoto);
 	currentBuffer()->addReference (mark);
 
 	// Store it
@@ -460,7 +461,7 @@ void BotscriptParser::parseElse()
 	SCOPE (0).mark2 = currentBuffer()->addMark ("");
 
 	// Instruction to jump to the end after if block is complete
-	currentBuffer()->writeDWord (DataHeader::Goto);
+	currentBuffer()->writeHeader (DataHeader::Goto);
 	currentBuffer()->addReference (SCOPE (0).mark2);
 
 	// Move the ifnot mark here and set type to else
@@ -492,7 +493,7 @@ void BotscriptParser::parseWhileBlock()
 	currentBuffer()->mergeAndDestroy (expr);
 
 	// Instruction to go to the end if it fails
-	currentBuffer()->writeDWord (DataHeader::IfNotGoto);
+	currentBuffer()->writeHeader (DataHeader::IfNotGoto);
 	currentBuffer()->addReference (mark2);
 
 	// Store the needed stuff
@@ -543,7 +544,7 @@ void BotscriptParser::parseForBlock()
 
 	// Add the condition
 	currentBuffer()->mergeAndDestroy (cond);
-	currentBuffer()->writeDWord (DataHeader::IfNotGoto);
+	currentBuffer()->writeHeader (DataHeader::IfNotGoto);
 	currentBuffer()->addReference (mark2);
 
 	// Store the marks and incrementor
@@ -623,7 +624,7 @@ void BotscriptParser::parseSwitchCase()
 	// We null the switch buffer for the case-go-to statement as
 	// we want it all under the switch, not into the case-buffers.
 	m_switchBuffer = null;
-	currentBuffer()->writeDWord (DataHeader::CaseGoto);
+	currentBuffer()->writeHeader (DataHeader::CaseGoto);
 	currentBuffer()->writeDWord (num);
 	addSwitchCase (null);
 	SCOPE (0).casecursor->number = num;
@@ -650,8 +651,8 @@ void BotscriptParser::parseSwitchDefault()
 	// a default.
 	DataBuffer* buf = new DataBuffer;
 	SCOPE (0).buffer1 = buf;
-	buf->writeDWord (DataHeader::Drop);
-	buf->writeDWord (DataHeader::Goto);
+	buf->writeHeader (DataHeader::Drop);
+	buf->writeHeader (DataHeader::Goto);
 	addSwitchCase (buf);
 }
 
@@ -662,7 +663,7 @@ void BotscriptParser::parseBreak()
 	if (m_scopeCursor == 0)
 		error ("unexpected `break`");
 
-	currentBuffer()->writeDWord (DataHeader::Goto);
+	currentBuffer()->writeHeader (DataHeader::Goto);
 
 	// switch and if use mark1 for the closing point,
 	// for and while use mark2.
@@ -703,7 +704,7 @@ void BotscriptParser::parseContinue()
 			case SCOPE_For:
 			case SCOPE_While:
 			case SCOPE_Do:
-				currentBuffer()->writeDWord (DataHeader::Goto);
+				currentBuffer()->writeHeader (DataHeader::Goto);
 				currentBuffer()->addReference (m_scopeStack[curs].mark1);
 				found = true;
 				break;
@@ -752,7 +753,7 @@ void BotscriptParser::parseBlockEnd()
 			}
 			case SCOPE_While:
 			{	// write down the instruction to go back to the start of the loop
-				currentBuffer()->writeDWord (DataHeader::Goto);
+				currentBuffer()->writeHeader (DataHeader::Goto);
 				currentBuffer()->addReference (SCOPE (0).mark1);
 
 				// Move the closing mark here since we're at the end of the while loop
@@ -770,7 +771,7 @@ void BotscriptParser::parseBlockEnd()
 
 				// If the condition runs true, go back to the start.
 				currentBuffer()->mergeAndDestroy (expr);
-				currentBuffer()->writeDWord (DataHeader::IfGoto);
+				currentBuffer()->writeHeader (DataHeader::IfGoto);
 				currentBuffer()->addReference (SCOPE (0).mark1);
 				break;
 			}
@@ -791,8 +792,8 @@ void BotscriptParser::parseBlockEnd()
 					currentBuffer()->mergeAndDestroy (SCOPE (0).buffer1);
 				else
 				{
-					currentBuffer()->writeDWord (DataHeader::Drop);
-					currentBuffer()->writeDWord (DataHeader::Goto);
+					currentBuffer()->writeHeader (DataHeader::Drop);
+					currentBuffer()->writeHeader (DataHeader::Goto);
 					currentBuffer()->addReference (SCOPE (0).mark1);
 				}
 
@@ -818,20 +819,21 @@ void BotscriptParser::parseBlockEnd()
 		return;
 	}
 
-	int dataheader = (m_currentMode == PARSERMODE_Event) ? DataHeader::EndEvent
-				   : (m_currentMode == PARSERMODE_MainLoop) ? DataHeader::EndMainLoop
-				   : (m_currentMode == PARSERMODE_Onenter) ? DataHeader::EndOnEnter
-				   : (m_currentMode == PARSERMODE_Onexit) ? DataHeader::EndOnExit
-				   : -1;
+	DataHeader dataheader =
+		  (m_currentMode == ParserMode::Event) ? DataHeader::EndEvent
+		: (m_currentMode == ParserMode::MainLoop) ? DataHeader::EndMainLoop
+		: (m_currentMode == ParserMode::Onenter) ? DataHeader::EndOnEnter
+		: (m_currentMode == ParserMode::Onexit) ? DataHeader::EndOnExit
+		: DataHeader::NumDataHeaders;
 
-	if (dataheader == -1)
+	if (dataheader == DataHeader::NumDataHeaders)
 		error ("unexpected `}`");
 
 	// Data header must be written before mode is changed because
 	// onenter and mainloop go into special buffers, and we want
 	// the closing data headers into said buffers too.
-	currentBuffer()->writeDWord (dataheader);
-	m_currentMode = PARSERMODE_TopLevel;
+	currentBuffer()->writeHeader (dataheader);
+	m_currentMode = ParserMode::TopLevel;
 	m_lexer->next (Token::Semicolon);
 }
 
@@ -935,7 +937,8 @@ void BotscriptParser::parseUsing()
 	m_lexer->mustGetSymbol ("zandronum");
 	String versionText;
 
-	while (m_lexer->next() and (m_lexer->tokenType() == Token::Number or m_lexer->tokenType() == Token::Dot))
+	while (m_lexer->next() and (m_lexer->tokenType() == Token::Number or m_lexer->tokenType() == 
+Token::Dot))
 		versionText += getTokenString();
 
 	// Note: at this point the lexer's pointing at the token after the version.
@@ -943,7 +946,8 @@ void BotscriptParser::parseUsing()
 		error ("expected version string, got `%1`", getTokenString());
 
 	if (g_validZandronumVersions.contains (versionText) == false)
-		error ("unknown version string `%2`: valid versions: `%1`\n", g_validZandronumVersions, versionText);
+		error ("unknown version string `%2`: valid versions: `%1`\n", g_validZandronumVersions, 
+versionText);
 
 	StringList versionTokens = versionText.split (".");
 	m_zandronumVersion = versionTokens[0].toLong() * 10000 + versionTokens[1].toLong() * 100;
@@ -959,7 +963,7 @@ DataBuffer* BotscriptParser::parseCommand (CommandInfo* comm)
 {
 	DataBuffer* r = new DataBuffer (64);
 
-	if (m_currentMode == PARSERMODE_TopLevel and comm->returnvalue == TYPE_Void)
+	if (m_currentMode == ParserMode::TopLevel and comm->returnvalue == TYPE_Void)
 		error ("command call at top level");
 
 	m_lexer->mustGetNext (Token::ParenStart);
@@ -1013,12 +1017,12 @@ DataBuffer* BotscriptParser::parseCommand (CommandInfo* comm)
 	// If the script skipped any optional arguments, fill in defaults.
 	while (curarg < comm->args.size())
 	{
-		r->writeDWord (DataHeader::PushNumber);
+		r->writeHeader (DataHeader::PushNumber);
 		r->writeDWord (comm->args[curarg].defvalue);
 		curarg++;
 	}
 
-	r->writeDWord (DataHeader::Command);
+	r->writeHeader (DataHeader::Command);
 	r->writeDWord (comm->number);
 	r->writeDWord (comm->args.size());
 
@@ -1158,7 +1162,7 @@ DataBuffer* BotscriptParser::parseAssignment (Variable* var)
 	// Get an operator
 	AssignmentOperator oper = parseAssignmentOperator();
 
-	if (m_currentMode == PARSERMODE_TopLevel)
+	if (m_currentMode == ParserMode::TopLevel)
 		error ("can't alter variables at top level");
 
 	if (var->isarray)
@@ -1184,8 +1188,7 @@ DataHeader::RightShift);
 	retbuf->WriteDWord (var->index);
 #endif
 
-	DataHeader dh = getAssigmentDataHeader (oper, var);
-	retbuf->writeDWord (dh);
+	retbuf->writeHeader (getAssigmentDataHeader (oper, var));
 	retbuf->writeDWord (var->index);
 	return retbuf;
 }
@@ -1314,10 +1317,10 @@ DataBuffer* BotscriptParser::currentBuffer()
 	if (m_switchBuffer != null)
 		return m_switchBuffer;
 
-	if (m_currentMode == PARSERMODE_MainLoop)
+	if (m_currentMode == ParserMode::MainLoop)
 		return m_mainLoopBuffer;
 
-	if (m_currentMode == PARSERMODE_Onenter)
+	if (m_currentMode == ParserMode::Onenter)
 		return m_onenterBuffer;
 
 	return m_mainBuffer;
@@ -1330,8 +1333,8 @@ void BotscriptParser::writeMemberBuffers()
 	// If there was no mainloop defined, write a dummy one now.
 	if (m_gotMainLoop == false)
 	{
-		m_mainLoopBuffer->writeDWord (DataHeader::MainLoop);
-		m_mainLoopBuffer->writeDWord (DataHeader::EndMainLoop);
+		m_mainLoopBuffer->writeHeader (DataHeader::MainLoop);
+		m_mainLoopBuffer->writeHeader (DataHeader::EndMainLoop);
 	}
 
 	// Write the onenter and mainloop buffers, in that order in particular.
@@ -1359,7 +1362,7 @@ void BotscriptParser::writeStringTable()
 		return;
 
 	// Write header
-	m_mainBuffer->writeDWord (DataHeader::StringList);
+	m_mainBuffer->writeHeader (DataHeader::StringList);
 	m_mainBuffer->writeDWord (stringcount);
 
 	// Write all strings
@@ -1376,7 +1379,7 @@ void BotscriptParser::writeToFile (String outfile)
 	FILE* fp = fopen (outfile, "wb");
 
 	if (fp == null)
-		error ("couldn't open %1 for writing: %2", outfile, strerror (errno));
+		error ("couldn't open %1 for writing: %2", outfile, std::strerror (errno));
 
 	// First, resolve references
 	for (MarkReference* ref : m_mainBuffer->references())

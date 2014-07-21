@@ -91,7 +91,7 @@ private:
 	char*			m_lineBreakPosition;
 	String			m_tokenText,
 					m_lastToken;
-	Token		m_tokenType;
+	Token			m_tokenType;
 	int				m_line;
 
 	bool			checkString (const char* c, int flags = 0);

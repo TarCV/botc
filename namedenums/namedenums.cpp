@@ -27,49 +27,23 @@
 */
 
 #include <string>
-#include <deque>
+#include <vector>
 #include <algorithm>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
+#include "md5.h"
 
 using std::string;
-using std::deque;
+using std::vector;
 
-static int gLineNumber;
-static std::string gCurrentFile;
+static int LineNumber;
+static std::string CurrentFile;
+static auto const null = nullptr;
 
-// =============================================================================
-//
-struct NamedEnumInfo
-{
-	string			name;
-	deque<string>	enumerators;
-};
-
-// =============================================================================
-//
-void SkipWhitespace (char*& cp)
-{
-	while (isspace (*cp))
-	{
-		if (*cp == '\n')
-			gLineNumber++;
-
-		++cp;
-	}
-
-	if (strncmp (cp, "//", 2) == 0)
-	{
-		while (*(++cp) != '\n')
-			;
-
-		gLineNumber++;
-		SkipWhitespace (cp);
-	}
-}
+#define NAMED_ENUM_MACRO "named_enum"
 
 // =============================================================================
 //
@@ -85,12 +59,159 @@ void Error (const char* fmt, ...)
 
 // =============================================================================
 //
+struct NamedEnumInfo
+{
+	string			name;
+	vector<string>	enumerators;
+	bool			scoped;
+	string			underlyingtype;
+	bool			valuedefs;
+
+	NamedEnumInfo() :
+		scoped (false),
+		valuedefs (false) {}
+
+	//
+	// Generate a string containing a C++ stub declaration for this enum.
+	//
+	string makeStub() const
+	{
+		return string ("enum ")
+			+ (scoped ? "class " : "")
+			+ name
+			+ (underlyingtype.size() ? (" : " + underlyingtype) : "")
+			+ ";";
+	}
+
+	string enumeratorString (string const& e) const
+	{
+		if (scoped)
+			return name + "::" + e;
+		else
+			return e;
+	}
+};
+
+// =============================================================================
+//
+void Normalize (string& a)
+{
+	char const* start;
+	char const* end;
+
+	for (start = &a.c_str()[0]; isspace (*start); ++start)
+		;
+
+	for (end = start; not isspace (*end) and *end != '\0'; ++end)
+		;
+
+	a = a.substr (start - a.c_str(), end - start);
+}
+
+// =============================================================================
+//
+class OutputFile
+{
+	string _buffer;
+	string _md5;
+	string _filepath;
+
+public:
+	OutputFile (string const& filepath) :
+		_filepath (filepath)
+	{
+		FILE* readhandle = fopen (_filepath.c_str(), "r");
+
+		if (readhandle)
+		{
+			char line[1024];
+
+			if (fgets (line, sizeof line, readhandle) == null)
+				Error ("I/O error while reading %s", _filepath.c_str());
+
+			if (strncmp (line, "// ", 3) == 0)
+			{
+				// Get rid of the newline at the end
+				char* cp;
+				for (cp = &line[3]; *cp != '\0' and *cp != '\n'; ++cp)
+					;
+
+				*cp = '\0';
+				_md5 = string (&line[3]);
+			}
+
+			fclose (readhandle);
+		}
+	}
+
+	void append (char const* fmtstr, ...)
+	{
+		char buf[1024];
+		va_list va;
+		va_start (va, fmtstr);
+		vsprintf (buf, fmtstr, va);
+		va_end (va);
+		_buffer += buf;
+	}
+
+	void writeToDisk()
+	{
+		char checksum[33];
+
+		// See if this is necessary first.
+		CalculateMD5 (reinterpret_cast<unsigned char const*> (_buffer.c_str()),
+			_buffer.size(), checksum);
+		checksum[32] = '\0';
+
+		if (_md5.size() and string (checksum) == _md5)
+		{
+			fprintf (stdout, "%s is up to date.\n", _filepath.c_str());
+			return;
+		}
+
+		FILE* handle = fopen (_filepath.c_str(), "w");
+
+		if (not handle)
+			Error ("couldn't open %s for writing", _filepath.c_str());
+
+		string md5header (string ("// ") + checksum + "\n");
+		fwrite (md5header.c_str(), 1, md5header.size(), handle);
+		fwrite (_buffer.c_str(), 1, _buffer.size(), handle);
+		fclose (handle);
+		fprintf (stdout, "Wrote output file %s.\n", _filepath.c_str());
+	}
+};
+
+// =============================================================================
+//
+void SkipWhitespace (char*& cp)
+{
+	while (isspace (*cp))
+	{
+		if (*cp == '\n')
+			LineNumber++;
+
+		++cp;
+	}
+
+	if (strncmp (cp, "//", 2) == 0)
+	{
+		while (*(++cp) != '\n')
+			;
+
+		LineNumber++;
+		SkipWhitespace (cp);
+	}
+}
+
+// =============================================================================
+//
 int main (int argc, char* argv[])
 {
 	try
 	{
-		deque<NamedEnumInfo>	namedEnumerations;
-		deque<string>			filesToInclude;
+		vector<NamedEnumInfo>	namedEnumerations;
+		vector<string>			filesToInclude;
 
 		if (argc < 3)
 		{
@@ -98,20 +219,23 @@ int main (int argc, char* argv[])
 			return EXIT_FAILURE;
 		}
 
-		for (int i = 1; i < argc - 1; ++ i)
+		OutputFile header (argv[argc - 2]);
+		OutputFile source (argv[argc - 1]);
+
+		for (int i = 1; i < argc - 2; ++ i)
 		{
-			gCurrentFile = argv[i];
 			FILE* fp = fopen (argv[i], "r");
 			char* buf;
-			gLineNumber = 1;
 
 			if (fp == NULL)
 			{
-				fprintf (stderr, "could not open %s for writing: %s\n",
+				CurrentFile = "";
+				Error ("could not open %s for reading: %s",
 					argv[i], strerror (errno));
-				exit (EXIT_FAILURE);
 			}
 
+			CurrentFile = argv[i];
+			LineNumber = 1;
 			fseek (fp, 0, SEEK_END);
 			long int filesize = ftell (fp);
 			rewind (fp);
@@ -122,11 +246,12 @@ int main (int argc, char* argv[])
 			}
 			catch (std::bad_alloc)
 			{
-				Error ("could not allocate %ld bytes for %s\n", filesize, argv[i]);
+				Error ("out of memory: could not allocate %ld bytes for opening %s\n",
+					filesize, argv[i]);
 			}
 
-			if (static_cast<long> (fread (buf, 1, filesize, fp)) < filesize)
-				Error ("could not read %ld bytes from %s\n", filesize, argv[i]);
+			if (long (fread (buf, 1, filesize, fp)) < filesize)
+				Error ("filesystem error: could not read %ld bytes from %s\n", filesize, argv[i]);
 
 			char* const end = &buf[0] + filesize;
 
@@ -143,28 +268,56 @@ int main (int argc, char* argv[])
 				}
 
 				if ((cp != &buf[0] && isspace (* (cp - 1)) == false) ||
-					strncmp (cp, "named_enum ", strlen ("named_enum ")) != 0)
+					strncmp (cp, NAMED_ENUM_MACRO " ", strlen (NAMED_ENUM_MACRO " ")) != 0)
 				{
 					continue;
 				}
 
-				cp += strlen ("named_enum ");
+				cp += strlen (NAMED_ENUM_MACRO " ");
 				SkipWhitespace (cp);
 
 				NamedEnumInfo nenum;
 				auto& enumname = nenum.name;
 				auto& enumerators = nenum.enumerators;
 
+				// See if it's a scoped enum
+				if (strncmp (cp, "class ", strlen ("class ")) == 0)
+				{
+					nenum.scoped = true;
+					cp += strlen ("class ");
+				}
+
 				if (isalpha (*cp) == false && *cp != '_')
-					Error ("anonymous named_enum");
+					Error ("anonymous " NAMED_ENUM_MACRO);
 
 				while (isalnum (*cp) || *cp == '_')
 					enumname += *cp++;
 
 				SkipWhitespace (cp);
 
+				// We need an underlying type if this is not a scoped enum
+				if (*cp == ':')
+				{
+					SkipWhitespace (cp);
+
+					for (++cp; *cp != '\0' and *cp != '{'; ++cp)
+						nenum.underlyingtype += *cp;
+
+					if (not nenum.underlyingtype.size())
+						Error ("underlying type left empty");
+
+					Normalize (nenum.underlyingtype);
+				}
+
+				if (not nenum.scoped and not nenum.underlyingtype.size())
+				{
+					Error (NAMED_ENUM_MACRO " %s must be forward-declarable and thus must either "
+						"be scoped (" NAMED_ENUM_MACRO " class) or define an underlying type "
+						"(enum A : int)", nenum.name.c_str());
+				}
+
 				if (*cp++ != '{')
-					Error ("expected '{' after named_enum");
+					Error ("expected '{' after " NAMED_ENUM_MACRO);
 
 				for (;;)
 				{
@@ -186,11 +339,22 @@ int main (int argc, char* argv[])
 
 					SkipWhitespace (cp);
 
+					if (*cp == '=')
+					{
+						nenum.valuedefs = true;
+
+						while (*cp != ',' && *cp != '\0')
+							cp++;
+
+						if (*cp == '\0')
+						{
+							Error ("unexpected EOF while processing " NAMED_ENUM_MACRO " %s ",
+								nenum.name.c_str());
+						}
+					}
+
 					if (*cp == ',')
 						SkipWhitespace (++cp);
-
-					if (*cp == '=')
-						Error ("named enums must not have defined values");
 
 					enumerators.push_back (enumerator);
 				}
@@ -205,45 +369,90 @@ int main (int argc, char* argv[])
 					namedEnumerations.push_back (nenum);
 					filesToInclude.push_back (argv[i]);
 				}
+				else
+				{
+					printf ("warning: " NAMED_ENUM_MACRO " %s left empty\n", nenum.name.c_str());
+				}
 			}
 		}
 
-		FILE* fp;
+		header.append ("#pragma once\n\n");
 
-		if ((fp = fopen (argv[argc - 1], "w")) == NULL)
-			Error ("couldn't open %s for writing: %s", argv[argc - 1], strerror (errno));
+		for (NamedEnumInfo& e : namedEnumerations)
+			header.append ("%s\n", e.makeStub().c_str());
 
-		fprintf (fp, "#pragma once\n");
+		header.append ("\n");
+
+		for (NamedEnumInfo& e : namedEnumerations)
+			header.append ("const char* Get%sString (%s value);\n", e.name.c_str(), e.name.c_str());
+
+		header.append ("\n");
+
+		// MakeFormatArgument overloads so enums can be passed to that
+		for (NamedEnumInfo& e : namedEnumerations)
+			header.append ("String MakeFormatArgument (%s value);\n", e.name.c_str());
 
 		std::sort (filesToInclude.begin(), filesToInclude.end());
 		auto pos = std::unique (filesToInclude.begin(), filesToInclude.end());
 		filesToInclude.resize (std::distance (filesToInclude.begin(), pos));
 
-		for (const string& a : filesToInclude)
-			fprintf (fp, "#include \"%s\"\n", basename (a.c_str()));
+		for (string const& a : filesToInclude)
+			source.append ("#include \"%s\"\n", basename (a.c_str()));
+
+		source.append ("#include \"%s\"\n", basename (argv[argc - 2]));
 
 		for (NamedEnumInfo& e : namedEnumerations)
 		{
-			fprintf (fp, "\nstatic const char* g_%sNames[] =\n{\n", e.name.c_str());
+			if (not e.valuedefs)
+			{
+				source.append ("\nstatic const char* %sNames[] =\n{\n", e.name.c_str());
 
-			for (const string& a : e.enumerators)
-				fprintf (fp, "\t\"%s\",\n", a.c_str());
+				for (const string& a : e.enumerators)
+					source.append ("\t\"%s\",\n", e.enumeratorString (a).c_str());
 
-			fprintf (fp, "};\n\n");
+				source.append ("};\n\n");
 
-			fprintf (fp, "inline const char* get%sString (%s a)\n"
-				"{\n"
-				"\treturn g_%sNames[a];\n"
-				"}\n",
-				e.name.c_str(), e.name.c_str(), e.name.c_str());
+				source.append ("const char* Get%sString (%s value)\n"
+					"{\n"
+					"\treturn %sNames[value];\n"
+					"}\n",
+					e.name.c_str(), e.name.c_str(), e.name.c_str());
+			}
+			else
+			{
+				source.append ("const char* Get%sString (%s value)\n"
+					"{\n"
+					"\tswitch (value)\n"
+					"\t{\n", e.name.c_str(), e.name.c_str());
+
+				for (const string& a : e.enumerators)
+				{
+					source.append ("\t\tcase %s: return \"%s\";\n",
+						e.enumeratorString (a).c_str(), e.enumeratorString (a).c_str());
+				}
+
+				source.append ("\t\tdefault: return (\"[[[unknown "
+					"value passed to Get%sString]]]\");\n\t}\n}\n", e.name.c_str());
+			}
+
+			source.append ("String MakeFormatArgument (%s value)\n{\n"
+				"\treturn Get%sString (value);\n}\n", e.name.c_str(), e.name.c_str());
 		}
 
-		printf ("Wrote named enumerations to %s\n", argv[argc - 1]);
-		fclose (fp);
+		source.writeToDisk();
+		header.writeToDisk();
 	}
 	catch (std::string a)
 	{
-		fprintf (stderr, "%s:%d: error: %s\n", gCurrentFile.c_str(), gLineNumber, a.c_str());
+		if (CurrentFile.size() > 0)
+		{
+			fprintf (stderr, "%s: %s:%d: error: %s\n",
+				argv[0], CurrentFile.c_str(), LineNumber, a.c_str());
+		}
+		else
+		{
+			fprintf (stderr, "%s: error: %s\n", argv[0], a.c_str());
+		}
 		return 1;
 	}
 
