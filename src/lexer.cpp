@@ -256,7 +256,7 @@ void Lexer::tokenMustBe (Token tok)
 //
 String Lexer::describeTokenPrivate (Token tokType, Lexer::TokenInfo* tok)
 {
-	if (tokType < Token::LastNamedToken)
+	if (tokType < LastNamedToken)
 		return "\"" + LexerScanner::GetTokenString (tokType) + "\"";
 
 	switch (tokType)

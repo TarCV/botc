@@ -57,9 +57,9 @@ include_directories (${CMAKE_BINARY_DIR})
 include_directories (${CMAKE_SOURCE_DIR}/src)
 
 if (NOT MSVC)
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -W -Wall")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -W -Wall -Og")
 
-	if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+	if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
 		set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
 	endif()
 endif()

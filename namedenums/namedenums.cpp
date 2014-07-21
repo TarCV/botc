@@ -341,6 +341,10 @@ int main (int argc, char* argv[])
 
 					if (*cp == '=')
 					{
+						// until I figure out how to deal with the duplicate value issue
+						// I should probably use a map but not today.
+						Error ("cannot have named enums that define enumerator values");
+
 						nenum.valuedefs = true;
 
 						while (*cp != ',' && *cp != '\0')
@@ -414,7 +418,7 @@ int main (int argc, char* argv[])
 
 				source.append ("const char* Get%sString (%s value)\n"
 					"{\n"
-					"\treturn %sNames[value];\n"
+					"\treturn %sNames[long (value)];\n"
 					"}\n",
 					e.name.c_str(), e.name.c_str(), e.name.c_str());
 			}

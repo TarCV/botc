@@ -34,19 +34,19 @@
 
 #include "main.h"
 
-struct Limits
+namespace Limits
 {
-	static const int MaxStates			= 256;
-	static const int MaxEvents			= 32;
-	static const int MaxGlobalEvents	= 32;
-	static const int MaxGlobalVars		= 128;
-	static const int MaxGlobalArrays	= 16;
-	static const int MaxArraySize		= 65536;
-	static const int MaxStateVars		= 16;
-	static const int MaxStringlistSize	= 128;
-	static const int MaxStringLength	= 256;
-	static const int MaxReactionTime	= 52;
-	static const int MaxStoredEvents	= 64;
+	static constexpr int MaxStates			= 256;
+	static constexpr int MaxEvents			= 32;
+	static constexpr int MaxGlobalEvents	= 32;
+	static constexpr int MaxGlobalVars		= 128;
+	static constexpr int MaxGlobalArrays	= 16;
+	static constexpr int MaxArraySize		= 65536;
+	static constexpr int MaxStateVars		= 16;
+	static constexpr int MaxStringlistSize	= 128;
+	static constexpr int MaxStringLength	= 256;
+	static constexpr int MaxReactionTime	= 52;
+	static constexpr int MaxStoredEvents	= 64;
 };
 
 named_enum class DataHeader
