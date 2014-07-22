@@ -72,6 +72,18 @@ template<class T> inline T abs (T a)
 	return (a >= 0) ? a : -a;
 }
 
+// _________________________________________________________________________________________________
+//
+named_enum class Verbosity
+{
+	None,
+	Medium,
+	Full,
+
+	NumValues
+};
+
+
 #ifdef IN_IDE_PARSER
 using FILE = void;
 #endif

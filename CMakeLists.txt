@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 2.8)
 
 set (BOTC_HEADERS
 	src/botStuff.h
+	src/commandline.h
 	src/commands.h
 	src/list.h
 	src/dataBuffer.h
@@ -21,6 +22,7 @@ set (BOTC_HEADERS
 )
 
 set (BOTC_SOURCES
+	src/commandline.cpp
 	src/commands.cpp
 	src/dataBuffer.cpp
 	src/events.cpp

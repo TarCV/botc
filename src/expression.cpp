@@ -32,7 +32,7 @@ static const OperatorInfo g_Operators[] =
 	{Token::Bar,				80,		2,	DataHeader::OrBitwise		},
 	{Token::DoubleAmperstand,	90,		2,	DataHeader::AndLogical		},
 	{Token::DoubleBar,			100,	2,	DataHeader::OrLogical		},
-	{Token::QuestionMark,		110,	3,	DataHeader::NumDataHeaders	},
+	{Token::QuestionMark,		110,	3,	DataHeader::NumValues	},
 };
 
 // _________________________________________________________________________________________________
@@ -453,7 +453,7 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 		}
 		else
 		{
-			ASSERT_NE (info->header, DataHeader::NumDataHeaders);
+			ASSERT_NE (info->header, DataHeader::NumValues);
 
 			// Generic case: write all arguments and apply the operator's
 			// data header.

@@ -34,15 +34,24 @@
 #include "parser.h"
 #include "lexer.h"
 #include "hginfo.h"
+#include "commandline.h"
+#include "enumstrings.h"
 
 int main (int argc, char** argv)
 {
 	try
 	{
-		// Intepret command-line parameters:
-		// -l: list commands
-		// I guess there should be a better way to do this.
-		if (argc == 2 and String (argv[1]) == "-l")
+		Verbosity verboselevel = Verbosity::None;
+		bool listcommands = false;
+
+		CommandLine cmdline;
+		cmdline.addOption (listcommands, 'l', "listfunctions",
+			"List available function signatures and exit");
+		cmdline.addEnumeratedOption (verboselevel, 'V', "verbose",
+			"Output more verbose information (0 through 2)");
+		StringList args = cmdline.process (argc, argv);
+
+		if (listcommands)
 		{
 			BotscriptParser parser;
 			parser.setReadOnly (true);
@@ -54,7 +63,7 @@ int main (int argc, char** argv)
 			exit (0);
 		}
 
-		if (argc == 2 and String (argv[1]) == "-v")
+		if (not within (args.size(), 1, 2))
 		{
 			// Print header
 			String header;
@@ -64,32 +73,26 @@ int main (int argc, char** argv)
 			header += " (debug build)";
 #endif
 
-			print ("%1\n", header);
-			exit (0);
-		}
-
-		if (argc < 2)
-		{
-			fprintf (stderr, APPNAME " %s\n", versionString (false).c_str());
-			fprintf (stderr, "usage: %s <infile> [outfile] # compiles botscript\n", argv[0]);
-			fprintf (stderr, "       %s -l                 # lists commands\n", argv[0]);
-			fprintf (stderr, "       %s -v                 # displays version info\n", argv[0]);
+			printTo (stderr, "%1\n", header);
+			printTo (stderr, "usage: %1 <infile> [outfile] # compiles botscript\n", argv[0]);
+			printTo (stderr, "       %1 -l                 # lists commands\n", argv[0]);
+			printTo (stderr, "       %1 -v                 # displays version info\n", argv[0]);
 			exit (1);
 		}
 
 		String outfile;
 
-		if (argc < 3)
-			outfile = makeObjectFileName (argv[1]);
+		if (args.size() == 1)
+			outfile = makeObjectFileName (args[0]);
 		else
-			outfile = argv[2];
+			outfile = args[1];
 
 		// Prepare reader and writer
 		BotscriptParser* parser = new BotscriptParser;
 
 		// We're set, begin parsing :)
 		print ("Parsing script...\n");
-		parser->parseBotscript (argv[1]);
+		parser->parseBotscript (args[0]);
 		print ("Script parsed successfully.\n");
 
 		// Parse done, print statistics and write to file

@@ -122,7 +122,8 @@ named_enum class DataHeader
 	Swap,
 	Dup,
 	ArraySet,
-	NumDataHeaders
+
+	NumValues
 };
 
 #endif	// BOTC_BOTSTUFF_H

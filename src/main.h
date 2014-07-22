@@ -63,4 +63,10 @@ inline T min (T a, T b)
 	return a < b ? a : b;
 }
 
+template<typename T>
+inline bool within (T a, T min, T max)
+{
+	return a >= min and a <= max;
+}
+
 #endif // BOTC_MAIN_H

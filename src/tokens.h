@@ -122,6 +122,8 @@ named_enum class Token
 	Number,
 	String,
 	Any,
+
+	NumValues
 };
 
 static Token const FirstNamedToken = Token::Bool;

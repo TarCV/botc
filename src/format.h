@@ -129,12 +129,13 @@ void devf (void, ...);
 void dvalof (void a);
 #endif // IN_IDE_PARSER
 
-
+// _________________________________________________________________________________________________
 //
 // Formats the given string with the given args.
 //
 String formatArgs (const String& fmtstr, const std::vector<String>& args);
 
+// _________________________________________________________________________________________________
 //
 // Expands the given arguments into a vector of strings.
 //
@@ -151,6 +152,7 @@ static void expandFormatArguments (std::vector<String>& data)
 	(void) data;
 }
 
+// _________________________________________________________________________________________________
 //
 // Formats the given formatter string and args and returns the string.
 // This is essentially a modernized sprintf.
@@ -184,6 +186,7 @@ String format (const String& fmtstr, const argtypes&... raw_args)
 	return formatArgs (fmtstr, args);
 }
 
+// _________________________________________________________________________________________________
 //
 // This is an overload of format() where no arguments are supplied.
 // It returns the formatter string as-is.
@@ -194,6 +197,7 @@ static String format (const String& fmtstr)
 	return fmtstr;
 }
 
+// _________________________________________________________________________________________________
 //
 // Processes the given formatter string using format() and prints it to the
 // specified file pointer.
@@ -204,6 +208,7 @@ void printTo (FILE* fp, const String& fmtstr, const argtypes&... args)
 	fprintf (fp, "%s", format (fmtstr, args...).c_str());
 }
 
+// _________________________________________________________________________________________________
 //
 // Processes the given formatter string using format() and appends it to the
 // specified file by name.
@@ -221,6 +226,7 @@ void printTo (const String& filename, const String& fmtstr, const argtypes&... a
 	}
 }
 
+// _________________________________________________________________________________________________
 //
 // Processes the given formatter string using format() and prints the result to
 // stdout.
@@ -231,6 +237,7 @@ void print (const String& fmtstr, const argtypes&... args)
 	printTo (stdout, fmtstr, args...);
 }
 
+// _________________________________________________________________________________________________
 //
 // Throws an std::runtime_error with the processed formatted string. The program
 // execution terminates after a call to this function as the exception is first
