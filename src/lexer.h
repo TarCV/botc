@@ -64,7 +64,7 @@ public:
 	String	describeCurrentPosition();
 	String	describeTokenPosition();
 
-	static Lexer* getCurrentLexer();
+	static Lexer* GetCurrentLexer();
 
 	inline bool hasValidToken() const
 	{
@@ -103,14 +103,14 @@ public:
 	}
 
 	// If @tok is given, describes the token. If not, describes @tok_type.
-	static inline String describeTokenType (Token toktype)
+	static inline String DescribeTokenType (Token toktype)
 	{
-		return describeTokenPrivate (toktype, null);
+		return DescribeTokenPrivate (toktype, null);
 	}
 
-	static inline String describeToken (TokenInfo* tok)
+	static inline String DescribeToken (TokenInfo* tok)
 	{
-		return describeTokenPrivate (tok->type, tok);
+		return DescribeTokenPrivate (tok->type, tok);
 	}
 
 private:
@@ -121,7 +121,7 @@ private:
 	void mustGetFromScanner (LexerScanner& sc, Token tt =Token::Any);
 	void checkFileHeader (LexerScanner& sc);
 
-	static String describeTokenPrivate (Token tok_type, TokenInfo* tok);
+	static String DescribeTokenPrivate (Token tok_type, TokenInfo* tok);
 };
 
 #endif // BOTC_LEXER_H

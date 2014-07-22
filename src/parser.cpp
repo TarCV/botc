@@ -1082,7 +1082,7 @@ AssignmentOperator BotscriptParser::parseAssignmentOperator()
 		default: break;
 	}
 
-	error ("WTF bad operator token %1", m_lexer->describeToken (m_lexer->token()));
+	error ("WTF bad operator token %1", m_lexer->DescribeToken (m_lexer->token()));
 	return (AssignmentOperator) 0;
 }
 

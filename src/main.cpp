@@ -44,9 +44,6 @@ int main (int argc, char** argv)
 		// I guess there should be a better way to do this.
 		if (argc == 2 and String (argv[1]) == "-l")
 		{
-			print ("Begin list of commands:\n");
-			print ("------------------------------------------------------\n");
-
 			BotscriptParser parser;
 			parser.setReadOnly (true);
 			parser.parseBotscript ("botc_defs.bts");
@@ -54,40 +51,31 @@ int main (int argc, char** argv)
 			for (CommandInfo* comm : getCommands())
 				print ("%1\n", comm->signature());
 
-			print ("------------------------------------------------------\n");
-			print ("End of command list\n");
+			exit (0);
+		}
+
+		if (argc == 2 and String (argv[1]) == "-v")
+		{
+			// Print header
+			String header;
+			header = format (APPNAME " %1", versionString (true));
+
+#ifdef DEBUG
+			header += " (debug build)";
+#endif
+
+			print ("%1\n", header);
 			exit (0);
 		}
 
 		if (argc < 2)
 		{
+			fprintf (stderr, APPNAME " %s\n", versionString (false).c_str());
 			fprintf (stderr, "usage: %s <infile> [outfile] # compiles botscript\n", argv[0]);
 			fprintf (stderr, "       %s -l                 # lists commands\n", argv[0]);
+			fprintf (stderr, "       %s -v                 # displays version info\n", argv[0]);
 			exit (1);
 		}
-
-		// Print header
-		String header;
-		String headerline;
-		header = format (APPNAME " version %1", versionString (true));
-
-#ifdef DEBUG
-		if (header.firstIndexOf ("(") != -1)
-			header += ", ";
-		else
-			header += " (";
-
-		header += "debug build";
-#endif
-
-		if (header.firstIndexOf ("(") != -1)
-			header += ")";
-
-		for (int i = 0; i < header.length() / 2; ++i)
-			headerline += "-=";
-
-		headerline += '-';
-		print ("%2\n\n%1\n\n%2\n\n", header, headerline);
 
 		String outfile;
 
@@ -146,11 +134,11 @@ String makeObjectFileName (String s)
 DataType getTypeByName (String token)
 {
 	token = token.toLowercase();
-	return	(token == "int") ? TYPE_Int :
-			(token == "str") ? TYPE_String :
-			(token == "void") ? TYPE_Void :
-			(token == "bool") ? TYPE_Bool :
-			TYPE_Unknown;
+	return	(token == "int") ? TYPE_Int
+		  : (token == "str") ? TYPE_String
+		  : (token == "void") ? TYPE_Void
+		  : (token == "bool") ? TYPE_Bool
+		  : TYPE_Unknown;
 }
 
 
@@ -176,32 +164,27 @@ String dataTypeName (DataType type)
 //
 String makeVersionString (int major, int minor, int patch)
 {
-	String ver = format ("%1.%2", major, minor);
+	String ver = String::fromNumber (major);
+	ver += "." + String::fromNumber (minor);
 
 	if (patch != 0)
-	{
-		ver += ".";
-		ver += patch;
-	}
+		ver += "." + patch;
 
 	return ver;
 }
 
 // =============================================================================
 //
-String versionString (bool)
+String versionString (bool longform)
 {
-#if defined(GIT_DESCRIPTION) and defined (DEBUG)
-	String tag (GIT_DESCRIPTION);
-	String version = tag;
+	String result = makeVersionString (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
-	if (longform and tag.endsWith ("-pre"))
-		version += "-" + String (GIT_HASH).mid (0, 8);
-
-	return version;
-#elif VERSION_PATCH != 0
-	return format ("%1.%2.%3", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+#ifdef SVN_REVISION_STRING
+	if (longform)
+		result += "-" SVN_REVISION_STRING;
 #else
-	return format ("%1.%2", VERSION_MAJOR, VERSION_MINOR);
+	(void) longform; // shuts up GCC
 #endif
+
+	return result;
 }
