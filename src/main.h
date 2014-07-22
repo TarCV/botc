@@ -48,7 +48,7 @@
 String makeObjectFileName (String s);
 DataType getTypeByName (String token);
 String dataTypeName (DataType type);
-String versionString (bool longform);
+String versionString();
 String makeVersionString (int major, int minor, int patch);
 
 template<typename T>

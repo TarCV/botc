@@ -130,7 +130,7 @@ static bool isValidHeader (String header)
 
 	if (VERSION_NUMBER < MAKE_VERSION_NUMBER (major, minor, patch))
 		error ("The script file requires " APPNAME " v%1, this is v%2",
-			makeVersionString (major, minor, patch), versionString (false));
+			makeVersionString (major, minor, patch), versionString());
 
 	return true;
 }
