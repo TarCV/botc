@@ -29,29 +29,29 @@
 #include <cstring>
 #include "lexer.h"
 
-static StringList	gFileNameStack;
-static Lexer*		gMainLexer = null;
+static StringList	FileNameStack;
+static Lexer*		MainLexer = null;
 
 // =============================================================================
 //
 Lexer::Lexer()
 {
-	ASSERT_EQ (gMainLexer, null);
-	gMainLexer = this;
+	ASSERT_EQ (MainLexer, null);
+	MainLexer = this;
 }
 
 // =============================================================================
 //
 Lexer::~Lexer()
 {
-	gMainLexer = null;
+	MainLexer = null;
 }
 
 // =============================================================================
 //
 void Lexer::processFile (String fileName)
 {
-	gFileNameStack << fileName;
+	FileNameStack << fileName;
 	FILE* fp = fopen (fileName, "r");
 
 	if (fp == null)
@@ -72,7 +72,7 @@ void Lexer::processFile (String fileName)
 				mustGetFromScanner (sc,Token::String);
 				String fileName = sc.getTokenText();
 
-				if (gFileNameStack.contains (fileName))
+				if (FileNameStack.contains (fileName))
 					error ("attempted to #include %1 recursively", sc.getTokenText());
 
 				processFile (fileName);
@@ -98,7 +98,7 @@ void Lexer::processFile (String fileName)
 	}
 
 	m_tokenPosition = m_tokens.begin() - 1;
-	gFileNameStack.removeOne (fileName);
+	FileNameStack.removeOne (fileName);
 }
 
 // ============================================================================
@@ -190,10 +190,10 @@ void Lexer::mustGetFromScanner (LexerScanner& sc, Token tt)
 		tok.text = sc.getTokenText();
 
 		error ("at %1:%2: expected %3, got %4",
-			gFileNameStack.last(),
+			FileNameStack.last(),
 			sc.getLine(),
-			describeTokenType (tt),
-			describeToken (&tok));
+			DescribeTokenType (tt),
+			DescribeToken (&tok));
 	}
 }
 
@@ -217,10 +217,10 @@ void Lexer::mustGetAnyOf (const List<Token>& toks)
 		elif (toknames.isEmpty() == false)
 			toknames += ", ";
 
-		toknames += describeTokenType (tokType);
+		toknames += DescribeTokenType (tokType);
 	}
 
-	error ("expected %1, got %2", toknames, describeToken (token()));
+	error ("expected %1, got %2", toknames, DescribeToken (token()));
 }
 
 // =============================================================================
@@ -239,7 +239,7 @@ int Lexer::getOneSymbol (const StringList& syms)
 		}
 	}
 
-	error ("expected one of %1, got %2", syms, describeToken (token()));
+	error ("expected one of %1, got %2", syms, DescribeToken (token()));
 	return -1;
 }
 
@@ -248,13 +248,13 @@ int Lexer::getOneSymbol (const StringList& syms)
 void Lexer::tokenMustBe (Token tok)
 {
 	if (tokenType() != tok)
-		error ("expected %1, got %2", describeTokenType (tok),
-			describeToken (token()));
+		error ("expected %1, got %2", DescribeTokenType (tok),
+			DescribeToken (token()));
 }
 
 // =============================================================================
 //
-String Lexer::describeTokenPrivate (Token tokType, Lexer::TokenInfo* tok)
+String Lexer::DescribeTokenPrivate (Token tokType, Lexer::TokenInfo* tok)
 {
 	if (tokType < LastNamedToken)
 		return "\"" + LexerScanner::GetTokenString (tokType) + "\"";
@@ -301,9 +301,9 @@ bool Lexer::peekNextType (Token req)
 
 // =============================================================================
 //
-Lexer* Lexer::getCurrentLexer()
+Lexer* Lexer::GetCurrentLexer()
 {
-	return gMainLexer;
+	return MainLexer;
 }
 
 // =============================================================================
@@ -339,6 +339,7 @@ String Lexer::describeTokenPosition()
 void Lexer::mustGetSymbol (const String& a)
 {
 	mustGetNext (Token::Any);
+
 	if (token()->text != a)
 		error ("expected \"%1\", got \"%2\"", a, token()->text);
 }

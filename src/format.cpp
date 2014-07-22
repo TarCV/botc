@@ -76,9 +76,11 @@ String formatArgs (const String& fmtstr, const std::vector<String>& args)
 			ofs++;
 		}
 
-		if (!isdigit (fmt[pos + ofs]))
+		if (not isdigit (fmt[pos + ofs]))
+		{
 			formatError (fmtstr, "bad format string, expected digit with optional "
 				"modifier after '%%'", pos);
+		}
 
 		int i = fmt[pos + ofs]  - '0';
 
@@ -108,7 +110,7 @@ String formatArgs (const String& fmtstr, const std::vector<String>& args)
 //
 void error (const String& msg)
 {
-	Lexer* lx = Lexer::getCurrentLexer();
+	Lexer* lx = Lexer::GetCurrentLexer();
 	String fileinfo;
 
 	if (lx != null and lx->hasValidToken())
