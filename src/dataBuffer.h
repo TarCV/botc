@@ -32,7 +32,7 @@
 #include "main.h"
 #include "stringTable.h"
 
-// ------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	The DataBuffer class stores a section of bytecode. Buffers are allocated on
 //	the heap and written to using the @c write* functions. Buffers can be cut and
@@ -84,7 +84,7 @@ private:
 	void			copyBuffer (const DataBuffer* buf);
 };
 
-// ------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Returns the amount of bytes written into the buffer.
 //

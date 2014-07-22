@@ -35,7 +35,7 @@ static const OperatorInfo g_Operators[] =
 	{Token::QuestionMark,		110,	3,	DataHeader::NumDataHeaders	},
 };
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 Expression::Expression (BotscriptParser* parser, Lexer* lx, DataType reqtype) :
 	m_parser (parser),
@@ -58,7 +58,7 @@ Expression::Expression (BotscriptParser* parser, Lexer* lx, DataType reqtype) :
 	evaluate();
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 Expression::~Expression()
 {
@@ -66,7 +66,7 @@ Expression::~Expression()
 		delete sym;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 // Try to parse an expression symbol (i.e. an operator or operand or a colon)
 // from the lexer.
@@ -200,7 +200,7 @@ ExpressionSymbol* Expression::parseSymbol()
 	return null;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 // The symbol parsing process only does token-based checking for operators.
 // Thus ALL minus operators are actually unary minuses simply because both
@@ -224,7 +224,7 @@ void Expression::adjustOperators()
 	}
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 // Verifies a single value. Helper function for Expression::verify.
 //
@@ -247,7 +247,7 @@ void Expression::tryVerifyValue (List<bool>& verified, SymbolList::Iterator it)
 	verified[i] = true;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 // Ensures the expression is valid and well-formed and not OMGWTFBBQ. Throws an
 // error if this is not the case.
@@ -364,7 +364,7 @@ void Expression::verify()
 }
 
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 // Which operator to evaluate?
 //
@@ -391,7 +391,7 @@ Expression::SymbolList::Iterator Expression::findPrioritizedOperator()
 	return best;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 // Process the given operator and values into a new value.
 //
@@ -531,7 +531,7 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 	return newval;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 ExpressionValue* Expression::evaluate()
 {
@@ -595,41 +595,41 @@ ExpressionValue* Expression::evaluate()
 	return val;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 ExpressionValue* Expression::getResult()
 {
 	return static_cast<ExpressionValue*> (m_symbols.first());
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 String Expression::getTokenString()
 {
 	return m_lexer->token()->text;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 ExpressionOperator::ExpressionOperator (ExpressionOperatorType id) :
 	ExpressionSymbol (EXPRSYM_Operator),
 	m_id (id) {}
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 ExpressionValue::ExpressionValue (DataType valuetype) :
 	ExpressionSymbol (EXPRSYM_Value),
 	m_buffer (null),
 	m_valueType (valuetype) {}
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 ExpressionValue::~ExpressionValue()
 {
 	delete m_buffer;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 void ExpressionValue::convertToBuffer()
 {

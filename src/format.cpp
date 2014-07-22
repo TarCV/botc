@@ -31,6 +31,7 @@
 #include "format.h"
 #include "lexer.h"
 
+// _________________________________________________________________________________________________
 //
 // Throws an error while formatting the string
 //
@@ -47,6 +48,7 @@ static void formatError (String fmtstr, const String errdescribe, int pos)
 	throw std::logic_error (errmsg.stdString());
 }
 
+// _________________________________________________________________________________________________
 //
 // Main formatter algorithm function. Processes @fmtstr with @args and returns
 // the result.
@@ -104,6 +106,7 @@ String formatArgs (const String& fmtstr, const std::vector<String>& args)
 	return fmt;
 }
 
+// _________________________________________________________________________________________________
 //
 // Throws a runtime error with the message @msg. If a lexer is active, its
 // position is printed as well.

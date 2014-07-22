@@ -40,7 +40,7 @@
 
 static const StringList g_validZandronumVersions = {"1.2", "1.3", "2.0"};
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 BotscriptParser::BotscriptParser() :
 	m_isReadOnly (false),
@@ -60,14 +60,14 @@ BotscriptParser::BotscriptParser() :
 	m_zandronumVersion (10200), // 1.2
 	m_defaultZandronumVersion (true) {}
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 BotscriptParser::~BotscriptParser()
 {
 	delete m_lexer;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::checkToplevel()
 {
@@ -75,7 +75,7 @@ void BotscriptParser::checkToplevel()
 		error ("%1-statements may only be defined at top level!", getTokenString());
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::checkNotToplevel()
 {
@@ -83,7 +83,7 @@ void BotscriptParser::checkNotToplevel()
 		error ("%1-statements must not be defined at top level!", getTokenString());
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 // Main compiler code. Begins read of the script file, checks the syntax of it
 // and writes the data to the object file via Objwriter - which also takes care
@@ -229,7 +229,8 @@ void BotscriptParser::parseBotscript (String fileName)
 		{
 			print ("\n");
 			print ("note: use the 'using' directive to define a target Zandronum version\n");
-			print ("usage: using zandronum <version>, possible versions: %1\n", g_validZandronumVersions);
+			print ("usage: using zandronum <version>, possible versions: %1\n", 
+g_validZandronumVersions);
 			print ("\n");
 		}
 
@@ -241,7 +242,7 @@ void BotscriptParser::parseBotscript (String fileName)
 	}
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseStateBlock()
 {
@@ -276,7 +277,7 @@ void BotscriptParser::parseStateBlock()
 	m_gotMainLoop = false;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseEventBlock()
 {
@@ -295,7 +296,7 @@ void BotscriptParser::parseEventBlock()
 	m_numEvents++;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseMainloop()
 {
@@ -306,7 +307,7 @@ void BotscriptParser::parseMainloop()
 	m_mainLoopBuffer->writeHeader (DataHeader::MainLoop);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseOnEnterExit()
 {
@@ -317,7 +318,7 @@ void BotscriptParser::parseOnEnterExit()
 	currentBuffer()->writeHeader (onenter ? DataHeader::OnEnter : DataHeader::OnExit);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseVar()
 {
@@ -414,7 +415,7 @@ void BotscriptParser::parseVar()
 "state-local");
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseIf()
 {
@@ -445,7 +446,7 @@ void BotscriptParser::parseIf()
 	SCOPE (0).type = SCOPE_If;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseElse()
 {
@@ -469,7 +470,7 @@ void BotscriptParser::parseElse()
 	SCOPE (0).type = SCOPE_Else;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseWhileBlock()
 {
@@ -502,7 +503,7 @@ void BotscriptParser::parseWhileBlock()
 	SCOPE (0).type = SCOPE_While;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseForBlock()
 {
@@ -554,7 +555,7 @@ void BotscriptParser::parseForBlock()
 	SCOPE (0).type = SCOPE_For;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseDoBlock()
 {
@@ -565,7 +566,7 @@ void BotscriptParser::parseDoBlock()
 	SCOPE (0).type = SCOPE_Do;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseSwitchBlock()
 {
@@ -593,7 +594,7 @@ void BotscriptParser::parseSwitchBlock()
 	SCOPE (0).buffer1 = null; // default header
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseSwitchCase()
 {
@@ -630,7 +631,7 @@ void BotscriptParser::parseSwitchCase()
 	SCOPE (0).casecursor->number = num;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseSwitchDefault()
 {
@@ -656,7 +657,7 @@ void BotscriptParser::parseSwitchDefault()
 	addSwitchCase (buf);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseBreak()
 {
@@ -687,7 +688,7 @@ void BotscriptParser::parseBreak()
 	m_lexer->mustGetNext (Token::Semicolon);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseContinue()
 {
@@ -719,7 +720,7 @@ void BotscriptParser::parseContinue()
 		error ("`continue`-statement not inside a loop");
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseBlockEnd()
 {
@@ -837,7 +838,8 @@ void BotscriptParser::parseBlockEnd()
 	m_lexer->next (Token::Semicolon);
 }
 
-// =============================================================================
+// 
+-------------------------------------------------------------------------------------------------=
 //
 void BotscriptParser::parseEventdef()
 {
@@ -854,7 +856,8 @@ void BotscriptParser::parseEventdef()
 	addEvent (e);
 }
 
-// =============================================================================
+// 
+-------------------------------------------------------------------------------------------------=
 //
 void BotscriptParser::parseFuncdef()
 {
@@ -927,7 +930,7 @@ void BotscriptParser::parseFuncdef()
 	addCommandDefinition (comm);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 // Parses a using statement
 //
@@ -937,9 +940,11 @@ void BotscriptParser::parseUsing()
 	m_lexer->mustGetSymbol ("zandronum");
 	String versionText;
 
-	while (m_lexer->next() and (m_lexer->tokenType() == Token::Number or m_lexer->tokenType() == 
-Token::Dot))
+	while (m_lexer->next()
+		and (m_lexer->tokenType() == Token::Number or m_lexer->tokenType() == Token::Dot))
+	{
 		versionText += getTokenString();
+	}
 
 	// Note: at this point the lexer's pointing at the token after the version.
 	if (versionText.isEmpty())
@@ -955,7 +960,7 @@ versionText);
 	m_lexer->tokenMustBe (Token::Semicolon);
 }
 
-// ============================================================================/
+// _________________________________________________________________________________________________
 //
 // Parses a command call
 //
@@ -985,8 +990,10 @@ DataBuffer* BotscriptParser::parseCommand (CommandInfo* comm)
 		}
 
 		if (curarg >= comm->args.size())
+		{
 			error ("too many arguments (%3) passed to %1\n\tusage is: %2",
 				comm->name, comm->signature());
+		}
 
 		r->mergeAndDestroy (parseExpression (comm->args[curarg].type, true));
 		m_lexer->mustGetNext (Token::Any);
@@ -1029,7 +1036,7 @@ DataBuffer* BotscriptParser::parseCommand (CommandInfo* comm)
 	return r;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 String BotscriptParser::parseFloat()
 {
@@ -1049,7 +1056,7 @@ String BotscriptParser::parseFloat()
 	return floatstring;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 // Parses an assignment operator.
 //
@@ -1086,39 +1093,70 @@ AssignmentOperator BotscriptParser::parseAssignmentOperator()
 	return (AssignmentOperator) 0;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
-struct AssignmentDataHeaderInfo
+const struct AssignmentDataHeaderInfo
 {
 	AssignmentOperator	op;
 	DataHeader			local;
 	DataHeader			global;
 	DataHeader			array;
-};
-
-const AssignmentDataHeaderInfo gAssignmentDataHeaders[] =
+}
+AssignmentDataHeaders[] =
 {
-	{ ASSIGNOP_Assign,		DataHeader::AssignLocalVar,		DataHeader::AssignGlobalVar,		
-DataHeader::AssignGlobalArray },
-	{ ASSIGNOP_Add,			DataHeader::AddLocalVar,			DataHeader::AddGlobalVar,		
-DataHeader::AddGlobalArray },
-	{ ASSIGNOP_Subtract,	DataHeader::SubtractLocalVar,	DataHeader::SubtractGlobalVar,	
-DataHeader::SubtractGlobalArray },
-	{ ASSIGNOP_Multiply,	DataHeader::MultiplyLocalVar,	DataHeader::MultiplyGlobalVar,	
-DataHeader::MultiplyGlobalArray },
-	{ ASSIGNOP_Divide,		DataHeader::DivideLocalVar,		DataHeader::DivideGlobalVar,		
-DataHeader::DivideGlobalArray },
-	{ ASSIGNOP_Modulus,		DataHeader::ModLocalVar,			DataHeader::ModGlobalVar,		
-DataHeader::ModGlobalArray },
-	{ ASSIGNOP_Increase,	DataHeader::IncreaseLocalVar,	DataHeader::IncreaseGlobalVar,	
-DataHeader::IncreaseGlobalArray },
-	{ ASSIGNOP_Decrease,	DataHeader::DecreaseLocalVar,	DataHeader::DecreaseGlobalVar,	
-DataHeader::DecreaseGlobalArray },
+	{
+		ASSIGNOP_Assign,
+		DataHeader::AssignLocalVar,
+		DataHeader::AssignGlobalVar,
+		DataHeader::AssignGlobalArray
+	},
+	{
+		ASSIGNOP_Add,
+		DataHeader::AddLocalVar,
+		DataHeader::AddGlobalVar,
+		DataHeader::AddGlobalArray
+	},
+	{
+		ASSIGNOP_Subtract,
+		DataHeader::SubtractLocalVar,
+		DataHeader::SubtractGlobalVar,
+		DataHeader::SubtractGlobalArray
+	},
+	{
+		ASSIGNOP_Multiply,
+		DataHeader::MultiplyLocalVar,
+		DataHeader::MultiplyGlobalVar,
+		DataHeader::MultiplyGlobalArray
+	},
+	{
+		ASSIGNOP_Divide,
+		DataHeader::DivideLocalVar,
+		DataHeader::DivideGlobalVar,
+		DataHeader::DivideGlobalArray
+	},
+	{
+		ASSIGNOP_Modulus,
+		DataHeader::ModLocalVar,
+		DataHeader::ModGlobalVar,
+		DataHeader::ModGlobalArray
+	},
+	{
+		ASSIGNOP_Increase,
+		DataHeader::IncreaseLocalVar,
+		DataHeader::IncreaseGlobalVar,
+		DataHeader::IncreaseGlobalArray
+	},
+	{
+		ASSIGNOP_Decrease,
+		DataHeader::DecreaseLocalVar,
+		DataHeader::DecreaseGlobalVar,
+		DataHeader::DecreaseGlobalArray
+	},
 };
 
 DataHeader BotscriptParser::getAssigmentDataHeader (AssignmentOperator op, Variable* var)
 {
-	for (const auto& a : gAssignmentDataHeaders)
+	for (const auto& a : AssignmentDataHeaders)
 	{
 		if (a.op != op)
 			continue;
@@ -1136,7 +1174,7 @@ DataHeader BotscriptParser::getAssigmentDataHeader (AssignmentOperator op, Varia
 	return (DataHeader) 0;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 // Parses an assignment. An assignment starts with a variable name, followed
 // by an assignment operator, followed by an expression value. Expects current
@@ -1193,7 +1231,7 @@ DataHeader::RightShift);
 	return retbuf;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::pushScope (bool noreset)
 {
@@ -1228,7 +1266,7 @@ void BotscriptParser::pushScope (bool noreset)
 	SCOPE(0).globalVariables.clear();
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 DataBuffer* BotscriptParser::parseExpression (DataType reqtype, bool fromhere)
 {
@@ -1244,7 +1282,7 @@ DataBuffer* BotscriptParser::parseExpression (DataType reqtype, bool fromhere)
 	return expr.getResult()->buffer()->clone();
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 DataBuffer* BotscriptParser::parseStatement()
 {
@@ -1263,7 +1301,7 @@ DataBuffer* BotscriptParser::parseStatement()
 	return null;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::addSwitchCase (DataBuffer* casebuffer)
 {
@@ -1288,21 +1326,21 @@ void BotscriptParser::addSwitchCase (DataBuffer* casebuffer)
 	info->casecursor++;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 bool BotscriptParser::tokenIs (Token a)
 {
 	return (m_lexer->tokenType() == a);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 String BotscriptParser::getTokenString()
 {
 	return m_lexer->token()->text;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 String BotscriptParser::describePosition() const
 {
@@ -1310,7 +1348,9 @@ String BotscriptParser::describePosition() const
 	return tok->file + ":" + String (tok->line) + ":" + String (tok->column);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
+//
+//	Where are we writing to right now?
 //
 DataBuffer* BotscriptParser::currentBuffer()
 {
@@ -1326,7 +1366,7 @@ DataBuffer* BotscriptParser::currentBuffer()
 	return m_mainBuffer;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::writeMemberBuffers()
 {
@@ -1350,7 +1390,7 @@ void BotscriptParser::writeMemberBuffers()
 	m_gotMainLoop = false;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 // Write string table
 //
@@ -1370,7 +1410,7 @@ void BotscriptParser::writeStringTable()
 		m_mainBuffer->writeString (getStringTable()[i]);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 // Write the compiled bytecode to a file
 //
@@ -1394,7 +1434,7 @@ void BotscriptParser::writeToFile (String outfile)
 	fclose (fp);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 // Attempt to find the variable by the given name. Looks from current scope
 // downwards.
@@ -1413,7 +1453,7 @@ Variable* BotscriptParser::findVariable (const String& name)
 	return null;
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 // Is the parser currently in global state (i.e. not in any specific state)?
 //
@@ -1422,7 +1462,7 @@ bool BotscriptParser::isInGlobalState() const
 	return m_currentState.isEmpty();
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::suggestHighestVarIndex (bool global, int index)
 {
@@ -1432,7 +1472,7 @@ void BotscriptParser::suggestHighestVarIndex (bool global, int index)
 		m_highestStateVarIndex = max (m_highestStateVarIndex, index);
 }
 
-// ============================================================================
+// _________________________________________________________________________________________________
 //
 int BotscriptParser::getHighestVarIndex (bool global)
 {
