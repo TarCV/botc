@@ -32,7 +32,6 @@
 #include <climits>
 #include "macros.h"
 
-// =======================================================
 named_enum class Token
 {
 	// Non-word tokens

@@ -29,14 +29,14 @@
 #include <cstring>
 #include "dataBuffer.h"
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 DataBuffer::DataBuffer (int size) :
 	m_buffer (new char[size]),
 	m_allocatedSize (size),
 	m_position (&buffer()[0]) {}
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 DataBuffer::~DataBuffer()
 {
@@ -45,7 +45,7 @@ DataBuffer::~DataBuffer()
 	delete buffer();
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Copies the contents of the given buffer into this buffer. The other buffer's marks and 
 //	references will be moved along and the buffer is then destroyed.
@@ -63,7 +63,7 @@ void DataBuffer::mergeAndDestroy (DataBuffer* other)
 	delete other;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Clones this databuffer to a new one and returns it. Note that the original transfers its marks
 //	and references and loses them in the process.
@@ -107,7 +107,7 @@ void DataBuffer::transferMarksTo (DataBuffer* dest)
 	m_references.clear();
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Adds a new mark to the current position with the given name
 //
@@ -120,7 +120,7 @@ ByteMark* DataBuffer::addMark (const String& name)
 	return mark;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Adds a new reference to the given mark at the current position. This function will write 4 
 //	bytes to the buffer whose value will be determined at final output writing.
@@ -138,7 +138,7 @@ MarkReference* DataBuffer::addReference (ByteMark* mark)
 	return ref;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Moves the given mark to the current bytecode position.
 //
@@ -147,7 +147,7 @@ void DataBuffer::adjustMark (ByteMark* mark)
 	mark->pos = writtenSize();
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Shifts the given mark by the amount of bytes
 //
@@ -156,7 +156,7 @@ void DataBuffer::offsetMark (ByteMark* mark, int bytes)
 	mark->pos += bytes;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Writes a push of the index of the given string. 8 bytes will be written and the string index
 //	will be pushed to stack.
@@ -167,7 +167,7 @@ void DataBuffer::writeStringIndex (const String& a)
 	writeDWord (getStringTableIndex (a));
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Writes a data header. 4 bytes.
 //
@@ -176,7 +176,7 @@ void DataBuffer::writeHeader (DataHeader data)
 	writeDWord (static_cast<int32_t> (data));
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Prints the buffer to stdout.
 //
@@ -186,7 +186,7 @@ void DataBuffer::dump()
 		printf ("%d. [0x%X]\n", i, buffer()[i]);
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 // Ensures there's at least the given amount of bytes left in the buffer. Will resize if necessary,
 // no-op if not. On resize, 512 extra bytes are allocated to reduce the amount of resizes.
@@ -219,7 +219,7 @@ void DataBuffer::checkSpace (int bytes)
 	delete copy;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Writes the given byte into the buffer.
 //
@@ -229,7 +229,7 @@ void DataBuffer::writeByte (int8_t data)
 	*m_position++ = data;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Writes the given word into the buffer. 2 bytes will be written.
 //
@@ -241,7 +241,7 @@ void DataBuffer::writeWord (int16_t data)
 		*m_position++ = (data >> (i * 8)) & 0xFF;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Writes the given dword into the buffer. 4bytes will be written.
 //
@@ -253,7 +253,7 @@ void DataBuffer::writeDWord (int32_t data)
 		*m_position++ = (data >> (i * 8)) & 0xFF;
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Writes the given string to the databuffer. The string will be written as-is without using string
 //	indices. This will write 4 + length bytes. No header will be written.
@@ -267,7 +267,7 @@ void DataBuffer::writeString (const String& a)
 		writeByte (c);
 }
 
-// -------------------------------------------------------------------------------------------------
+// _________________________________________________________________________________________________
 //
 //	Tries to locate the mark by the given name. Returns null if not found.
 //
