@@ -37,6 +37,12 @@
 #include "commandline.h"
 #include "enumstrings.h"
 
+#ifdef SVN_REVISION_STRING
+#define FULL_VERSION_STRING VERSION_STRING "-" SVN_REVISION_STRING;
+#else
+#define FULL_VERSION_STRING VERSION_STRING;
+#endif
+
 int main (int argc, char** argv)
 {
 	try
@@ -66,9 +72,7 @@ int main (int argc, char** argv)
 		if (not within (args.size(), 1, 2))
 		{
 			// Print header
-			String header;
-			header = format (APPNAME " %1", versionString (true));
-
+			String header = APPNAME " " FULL_VERSION_STRING;
 #ifdef DEBUG
 			header += " (debug build)";
 #endif
@@ -178,16 +182,7 @@ String makeVersionString (int major, int minor, int patch)
 
 // _________________________________________________________________________________________________
 //
-String versionString (bool longform)
+String versionString()
 {
-	String result = makeVersionString (VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-
-#ifdef SVN_REVISION_STRING
-	if (longform)
-		result += "-" SVN_REVISION_STRING;
-#else
-	(void) longform; // shuts up GCC
-#endif
-
-	return result;
+	return VERSION_STRING;
 }
