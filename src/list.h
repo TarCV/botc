@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <deque>
 #include <initializer_list>
+#include <functional>
 
 template<typename T>
 class List
@@ -59,6 +60,8 @@ public:
 	inline Iterator					end();
 	inline ConstIterator			end() const;
 	int								find (const T& needle) const;
+	T*								find (std::function<bool (T const&)> func);
+	T const*						find (std::function<bool (T const&)> func) const;
 	inline const T&					first() const;
 	inline void						insert (int pos, const T& value);
 	inline bool						isEmpty() const;
@@ -278,6 +281,30 @@ int List<T>::find (const T& needle) const
 		return -1;
 
 	return it - _deque.cbegin();
+}
+
+template<typename T>
+T* List<T>::find (std::function<bool (T const&)> func)
+{
+	for (T& element : _deque)
+	{
+		if (func (element))
+			return &element;
+	}
+
+	return nullptr;
+}
+
+template<typename T>
+T const* List<T>::find (std::function<bool (T const&)> func) const
+{
+	for (T const& element : _deque)
+	{
+		if (func (element))
+			return &element;
+	}
+
+	return nullptr;
 }
 
 template<typename T>

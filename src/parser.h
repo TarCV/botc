@@ -95,6 +95,8 @@ named_enum class ParserMode
 	MainLoop,	// inside mainloop
 	Onenter,	// inside onenter
 	Onexit,		// inside onexit
+
+	NumValues
 };
 
 // _________________________________________________________________________________________________

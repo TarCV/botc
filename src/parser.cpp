@@ -825,9 +825,9 @@ void BotscriptParser::parseBlockEnd()
 		: (m_currentMode == ParserMode::MainLoop) ? DataHeader::EndMainLoop
 		: (m_currentMode == ParserMode::Onenter) ? DataHeader::EndOnEnter
 		: (m_currentMode == ParserMode::Onexit) ? DataHeader::EndOnExit
-		: DataHeader::NumDataHeaders;
+		: DataHeader::NumValues;
 
-	if (dataheader == DataHeader::NumDataHeaders)
+	if (dataheader == DataHeader::NumValues)
 		error ("unexpected `}`");
 
 	// Data header must be written before mode is changed because
@@ -838,8 +838,7 @@ void BotscriptParser::parseBlockEnd()
 	m_lexer->next (Token::Semicolon);
 }
 
-// 
--------------------------------------------------------------------------------------------------=
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseEventdef()
 {
@@ -856,8 +855,7 @@ void BotscriptParser::parseEventdef()
 	addEvent (e);
 }
 
-// 
--------------------------------------------------------------------------------------------------=
+// _________________________________________________________________________________________________
 //
 void BotscriptParser::parseFuncdef()
 {

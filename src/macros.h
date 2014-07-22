@@ -80,4 +80,9 @@ void error (const char* fmtstr, const argtypes&... args);
 #define ASSERT_RANGE(A,MIN,MAX) { ASSERT_LT_EQ(A, MAX); ASSERT_GT_EQ(A, MIN); }
 #define ASSERT(A) ASSERT_EQ (A, true)
 
+#define DELETE_COPY(T) \
+public: \
+	T (T& other) = delete; \
+	T& operator= (T& other) = delete;
+
 #endif // BOTC_MACROS_H
