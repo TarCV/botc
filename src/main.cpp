@@ -50,12 +50,10 @@ int main (int argc, char** argv)
 		Verbosity verboselevel (Verbosity::None);
 		bool listcommands (false);
 		bool sendhelp (false);
-		bool test (true);
 
 		CommandLine cmdline;
 		cmdline.addOption (listcommands, 'l', "listfunctions", "List available functions");
 		cmdline.addOption (sendhelp, 'h', "help", "Print help text");
-		cmdline.addOption (test, 'x', "test", "testy test");
 		cmdline.addEnumeratedOption (verboselevel, 'V', "verbose", "Output more information");
 		StringList args = cmdline.process (argc, argv);
 
@@ -68,7 +66,7 @@ int main (int argc, char** argv)
 #endif
 			printTo (stderr, "%1\n", header);
 			printTo (stderr, "usage: %1 [OPTIONS] SOURCE [OUTPUT]\n\n", argv[0]);
-			printTo (stderr, "Options:\n" + cmdline.describeOptions());
+			printTo (stderr, "Options:\n" + cmdline.describeOptions() + "\n");
 			return EXIT_SUCCESS;
 		}
 
