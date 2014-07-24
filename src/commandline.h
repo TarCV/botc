@@ -41,7 +41,30 @@ private:
 	String _longform;
 	String _description;
 	std::type_info const* _type;
-	void* _ptr;
+
+	union PointerUnion
+	{
+		int* asInt;
+		long* asLong;
+		char* asChar;
+		bool* asBool;
+		String* asString;
+		double* asDouble;
+
+		PointerUnion (int* a) : asInt (a) {}
+		PointerUnion (bool* a) : asBool (a) {}
+		PointerUnion (String* a) : asString (a) {}
+		PointerUnion (double* a) : asDouble (a) {}
+		PointerUnion (long* a) : asLong (a) {}
+		PointerUnion (char* a) : asChar (a) {}
+
+		void setValue (int const& a) { *asInt = a; }
+		void setValue (bool const& a) { *asBool = a; }
+		void setValue (String const& a) { *asString = a; }
+		void setValue (double const& a) { *asDouble = a; }
+		void setValue (long const& a) { *asLong = a; }
+		void setValue (char const& a) { *asChar = a; }
+	} _ptr;
 
 public:
 	template<typename T>
@@ -87,7 +110,7 @@ public:
 		return _shortform;
 	}
 
-	inline void* pointer() const
+	inline PointerUnion& pointer()
 	{
 		return _ptr;
 	}
@@ -99,18 +122,26 @@ public:
 	}
 
 	virtual void handleValue (String const& a);
+	virtual String describeArgument() const;
+	virtual String describeExtra() const { return ""; }
 };
 
+// _________________________________________________________________________________________________
+//
 template<typename T>
 class EnumeratedCommandLineOption : public CommandLineOption
 {
 	StringList _values;
 
 public:
+	using ValueType = typename std::underlying_type<T>::type;
+
 	EnumeratedCommandLineOption (T& data, char shortform, const char* longform,
 		const char* description) :
-		CommandLineOption (data, shortform, longform, description)
+		CommandLineOption (reinterpret_cast<ValueType&> (data), shortform,
+			longform, description)
 	{
+		// Store values
 		for (int i = 0; i < int (T::NumValues); ++i)
 		{
 			String value = MakeFormatArgument (T (i)).toLowercase();
@@ -127,16 +158,31 @@ public:
 	{
 		String const lowvalue (value.toLowercase());
 
-		for (int i = 0; i < _values.size(); ++i)
+		for (ValueType i = 0; i < _values.size(); ++i)
 		{
-			if (_values[i].toLowercase() == lowvalue)
+			if (_values[i] == lowvalue)
 			{
-				*reinterpret_cast<T*> (pointer()) = T (i);
+				pointer().setValue (i);
 				return;
 			}
 		}
 
 		error ("bad value passed to %1 (%2), valid values are: %3", describe(), value, _values);
+	}
+
+	virtual String describeArgument() const
+	{
+		return "ENUM";
+	}
+
+	StringList const& validValues() const
+	{
+		return _values;
+	}
+
+	virtual String describeExtra() const
+	{
+		return format ("Valid values for %1: %2", describe(), validValues());
 	}
 };
 
@@ -153,13 +199,13 @@ public:
 	template<typename Enum>
 	void addEnumeratedOption (Enum& e, char shortform, const char* longform,
 		const char* description);
-	void addOption (CommandLineOption* option);
-	StringList process (int argc, char* argv[]);
+	String describeOptions() const;
+	StringList process (const int argc, char* argv[]);
 
 	template<typename... Args>
-	void addOption (Args... args)
+	void addOption (Args&&... args)
 	{
-		addOption (new CommandLineOption (args...));
+		_options << new CommandLineOption (args...);
 	}
 };
 
@@ -169,8 +215,7 @@ template<typename Enum>
 void CommandLine::addEnumeratedOption (Enum& e, char shortform, const char* longform,
 	const char* description)
 {
-	static_assert(std::is_enum<Enum>::value, "addEnumeratedOption requires a named enumerator");
-	auto enumoption = new EnumeratedCommandLineOption<Enum> (e, shortform, longform,
+	static_assert(std::is_enum<Enum>::value, "addEnumeratedOption requires a named enumerator"); 
+	_options << new EnumeratedCommandLineOption<Enum> (e, shortform, longform,
 		description);
-	addOption (static_cast<CommandLineOption*> (enumoption));
 }

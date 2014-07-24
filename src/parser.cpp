@@ -202,7 +202,7 @@ void BotscriptParser::parseBotscript (String fileName)
 				m_lexer->skip (-1);
 				DataBuffer* b = parseStatement();
 
-				if (b == false)
+				if (b == null)
 				{
 					m_lexer->next();
 					error ("unknown token `%1`", getTokenString());
@@ -865,7 +865,7 @@ void BotscriptParser::parseFuncdef()
 	// Return value
 	m_lexer->mustGetAnyOf ({Token::Int,Token::Void,Token::Bool,Token::Str});
 	comm->returnvalue = getTypeByName (m_lexer->token()->text); // TODO
-	ASSERT_NE (comm->returnvalue, -1);
+	ASSERT_NE (comm->returnvalue, TYPE_Unknown);
 
 	// Number
 	m_lexer->mustGetNext (Token::Number);
@@ -888,7 +888,7 @@ void BotscriptParser::parseFuncdef()
 		CommandArgument arg;
 		m_lexer->mustGetAnyOf ({Token::Int,Token::Bool,Token::Str});
 		DataType type = getTypeByName (m_lexer->token()->text); // TODO
-		ASSERT_NE (type, -1)
+		ASSERT_NE (type, TYPE_Unknown)
 		ASSERT_NE (type, TYPE_Void)
 		arg.type = type;
 

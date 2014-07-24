@@ -32,6 +32,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstdint>
+#include <cstdlib>
 #include "macros.h"
 #include "property.h"
 #include "types.h"
