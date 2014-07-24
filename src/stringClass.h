@@ -102,6 +102,7 @@ public:
 
 	static String						fromNumber (int a);
 	static String						fromNumber (long a);
+	static String						fromNumber (double a);
 
 	String								operator+ (const String& data) const;
 	String								operator+ (const char* data) const;
@@ -139,6 +140,9 @@ class StringList : public List<String>
 
 inline bool operator== (const char* a, const String& b);
 inline String operator+ (const char* a, const String& b);
+
+String basename (String const& path);
+String dirname (String const& path);
 
 // =============================================================================
 //

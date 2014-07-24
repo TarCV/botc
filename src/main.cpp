@@ -47,15 +47,30 @@ int main (int argc, char** argv)
 {
 	try
 	{
-		Verbosity verboselevel = Verbosity::None;
-		bool listcommands = false;
+		Verbosity verboselevel (Verbosity::None);
+		bool listcommands (false);
+		bool sendhelp (false);
+		bool test (true);
 
 		CommandLine cmdline;
-		cmdline.addOption (listcommands, 'l', "listfunctions",
-			"List available function signatures and exit");
-		cmdline.addEnumeratedOption (verboselevel, 'V', "verbose",
-			"Output more verbose information (0 through 2)");
+		cmdline.addOption (listcommands, 'l', "listfunctions", "List available functions");
+		cmdline.addOption (sendhelp, 'h', "help", "Print help text");
+		cmdline.addOption (test, 'x', "test", "testy test");
+		cmdline.addEnumeratedOption (verboselevel, 'V', "verbose", "Output more information");
 		StringList args = cmdline.process (argc, argv);
+
+		if (sendhelp)
+		{
+			// Print header
+			String header = APPNAME " " FULL_VERSION_STRING;
+#ifdef DEBUG
+			header += " (debug build)";
+#endif
+			printTo (stderr, "%1\n", header);
+			printTo (stderr, "usage: %1 [OPTIONS] SOURCE [OUTPUT]\n\n", argv[0]);
+			printTo (stderr, "Options:\n" + cmdline.describeOptions());
+			return EXIT_SUCCESS;
+		}
 
 		if (listcommands)
 		{
@@ -66,22 +81,14 @@ int main (int argc, char** argv)
 			for (CommandInfo* comm : getCommands())
 				print ("%1\n", comm->signature());
 
-			exit (0);
+			return EXIT_SUCCESS;
 		}
 
 		if (not within (args.size(), 1, 2))
 		{
-			// Print header
-			String header = APPNAME " " FULL_VERSION_STRING;
-#ifdef DEBUG
-			header += " (debug build)";
-#endif
-
-			printTo (stderr, "%1\n", header);
-			printTo (stderr, "usage: %1 <infile> [outfile] # compiles botscript\n", argv[0]);
-			printTo (stderr, "       %1 -l                 # lists commands\n", argv[0]);
-			printTo (stderr, "       %1 -v                 # displays version info\n", argv[0]);
-			exit (1);
+			printTo (stderr, "%1: need an input file.\nUse `%1 --help` for more information\n",
+				argv[0]);
+			return EXIT_FAILURE;
 		}
 
 		String outfile;
@@ -111,12 +118,12 @@ int main (int argc, char** argv)
 
 		parser->writeToFile (outfile);
 		delete parser;
-		return 0;
+		return EXIT_SUCCESS;
 	}
 	catch (std::exception& e)
 	{
 		fprintf (stderr, "error: %s\n", e.what());
-		return 1;
+		return EXIT_FAILURE;
 	}
 }
 
@@ -175,7 +182,7 @@ String makeVersionString (int major, int minor, int patch)
 	ver += "." + String::fromNumber (minor);
 
 	if (patch != 0)
-		ver += "." + patch;
+		ver += String (".") + patch;
 
 	return ver;
 }

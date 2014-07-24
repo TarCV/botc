@@ -86,7 +86,12 @@ String formatArgs (const String& fmtstr, const std::vector<String>& args)
 
 		int i = fmt[pos + ofs]  - '0';
 
-		if (i > static_cast<signed> (args.size()))
+#ifdef DEBUG
+		if (i == 0)
+			formatError (fmtstr, "%0 in format string", pos);
+#endif
+
+		if (i > int (args.size()))
 			formatError (fmtstr, String ("Format argument #") + i + " used but not defined.", pos);
 
 		String replacement = args[i - 1];

@@ -38,20 +38,14 @@ CommandLine::~CommandLine()
 
 // _________________________________________________________________________________________________
 //
-void CommandLine::addOption (CommandLineOption* option)
-{
-	_options << option;
-}
-
-// _________________________________________________________________________________________________
-//
-StringList CommandLine::process (int argc, char* argv[])
+StringList CommandLine::process (int const argc, char* argv[])
 {
 	StringList args;
+	int const trueargc = argc;
 
-	for (int argn = 1; argn < argc; ++argn)
+	for (int argn = 1; argn < trueargc; ++argn)
 	{
-		String arg (argv[argn]);
+		String const arg (argv[argn]);
 
 		if (arg == "--")
 		{
@@ -62,14 +56,14 @@ StringList CommandLine::process (int argc, char* argv[])
 			break;
 		}
 
-		if (arg[0] != '-')
+		if (arg[0] != '-' or arg[1] == '\0')
 		{
 			// non-option argument - pass to result
 			args << arg;
 			continue;
 		}
 
-		if (arg[1] != '-')
+		if (arg[1] != '-' and arg[1] != '\0')
 		{
 			// short-form options
 			for (int i = 1; i < arg.length(); ++i)
@@ -80,9 +74,7 @@ StringList CommandLine::process (int argc, char* argv[])
 				});
 
 				if (not optionptr)
-				{
 					error ("unknown option -%1", arg[i]);
-				}
 
 				CommandLineOption* option = *optionptr;
 
@@ -90,20 +82,21 @@ StringList CommandLine::process (int argc, char* argv[])
 				{
 					// Bool options need no parameters
 					option->handleValue ("");
-					continue;
 				}
-
-				// Ensure we got a valid parameter coming up
-				if (argn == argc - 1)
-					error ("option -%1 requires a parameter", option->describe());
-
-				if (i != arg.length() - 1)
+				else
 				{
-					error ("option %1 requires a parameter but has option -%2 stacked on",
-							option->describe(), arg[i + 1]);
-				}
+					// Ensure we got a valid parameter coming up
+					if (argn == argc - 1)
+						error ("option -%1 requires a parameter", option->describe());
 
-				option->handleValue (argv[++argn]);
+					if (i != arg.length() - 1)
+					{
+						error ("option %1 requires a parameter but has option -%2 stacked on",
+							option->describe(), arg[i + 1]);
+					}
+
+					option->handleValue (argv[++argn]);
+				}
 			}
 		}
 		else
@@ -134,7 +127,7 @@ StringList CommandLine::process (int argc, char* argv[])
 
 			if ((*optionptr)->isOfType<bool>() and not value.isEmpty())
 				error ("option %1 does not take a value", (*optionptr)->describe());
-
+ 
 			(*optionptr)->handleValue (value);
 		}
 	}
@@ -144,28 +137,93 @@ StringList CommandLine::process (int argc, char* argv[])
 
 // _________________________________________________________________________________________________
 //
-void CommandLineOption::handleValue (String const& value)
+String CommandLine::describeOptions() const
+{
+	StringList lines;
+
+	for (CommandLineOption* option : _options)
+	{
+		String line ("  ");
+
+		if (option->shortform() != '\0')
+			line += String ({'-', option->shortform(), '\0'});
+		else
+			line += "  ";
+
+		line += "  ";
+
+		if (not option->longform().isEmpty())
+		{
+			line += "--" + option->longform();
+			String description (option->describeArgument());
+
+			if (not description.isEmpty())
+				line += "=" + description;
+		}
+
+		lines << line;
+	}
+
+	int maxlength (0);
+
+	for (String& line : lines)
+		maxlength = max (maxlength, line.length());
+
+	maxlength += 2;
+	ASSERT_EQ (lines.size(), _options.size());
+
+	for (int i = 0; i < lines.size(); ++i)
+	{
+		while (lines[i].length() < maxlength)
+			lines[i] += " ";
+
+		lines[i] += _options[i]->description();
+	}
+
+	StringList extralines;
+
+	for (CommandLineOption* option : _options)
+	{
+		String extradata = option->describeExtra();
+
+		if (not extradata.isEmpty())
+		{
+			if (extralines.isEmpty())
+				extralines << "";
+
+			extralines << extradata;
+		}
+	}
+
+	lines.merge (extralines);
+	String result (lines.join ("\n"));
+	return result;
+}
+
+// _________________________________________________________________________________________________
+//
+void CommandLineOption::handleValue (const String& a)
 {
 	if (isOfType<bool>())
 	{
-		*reinterpret_cast<bool*> (pointer()) = value;
+		pointer().setValue (true);
 	}
 	elif (isOfType<int>())
 	{
 		bool ok;
-		*reinterpret_cast<int*> (pointer()) = value.toLong (&ok);
+		pointer().setValue (a.toLong (&ok));
 
 		if (not ok)
 			error ("bad integral value passed to %1", describe());
 	}
 	elif (isOfType<String>())
 	{
-		*reinterpret_cast<String*> (pointer()) = value;
+		pointer().setValue (a);
 	}
 	elif (isOfType<double>())
 	{
 		bool ok;
-		*reinterpret_cast<double*> (pointer()) = value.toDouble (&ok);
+		pointer().setValue (a.toDouble (&ok));
 
 		if (not ok)
 			error ("bad floating-point value passed to %1", describe());
@@ -174,4 +232,18 @@ void CommandLineOption::handleValue (String const& value)
 	{
 		error ("OMGWTFBBQ: %1 has an invalid type index", describe());
 	}
+}
+
+// _________________________________________________________________________________________________
+//
+String CommandLineOption::describeArgument() const
+{
+	if (isOfType<int>())
+		return "INTEGER";
+	elif (isOfType<String>())
+		return "STRING";
+	elif (isOfType<double>())
+		return "FLOAT";
+
+	return "";
 }

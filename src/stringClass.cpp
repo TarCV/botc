@@ -446,3 +446,47 @@ String String::fromNumber (long a)
 	::sprintf (buf, "%ld", a);
 	return String (buf);
 }
+
+// =============================================================================
+//
+String String::fromNumber (double a)
+{
+	char buf[64];
+	::sprintf (buf, "%f", a);
+	return String (buf);
+}
+
+#ifndef _WIN32
+# define DIRSLASH "/"
+#else
+# define DIRSLASH "\\"
+#endif
+
+// =============================================================================
+//
+String dirname (String const& path)
+{
+	int lastpos = path.lastIndexOf (DIRSLASH);
+
+	if (lastpos > 0)
+		return path.mid (0, lastpos);
+
+#ifndef _WIN32
+	if (path[0] == '/')
+		return "/";
+#endif // _WIN32
+
+	return "";
+}
+
+// =============================================================================
+//
+String basename (String const& path)
+{
+	long lastpos = path.lastIndexOf (DIRSLASH);
+
+	if (lastpos != -1)
+		return path.mid (lastpos + 1);
+
+	return path;
+}

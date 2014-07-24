@@ -53,6 +53,11 @@ inline String MakeFormatArgument (long a)
 	return String::fromNumber (a);
 }
 
+inline String MakeFormatArgument (double a)
+{
+	return String::fromNumber (a);
+}
+
 inline String MakeFormatArgument (size_t a)
 {
 	return String::fromNumber (long (a));
