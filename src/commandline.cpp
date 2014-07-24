@@ -41,9 +41,8 @@ CommandLine::~CommandLine()
 StringList CommandLine::process (int const argc, char* argv[])
 {
 	StringList args;
-	int const trueargc = argc;
 
-	for (int argn = 1; argn < trueargc; ++argn)
+	for (int argn = 1; argn < argc; ++argn)
 	{
 		String const arg (argv[argn]);
 

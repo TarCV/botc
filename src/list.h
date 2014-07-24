@@ -184,8 +184,9 @@ inline T& List<T>::append (const T& value)
 template<typename T>
 void List<T>::merge (const List<T>& other)
 {
+	int oldsize = size();
 	resize (size() + other.size());
-	std::copy (other.begin(), other.end(), begin() + other.size());
+	std::copy (other.begin(), other.end(), begin() + oldsize);
 }
 
 template<typename T>
