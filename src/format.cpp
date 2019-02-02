@@ -127,5 +127,5 @@ void error (const String& msg)
 		fileinfo = format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
 	}
 
-	throw std::runtime_error (fileinfo + msg);
+    throw std::runtime_error ((fileinfo + msg).c_str());
 }

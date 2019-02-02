@@ -29,6 +29,7 @@
 #ifndef BOTC_FORMAT_H
 #define BOTC_FORMAT_H
 
+#include <vector>
 #include "stringClass.h"
 #include "list.h"
 #include "enumstrings.h"

@@ -47,6 +47,7 @@ add_custom_target (revision_check ALL
     DEPENDS updaterevision)
 
 add_custom_target (enumstrings ALL
+    BYPRODUCTS enumstrings.cpp
     COMMAND ${NAMEDENUMS_EXE} ${BOTC_HEADERS}
 		${CMAKE_BINARY_DIR}/enumstrings.h
 		${CMAKE_BINARY_DIR}/enumstrings.cpp
