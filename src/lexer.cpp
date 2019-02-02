@@ -107,8 +107,10 @@ static bool isValidHeader (String header)
 {
 	if (header.endsWith ("\n"))
 		header.removeFromEnd (1);
+    if (header.endsWith ("\r"))
+        header.removeFromEnd (1);
 
-	StringList tokens = header.split (" ");
+    StringList tokens = header.split (" ");
 
 	if (tokens.size() != 2 or tokens[0] != "#!botc" or tokens[1].isEmpty())
 		return false;

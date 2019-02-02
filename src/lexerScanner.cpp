@@ -168,7 +168,7 @@ bool LexerScanner::getNextToken()
 	{
 		m_position += 2;
 
-		while (*m_position != '\n')
+        while (*m_position != '\n' && !(*m_position == '\r' && *(m_position+1) == '\n'))
 			skip();
 
 		return getNextToken();
@@ -269,7 +269,7 @@ bool LexerScanner::getNextToken()
 //
 void LexerScanner::skip()
 {
-	if (*m_position == '\n')
+    if (*m_position == '\n' || (*m_position == '\r' && *(m_position+1) == '\n'))
 	{
 		m_line++;
 		m_lineBreakPosition = m_position;
@@ -300,7 +300,7 @@ String LexerScanner::readLine()
 {
 	String line;
 
-	while (*m_position != '\n')
+    while (*m_position != '\n' && !(*m_position == '\r' && *(m_position+1) == '\n'))
 		line += *(m_position++);
 
 	return line;
