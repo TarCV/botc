@@ -10,7 +10,7 @@
 //
 funcdef void	0:changestate (int newstate);
 funcdef void	1:delay (int tics);
-funcdef int		2:rand (int a, int b);
+funcdef int		2:random (int a, int b);
 funcdef bool	3:StringsAreEqual (str string1, str string2);
 funcdef int		4:LookForPowerups (int start, bool visibilitycheck);
 funcdef int		5:LookForWeapons (int start, bool visibilitycheck);
