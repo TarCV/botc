@@ -34,7 +34,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
-#include "md5.h"
 
 using std::string;
 using std::vector;
@@ -113,7 +112,6 @@ void Normalize (string& a)
 class OutputFile
 {
 	string _buffer;
-	string _md5;
 	string _filepath;
 
 public:
@@ -137,7 +135,6 @@ public:
 					;
 
 				*cp = '\0';
-				_md5 = string (&line[3]);
 			}
 
 			fclose (readhandle);
@@ -156,26 +153,11 @@ public:
 
 	void writeToDisk()
 	{
-		char checksum[33];
-
-		// See if this is necessary first.
-		CalculateMD5 (reinterpret_cast<unsigned char const*> (_buffer.c_str()),
-			_buffer.size(), checksum);
-		checksum[32] = '\0';
-
-		if (_md5.size() and string (checksum) == _md5)
-		{
-			fprintf (stdout, "%s is up to date.\n", _filepath.c_str());
-			return;
-		}
-
 		FILE* handle = fopen (_filepath.c_str(), "w");
 
 		if (not handle)
 			Error ("couldn't open %s for writing", _filepath.c_str());
 
-		string md5header (string ("// ") + checksum + "\n");
-		fwrite (md5header.c_str(), 1, md5header.size(), handle);
 		fwrite (_buffer.c_str(), 1, _buffer.size(), handle);
 		fclose (handle);
 		fprintf (stdout, "Wrote output file %s.\n", _filepath.c_str());
