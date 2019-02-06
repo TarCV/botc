@@ -27,6 +27,7 @@
 */
 
 #include <cstring>
+#include <cerrno>
 #include "main.h"
 #include "stringClass.h"
 

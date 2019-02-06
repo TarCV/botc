@@ -34,6 +34,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
+#include <filesystem>
 
 using std::string;
 using std::vector;
@@ -184,6 +185,10 @@ void SkipWhitespace (char*& cp)
 		LineNumber++;
 		SkipWhitespace (cp);
 	}
+}
+
+const char* basename(const char *str) {
+    return std::filesystem::path(str).filename().c_str();
 }
 
 // =============================================================================

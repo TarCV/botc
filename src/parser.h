@@ -142,7 +142,7 @@ struct ScopeInfo
 	int							localVarIndexBase;
 
 	// switch-related stuff
-	List<CaseInfo>::Iterator	casecursor;
+	CaseInfo *			casecursor;
 	List<CaseInfo>				cases;
 	List<Variable*>				localVariables;
 	List<Variable*>				globalVariables;

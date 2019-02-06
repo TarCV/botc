@@ -27,6 +27,7 @@
 */
 
 #include <cstring>
+#include <cerrno>
 #include "lexer.h"
 
 static StringList	FileNameStack;

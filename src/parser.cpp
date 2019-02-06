@@ -27,6 +27,7 @@
 */
 
 #include <cstring>
+#include <cerrno>
 #include "parser.h"
 #include "events.h"
 #include "commands.h"
@@ -781,7 +782,7 @@ void BotscriptParser::parseBlockEnd()
 			{
 				// Switch closes. Move down to the record buffer of
 				// the lower block.
-				if (SCOPE (1).casecursor != SCOPE (1).cases.begin() - 1)
+				if (SCOPE (1).casecursor != null)
 					m_switchBuffer = SCOPE (1).casecursor->data;
 				else
 					m_switchBuffer = null;
@@ -1250,7 +1251,7 @@ void BotscriptParser::pushScope (bool noreset)
 		info->mark2 = null;
 		info->buffer1 = null;
 		info->cases.clear();
-		info->casecursor = info->cases.begin() - 1;
+		info->casecursor = null;
 	}
 
 	// Reset variable stuff in any case
@@ -1320,8 +1321,9 @@ void BotscriptParser::addSwitchCase (DataBuffer* casebuffer)
 	// Init a buffer for the case block and tell the object
 	// writer to record all written data to it.
 	casedata.data = m_switchBuffer = new DataBuffer;
-	SCOPE(0).cases << casedata;
-	info->casecursor++;
+	List<CaseInfo> &cases = SCOPE(0).cases;
+	cases << casedata;
+	info->casecursor = &*(cases.end() - 1);
 }
 
 // _________________________________________________________________________________________________
