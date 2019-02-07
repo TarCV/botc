@@ -57,9 +57,7 @@ BotscriptParser::BotscriptParser() :
 	m_scopeCursor (-1),
 	m_isElseAllowed (false),
 	m_highestGlobalVarIndex (0),
-	m_highestStateVarIndex (0),
-	m_zandronumVersion (10200), // 1.2
-	m_defaultZandronumVersion (true) {}
+	m_highestStateVarIndex (0) {}
 
 // _________________________________________________________________________________________________
 //
@@ -187,10 +185,6 @@ void BotscriptParser::parseBotscript (String fileName)
 			case Token::Semicolon:
 				break;
 
-			case Token::Using:
-				parseUsing();
-				break;
-
 			default:
 			{
 				// Check if it's a command
@@ -229,15 +223,6 @@ void BotscriptParser::parseBotscript (String fileName)
 		// stateSpawn must be defined!
 		if (m_isStateSpawnDefined == false)
 			error ("script must have a state named `stateSpawn`!");
-
-		if (m_defaultZandronumVersion)
-		{
-			print ("\n");
-			print ("note: use the 'using' directive to define a target Zandronum version\n");
-			print ("usage: using zandronum <version>, possible versions: %1\n", 
-g_validZandronumVersions);
-			print ("\n");
-		}
 
 		// Dump the last state's onenter and mainloop
 		writeMemberBuffers();
@@ -954,36 +939,6 @@ void BotscriptParser::parseFuncdef(bool isBuiltin)
 void BotscriptParser::parseBuiltinDef()
 {
     parseFuncdef(true);
-}
-
-// _________________________________________________________________________________________________
-//
-// Parses a using statement
-//
-void BotscriptParser::parseUsing()
-{
-	checkToplevel();
-	m_lexer->mustGetSymbol ("zandronum");
-	String versionText;
-
-	while (m_lexer->next()
-		and (m_lexer->tokenType() == Token::Number or m_lexer->tokenType() == Token::Dot))
-	{
-		versionText += getTokenString();
-	}
-
-	// Note: at this point the lexer's pointing at the token after the version.
-	if (versionText.isEmpty())
-		error ("expected version string, got `%1`", getTokenString());
-
-	if (g_validZandronumVersions.contains (versionText) == false)
-		error ("unknown version string `%2`: valid versions: `%1`\n", g_validZandronumVersions, 
-versionText);
-
-	StringList versionTokens = versionText.split (".");
-	m_zandronumVersion = versionTokens[0].toLong() * 10000 + versionTokens[1].toLong() * 100;
-	m_defaultZandronumVersion = false;
-	m_lexer->tokenMustBe (Token::Semicolon);
 }
 
 // _________________________________________________________________________________________________

@@ -103,7 +103,6 @@ named_enum class Token
 	State,
 	Switch,
 	Str,
-	Using,
 	Var,
 	Void,
 	While,

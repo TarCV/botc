@@ -223,8 +223,6 @@ private:
 	int				m_highestStateVarIndex;
 	int				m_numWrittenBytes;
 	List<ScopeInfo>	m_scopeStack;
-	int				m_zandronumVersion;
-	bool			m_defaultZandronumVersion;
 
 	DataBuffer*		currentBuffer();
 	void			parseStateBlock();
@@ -248,7 +246,6 @@ private:
 	void			parseEventdef();
 	void parseFuncdef(bool isBuiltin);
 	void			parseBuiltinDef();
-	void			parseUsing();
 	void			writeMemberBuffers();
 	void			writeStringTable();
 	DataBuffer*		parseExpression (DataType reqtype, bool fromhere = false);
