@@ -618,8 +618,12 @@ void BotscriptParser::parseSwitchCase()
 
 	// Get a literal value for the case block. Zandronum does not support
 	// expressions here.
+	bool isNegative = m_lexer->next(Token::Minus);
 	m_lexer->mustGetNext (Token::Number);
 	int num = m_lexer->token()->text.toLong();
+	if (isNegative) {
+		num = -num;
+	}
 	m_lexer->mustGetNext (Token::Colon);
 
 	for (const CaseInfo& info : SCOPE(0).cases)
