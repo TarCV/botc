@@ -63,6 +63,7 @@ named_enum ScopeType : char
 	SCOPE_Do,
 	SCOPE_Switch,
 	SCOPE_Else,
+	SCOPE_State
 };
 
 named_enum AssignmentOperator : char

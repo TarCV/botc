@@ -252,6 +252,12 @@ g_validZandronumVersions);
 void BotscriptParser::parseStateBlock()
 {
 	checkToplevel();
+
+	if (SCOPE_State == SCOPE (0).type) {
+		// Descend down the stack
+		m_scopeCursor--;
+	}
+
 	m_lexer->mustGetNext (Token::String);
 	String statename = getTokenString();
 
@@ -280,6 +286,9 @@ void BotscriptParser::parseStateBlock()
 	m_numStates++;
 	m_currentState = statename;
 	m_gotMainLoop = false;
+
+	pushScope();
+	SCOPE (0).type = SCOPE_State;
 }
 
 // _________________________________________________________________________________________________
@@ -731,7 +740,7 @@ void BotscriptParser::parseBlockEnd()
 {
 	// Closing brace
 	// If we're in the block stack, we're descending down from it now
-	if (m_scopeCursor > 0)
+	if (m_scopeCursor > 0 && SCOPE(0).type != SCOPE_State) // states are not closed with closing braces
 	{
 		switch (SCOPE (0).type)
 		{
@@ -817,6 +826,7 @@ void BotscriptParser::parseBlockEnd()
 			}
 
 			case SCOPE_Unknown:
+			default:
 				break;
 		}
 
