@@ -109,6 +109,7 @@ static const String gTokenStrings[] =
 	"enum",
 	"func",
 	"return",
+	"builtindef"
 };
 
 static_assert (countof (gTokenStrings) == (int) LastNamedToken + 1,

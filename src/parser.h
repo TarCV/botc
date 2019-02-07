@@ -245,7 +245,8 @@ private:
 	void			parseBlockEnd();
 	void			parseLabel();
 	void			parseEventdef();
-	void			parseFuncdef();
+	void parseFuncdef(bool isBuiltin);
+	void			parseBuiltinDef();
 	void			parseUsing();
 	void			writeMemberBuffers();
 	void			writeStringTable();

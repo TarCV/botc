@@ -177,8 +177,12 @@ void BotscriptParser::parseBotscript (String fileName)
 				break;
 
 			case Token::Funcdef:
-				parseFuncdef();
+                parseFuncdef(false);
 				break;
+
+		    case Token::BuiltinDef:
+		        parseBuiltinDef();
+		        break;
 
 			case Token::Semicolon:
 				break;
@@ -858,7 +862,7 @@ void BotscriptParser::parseEventdef()
 
 // _________________________________________________________________________________________________
 //
-void BotscriptParser::parseFuncdef()
+void BotscriptParser::parseFuncdef(bool isBuiltin)
 {
 	CommandInfo* comm = new CommandInfo;
 	comm->origin = m_lexer->describeCurrentPosition();
@@ -871,6 +875,7 @@ void BotscriptParser::parseFuncdef()
 	// Number
 	m_lexer->mustGetNext (Token::Number);
 	comm->number = m_lexer->token()->text.toLong();
+	comm->isbuiltin = isBuiltin;
 	m_lexer->mustGetNext (Token::Colon);
 
 	// Name
@@ -926,7 +931,15 @@ void BotscriptParser::parseFuncdef()
 
 	m_lexer->mustGetNext (Token::ParenEnd);
 	m_lexer->mustGetNext (Token::Semicolon);
-	addCommandDefinition (comm);
+
+	addCommandDefinition(comm);
+}
+
+// _________________________________________________________________________________________________
+//
+void BotscriptParser::parseBuiltinDef()
+{
+    parseFuncdef(true);
 }
 
 // _________________________________________________________________________________________________
@@ -1028,9 +1041,13 @@ DataBuffer* BotscriptParser::parseCommand (CommandInfo* comm)
 		curarg++;
 	}
 
-	r->writeHeader (DataHeader::Command);
-	r->writeDWord (comm->number);
-	r->writeDWord (comm->args.size());
+	if (comm->isbuiltin) {
+		r->writeDWord(comm->number);
+	} else {
+		r->writeHeader(DataHeader::Command);
+		r->writeDWord(comm->number);
+		r->writeDWord(comm->args.size());
+	}
 
 	return r;
 }
