@@ -303,6 +303,7 @@ void BotscriptParser::parseMainloop()
 	m_lexer->mustGetNext (Token::BraceStart);
 
 	m_currentMode = ParserMode::MainLoop;
+	m_gotMainLoop = true;
 	m_mainLoopBuffer->writeHeader (DataHeader::MainLoop);
 }
 
@@ -403,10 +404,14 @@ void BotscriptParser::parseVar()
 		}
 	}
 
-	if (isInGlobalState())
+	if (isInGlobalState()) {
+		assert(var->isGlobal());
 		SCOPE(0).globalVariables << var;
-	else
+	} else {
+		var->statename = m_currentState;
+		assert(!var->isGlobal());
 		SCOPE(0).localVariables << var;
+	}
 
 	suggestHighestVarIndex (isInGlobalState(), var->index);
 	m_lexer->mustGetNext (Token::Semicolon);
