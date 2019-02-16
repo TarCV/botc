@@ -117,6 +117,8 @@ private:
 	TokenList		m_tokens;
 	Iterator		m_tokenPosition;
 
+	void	processFileInternal(String fileName);
+
 	// read a mandatory token from scanner
 	void mustGetFromScanner (LexerScanner& sc, Token tt =Token::Any);
 	void checkFileHeader (LexerScanner& sc);

@@ -51,7 +51,25 @@ Lexer::~Lexer()
 
 // _________________________________________________________________________________________________
 //
-void Lexer::processFile (String fileName)
+void Lexer::processFile(String fileName)
+{
+	assert(m_tokens.isEmpty());
+
+	// Dummy token in the beginning to set m_tokenPosition to a pos before the first actual token
+	TokenInfo nulltok;
+	nulltok.type = Token::Any;
+	nulltok.file = fileName;
+	nulltok.line = -1;
+	nulltok.column = -1;
+	nulltok.text = "";
+
+	m_tokens << nulltok;
+
+	processFileInternal(fileName);
+}
+// _________________________________________________________________________________________________
+//
+void Lexer::processFileInternal(String fileName)
 {
 	FileNameStack << fileName;
 	FILE* fp = fopen (fileName, "r");
@@ -77,7 +95,7 @@ void Lexer::processFile (String fileName)
 				if (FileNameStack.contains (fileName))
 					error ("attempted to #include %1 recursively", sc.getTokenText());
 
-				processFile (fileName);
+                processFileInternal(fileName);
 			}
 			else
 				error ("unknown preprocessor directive \"#%1\"", sc.getTokenText());
@@ -99,7 +117,7 @@ void Lexer::processFile (String fileName)
 		}
 	}
 
-	m_tokenPosition = m_tokens.begin() - 1;
+	m_tokenPosition = m_tokens.begin();
 	FileNameStack.removeOne (fileName);
 }
 
@@ -153,7 +171,7 @@ bool Lexer::next (Token req)
 {
 	Iterator pos = m_tokenPosition;
 
-	if (m_tokens.isEmpty())
+	if (m_tokens.isEmpty() || m_tokens.size() == 1) // is 1 due to extra dummy token in the beginning
 		return false;
 
 	m_tokenPosition++;
