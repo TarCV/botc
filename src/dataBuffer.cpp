@@ -199,24 +199,24 @@ void DataBuffer::checkSpace (int bytes)
 		return;
 
 	// We don't have enough space in the buffer to write
-	// the stuff - thus resize. First, store the old
-	// buffer temporarily:
-	char* copy = new char[allocatedSize()];
-	std::memcpy (copy, buffer(), allocatedSize());
+	// the stuff - thus resize.
 
 	// Remake the buffer with the new size. Have enough space
 	// for the stuff we're going to write, as well as a bit
 	// of leeway so we don't have to resize immediately again.
-	int newsize = allocatedSize() + bytes + 512;
 
-	delete buffer();
+	int oldsize = allocatedSize();
+	int newsize = oldsize + bytes + 512;
+
+	char* buf = buffer();
 	setBuffer (new char[newsize]);
 	setAllocatedSize (newsize);
 
 	// Now, copy the stuff back.
-	std::memcpy (m_buffer, copy, allocatedSize());
+	std::memcpy (m_buffer, buf, oldsize);
 	setPosition (buffer() + writesize);
-	delete copy;
+
+	delete buf;
 }
 
 // _________________________________________________________________________________________________

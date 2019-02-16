@@ -49,6 +49,7 @@ BotscriptParser::BotscriptParser() :
 	m_mainBuffer (new DataBuffer),
 	m_onenterBuffer (new DataBuffer),
 	m_mainLoopBuffer (new DataBuffer),
+	m_switchBuffer (nullptr),
 	m_lexer (new Lexer),
 	m_numStates (0),
 	m_numEvents (0),
@@ -633,7 +634,7 @@ void BotscriptParser::parseSwitchCase()
 	//
 	// We null the switch buffer for the case-go-to statement as
 	// we want it all under the switch, not into the case-buffers.
-	m_switchBuffer = null;
+	m_switchBuffer = nullptr;
 	currentBuffer()->writeHeader (DataHeader::CaseGoto);
 	currentBuffer()->writeDWord (num);
 	addSwitchCase (null);
@@ -793,7 +794,7 @@ void BotscriptParser::parseBlockEnd()
 				if (SCOPE (1).casecursor != null)
 					m_switchBuffer = SCOPE (1).casecursor->data;
 				else
-					m_switchBuffer = null;
+					m_switchBuffer = nullptr;
 
 				// If there was a default in the switch, write its header down now.
 				// If not, write instruction to jump to the end of switch after
@@ -1346,7 +1347,7 @@ String BotscriptParser::describePosition() const
 //
 DataBuffer* BotscriptParser::currentBuffer()
 {
-	if (m_switchBuffer != null)
+	if (m_switchBuffer != nullptr)
 		return m_switchBuffer;
 
 	if (m_currentMode == ParserMode::MainLoop)
