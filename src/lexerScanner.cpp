@@ -124,9 +124,10 @@ LexerScanner::LexerScanner (FILE* fp) :
 	fseek (fp, 0l, SEEK_END);
 	fsize = ftell (fp);
 	rewind (fp);
-	m_data = new char[fsize];
+	m_data = new char[fsize + 1];
 	m_position = m_lineBreakPosition = &m_data[0];
 	bytes = fread (m_data, 1, fsize, fp);
+	m_data[fsize] = '\0';
 	ASSERT_GT_EQ (bytes, fsize)
 }
 

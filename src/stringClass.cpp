@@ -450,6 +450,15 @@ String String::fromNumber (long a)
 
 // =============================================================================
 //
+String String::fromNumber (long long a)
+{
+	char buf[32];
+	::sprintf (buf, "%ld", a);
+	return String (buf);
+}
+
+// =============================================================================
+//
 String String::fromNumber (double a)
 {
 	char buf[64];

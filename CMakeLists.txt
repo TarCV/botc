@@ -34,7 +34,7 @@ set (BOTC_SOURCES
 	src/parser.cpp
 	src/stringClass.cpp
 	src/stringTable.cpp
-)
+		)
 
 add_subdirectory (updaterevision)
 add_subdirectory (namedenums)
@@ -65,4 +65,7 @@ if (NOT MSVC)
 	if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
 		set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
 	endif()
+endif()
+if (MSVC)
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 endif()

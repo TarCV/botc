@@ -28,6 +28,7 @@
 
 #include <cstring>
 #include <cerrno>
+#include <cassert>
 #include "lexer.h"
 
 static StringList	FileNameStack;

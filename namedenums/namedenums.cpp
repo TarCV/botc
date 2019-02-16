@@ -35,9 +35,16 @@
 #include <cstring>
 #include <cstdarg>
 #include <filesystem>
+#include <ciso646>
 
 using std::string;
 using std::vector;
+
+#if defined (_MSC_VER)
+using std::experimental::filesystem::path;
+#else
+using std::filesystem::path;
+#endif
 
 static int LineNumber;
 static std::string CurrentFile;
@@ -152,6 +159,10 @@ public:
 		_buffer += buf;
 	}
 
+    void appendString (const string &str) {
+	    _buffer += str;
+	}
+
 	void writeToDisk()
 	{
 		FILE* handle = fopen (_filepath.c_str(), "w");
@@ -167,9 +178,9 @@ public:
 
 // =============================================================================
 //
-void SkipWhitespace (char*& cp)
+void SkipWhitespace (char*& cp, const char const *end)
 {
-	while (isspace (*cp))
+	while (cp < end && isspace (*cp))
 	{
 		if (*cp == '\n')
 			LineNumber++;
@@ -179,16 +190,16 @@ void SkipWhitespace (char*& cp)
 
 	if (strncmp (cp, "//", 2) == 0)
 	{
-		while (*(++cp) != '\n')
+		while (cp < end && *(++cp) != '\n')
 			;
 
 		LineNumber++;
-		SkipWhitespace (cp);
+		SkipWhitespace (cp, end);
 	}
 }
 
-const char* basename(const char *str) {
-    return std::filesystem::path(str).filename().c_str();
+string basename(const char *str) {
+    return path(str).filename().string();
 }
 
 // =============================================================================
@@ -237,14 +248,21 @@ int main (int argc, char* argv[])
 					filesize, argv[i]);
 			}
 
-			if (long (fread (buf, 1, filesize, fp)) < filesize)
-				Error ("filesystem error: could not read %ld bytes from %s\n", filesize, argv[i]);
+			long readbytes = fread(buf, 1, filesize, fp);
+			if (readbytes < filesize) {
+				if (feof(fp)) {
+					filesize = readbytes;
+				} else {
+					Error("filesystem error: could not read %ld bytes from %s (read %ld bytes instead, error - %s)\n",
+						  filesize, argv[i], readbytes, strerror(ferror(fp)), feof(fp));
+				}
+			}
 
 			char* const end = &buf[0] + filesize;
 
 			for (char* cp = &buf[0]; cp < end; ++cp)
 			{
-				SkipWhitespace (cp);
+				SkipWhitespace (cp, end);
 
 				if (strncmp (cp, "#define ", strlen ("#define ")) == 0)
 				{
@@ -261,7 +279,7 @@ int main (int argc, char* argv[])
 				}
 
 				cp += strlen (NAMED_ENUM_MACRO " ");
-				SkipWhitespace (cp);
+				SkipWhitespace (cp, end);
 
 				NamedEnumInfo nenum;
 				auto& enumname = nenum.name;
@@ -280,12 +298,12 @@ int main (int argc, char* argv[])
 				while (isalnum (*cp) || *cp == '_')
 					enumname += *cp++;
 
-				SkipWhitespace (cp);
+				SkipWhitespace (cp, end);
 
 				// We need an underlying type if this is not a scoped enum
 				if (*cp == ':')
 				{
-					SkipWhitespace (cp);
+					SkipWhitespace (cp, end);
 
 					for (++cp; *cp != '\0' and *cp != '{'; ++cp)
 						nenum.underlyingtype += *cp;
@@ -308,7 +326,7 @@ int main (int argc, char* argv[])
 
 				for (;;)
 				{
-					SkipWhitespace (cp);
+					SkipWhitespace (cp, end);
 
 					if (*cp == '}')
 					{
@@ -324,7 +342,7 @@ int main (int argc, char* argv[])
 					while (isalnum (*cp) || *cp == '_')
 						enumerator += *cp++;
 
-					SkipWhitespace (cp);
+					SkipWhitespace (cp, end);
 
 					if (*cp == '=')
 					{
@@ -345,12 +363,12 @@ int main (int argc, char* argv[])
 					}
 
 					if (*cp == ',')
-						SkipWhitespace (++cp);
+						SkipWhitespace (++cp, end);
 
 					enumerators.push_back (enumerator);
 				}
 
-				SkipWhitespace (cp);
+				SkipWhitespace (cp, end);
 
 				if (*cp != ';')
 					Error ("expected ';'");
@@ -387,10 +405,15 @@ int main (int argc, char* argv[])
 		auto pos = std::unique (filesToInclude.begin(), filesToInclude.end());
 		filesToInclude.resize (std::distance (filesToInclude.begin(), pos));
 
-		for (string const& a : filesToInclude)
-			source.append ("#include \"%s\"\n", basename (a.c_str()));
+		for (string const& a : filesToInclude) {
+            source.append("#include \"");
+            source.appendString(basename(a.c_str()));
+            source.append("\"\n");
+        }
 
-		source.append ("#include \"%s\"\n", basename (argv[argc - 2]));
+		source.append ("#include \"");
+		source.appendString(basename (argv[argc - 2]));
+		source.append ("\"\n");
 
 		for (NamedEnumInfo& e : namedEnumerations)
 		{

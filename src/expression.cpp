@@ -1,3 +1,4 @@
+#include <climits>
 #include "expression.h"
 #include "dataBuffer.h"
 #include "lexer.h"
@@ -371,7 +372,7 @@ void Expression::verify()
 Expression::SymbolList::Iterator Expression::findPrioritizedOperator()
 {
 	SymbolList::Iterator	best = m_symbols.end();
-	int						bestpriority = __INT_MAX__;
+	int						bestpriority = INT_MAX;
 
 	for (SymbolList::Iterator it = m_symbols.begin(); it != m_symbols.end(); ++it)
 	{

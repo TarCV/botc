@@ -28,6 +28,7 @@
 
 #include <cstring>
 #include <cerrno>
+#include <cassert>
 #include "parser.h"
 #include "events.h"
 #include "commands.h"
