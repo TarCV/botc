@@ -1,0 +1,22 @@
+version: 2
+
+jobs:
+  ubuntu-clang:
+    docker:
+      - image: ubuntu:18.10
+    environment:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+    steps:
+      - checkout
+      - run: apt update || true
+      - run: apt update && apt install -y autoconf automake make cmake clang pkg-config
+      - run:
+          - cmake
+          - make
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - ubuntu-clang
