@@ -10,10 +10,8 @@ jobs:
     steps:
       - checkout
       - run: apt update || true
-      - run: apt update && apt install -y autoconf automake make cmake clang pkg-config
-      - run:
-          - cmake
-          - make
+      - run: apt update && apt install -y make cmake clang
+      - run: cmake . && make
 
 workflows:
   version: 2
