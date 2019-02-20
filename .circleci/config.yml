@@ -9,8 +9,6 @@ jobs:
       CXX: /root/project/clang_7.0.1/bin/clang++
       LD: /root/project/clang_7.0.1/bin/ld.lld
       LD_LIBRARY_PATH: /root/project/clang_7.0.1/lib
-      APT_DEPENDENCIES: ca-certificates make cmake libtinfo5 xz-utils curl
-      LLVM_LINK: http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz
     steps:
       - checkout
       - run: apt update || true; apt update
@@ -19,25 +17,36 @@ jobs:
           command: apt install -y ssh tar gzip ca-certificates
       - restore_cache:
           keys:
-            - apt-v1-{{ .Environment.APT_DEPENDENCIES }}
-            - clang-v1-{{ .Environment.LLVM_LINK }}
-      - run: apt install -y $APT_DEPENDENCIES
+            - apt-v1-
+            - clang-v1-7.0.1
+      - run: apt install -y ca-certificates make cmake libtinfo5 xz-utils curl # update cache ver when changing list here
+      - run:
+          name: Cleanup cache
+          command: |
+            cd /var/cache/apt/archives/
+            for pkg in `ls *.deb | cut -d _ -f 1 | sort -u`; do
+              if [ $(ls $pkg\_* | wc -l) -gt 1 ]; then
+                files=$(ls -vr $pkg\_*)
+                rmfiles=`echo $files | cut -d " " -f 2-`
+                rm -v $rmfiles
+              fi
+            done
       - save_cache:
-          key: apt-v1-{{ .Environment.APT_DEPENDENCIES }}
+          key: apt-v1-{{ .Revision }}
           paths:
             - "/var/cache/apt"
       - run:
           name: Install LLVM
           command: |
-            mkdir -p vendor/llvm || true; \
-              cd vendor/llvm; \
-              [[ -f llvm.tar.xz ]] || curl -SL $LLVM_LINK > llvm.tar.xz; \
+            mkdir -p /root/project/vendor/llvm || true; \
+              cd /root/project/vendor/llvm; \
+              [[ -f llvm.tar.xz ]] || curl -SL http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz -o llvm.tar.xz; \
               tar -xJC . <llvm.tar.xz && \
               mv clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04 ../../clang_7.0.1
       - save_cache:
-          key: clang-v1-{{ .Environment.LLVM_LINK }}
+          key: clang-v1-7.0.1
           paths:
-            - "vendor/llvm"
+            - "/root/project/vendor/llvm"
       - run:
           name: Build
           command: cmake -DCMAKE_CXX_FLAGS="-stdlib=libc++ -fuse-ld=$LD" . && make
