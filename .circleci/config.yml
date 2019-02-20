@@ -16,7 +16,7 @@ jobs:
       - run: apt update || true; apt update
       - run:
           name: Install packages required for CircleCI
-          command: apt install -y git ssh tar gzip ca-certificates
+          command: apt install -y ssh tar gzip ca-certificates
       - restore_cache:
           keys:
             - apt-v1-{{ .Environment.APT_DEPENDENCIES }}
