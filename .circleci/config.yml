@@ -9,15 +9,19 @@ jobs:
       CXX: /root/project/clang_7.0.1/bin/clang++
       LD: /root/project/clang_7.0.1/bin/ld.lld
       LD_LIBRARY_PATH: /root/project/clang_7.0.1/lib
-      APT_DEPENDENCIES: make cmake libtinfo5 xz-utils curl
+      APT_DEPENDENCIES: ca-certificates make cmake libtinfo5 xz-utils curl
       LLVM_LINK: http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz
     steps:
       - checkout
+      - run: apt update || true; apt update
+      - run:
+          name: Install packages required for CircleCI
+          command: apt install -y git ssh tar gzip ca-certificates
       - restore_cache:
           keys:
             - apt-v1-{{ .Environment.APT_DEPENDENCIES }}
             - clang-v1-{{ .Environment.LLVM_LINK }}
-      - run: apt update || true; apt update && apt install -y $APT_DEPENDENCIES
+      - run: apt install -y $APT_DEPENDENCIES
       - save_cache:
           key: apt-v1-{{ .Environment.APT_DEPENDENCIES }}
           paths:
