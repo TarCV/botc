@@ -9,15 +9,31 @@ jobs:
       CXX: /root/project/clang_7.0.1/bin/clang++
       LD: /root/project/clang_7.0.1/bin/ld.lld
       LD_LIBRARY_PATH: /root/project/clang_7.0.1/lib
+      APT_DEPENDENCIES: make cmake libtinfo5 xz-utils curl
+      LLVM_LINK: http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz
     steps:
       - checkout
-      - run: apt update || true; apt update && apt install -y make cmake libtinfo5 xz-utils curl
+      - restore_cache:
+          keys:
+            - apt-v1-{{ .Environment.APT_DEPENDENCIES }}
+            - clang-v1-{{ .Environment.LLVM_LINK }}
+      - run: apt update || true; apt update && apt install -y $APT_DEPENDENCIES
+      - save_cache:
+          key: apt-v1-{{ .Environment.APT_DEPENDENCIES }}
+          paths:
+            - "/var/cache/apt"
       - run:
           name: Install LLVM
           command: |
-            curl -SL http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz \
-              | tar -xJC . && \
-              mv clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04 clang_7.0.1 && pwd && ls
+            mkdir -p vendor/llvm || true; \
+              cd vendor/llvm; \
+              [[ -f llvm.tar.xz ]] || curl -SL $LLVM_LINK > llvm.tar.xz; \
+              tar -xJC . <llvm.tar.xz && \
+              mv clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04 ../../clang_7.0.1
+      - save_cache:
+          key: clang-v1-{{ .Environment.LLVM_LINK }}
+          paths:
+            - "vendor/llvm"
       - run:
           name: Build
           command: cmake -DCMAKE_CXX_FLAGS="-stdlib=libc++ -fuse-ld=$LD" . && make
