@@ -29,6 +29,8 @@
 #ifndef BOTC_MACROS_H
 #define BOTC_MACROS_H
 
+#include <ciso646>
+
 #if !defined (__cplusplus) or __cplusplus < 201103L
 # error botc requires a C++11-compliant compiler to be built
 #endif
@@ -68,7 +70,9 @@
 # define __attribute__(X)
 #endif
 
+#if !defined (_MSC_VER)
 #define deprecated __attribute__ ((deprecated))
+#endif
 
 template<typename... argtypes>
 void error (const char* fmtstr, const argtypes&... args);

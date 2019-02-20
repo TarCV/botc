@@ -103,7 +103,6 @@ named_enum class Token
 	State,
 	Switch,
 	Str,
-	Using,
 	Var,
 	Void,
 	While,
@@ -116,6 +115,8 @@ named_enum class Token
 	Func,
 	Return,
 
+	BuiltinDef,
+
 	// --------------
 	// Generic tokens
 	Symbol,
@@ -127,6 +128,6 @@ named_enum class Token
 };
 
 static Token const FirstNamedToken = Token::Bool;
-static Token const LastNamedToken = Token::Return;
+static Token const LastNamedToken = Token::BuiltinDef;
 
 #endif

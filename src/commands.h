@@ -47,11 +47,13 @@ struct CommandInfo
 	DataType				returnvalue;
 	List<CommandArgument>	args;
 	String					origin;
+	bool					isbuiltin;
 
 	String	signature();
 };
 
 void						addCommandDefinition (CommandInfo* comm);
+
 CommandInfo*				findCommandByName (String a);
 const List<CommandInfo*>&	getCommands();
 

@@ -100,7 +100,6 @@ static const String gTokenStrings[] =
 	"state",
 	"switch",
 	"str",
-	"using",
 	"var",
 	"void",
 	"while",
@@ -109,6 +108,7 @@ static const String gTokenStrings[] =
 	"enum",
 	"func",
 	"return",
+	"builtindef"
 };
 
 static_assert (countof (gTokenStrings) == (int) LastNamedToken + 1,
@@ -124,9 +124,10 @@ LexerScanner::LexerScanner (FILE* fp) :
 	fseek (fp, 0l, SEEK_END);
 	fsize = ftell (fp);
 	rewind (fp);
-	m_data = new char[fsize];
+	m_data = new char[fsize + 1];
 	m_position = m_lineBreakPosition = &m_data[0];
 	bytes = fread (m_data, 1, fsize, fp);
+	m_data[fsize] = '\0';
 	ASSERT_GT_EQ (bytes, fsize)
 }
 
@@ -168,7 +169,7 @@ bool LexerScanner::getNextToken()
 	{
 		m_position += 2;
 
-		while (*m_position != '\n')
+        while (*m_position != '\n' && !(*m_position == '\r' && *(m_position+1) == '\n'))
 			skip();
 
 		return getNextToken();
@@ -269,7 +270,7 @@ bool LexerScanner::getNextToken()
 //
 void LexerScanner::skip()
 {
-	if (*m_position == '\n')
+    if (*m_position == '\n' || (*m_position == '\r' && *(m_position+1) == '\n'))
 	{
 		m_line++;
 		m_lineBreakPosition = m_position;
@@ -300,7 +301,7 @@ String LexerScanner::readLine()
 {
 	String line;
 
-	while (*m_position != '\n')
+    while (*m_position != '\n' && !(*m_position == '\r' && *(m_position+1) == '\n'))
 		line += *(m_position++);
 
 	return line;

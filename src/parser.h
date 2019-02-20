@@ -63,6 +63,7 @@ named_enum ScopeType : char
 	SCOPE_Do,
 	SCOPE_Switch,
 	SCOPE_Else,
+	SCOPE_State
 };
 
 named_enum AssignmentOperator : char
@@ -142,7 +143,7 @@ struct ScopeInfo
 	int							localVarIndexBase;
 
 	// switch-related stuff
-	List<CaseInfo>::Iterator	casecursor;
+	CaseInfo *			casecursor;
 	List<CaseInfo>				cases;
 	List<Variable*>				localVariables;
 	List<Variable*>				globalVariables;
@@ -222,8 +223,6 @@ private:
 	int				m_highestStateVarIndex;
 	int				m_numWrittenBytes;
 	List<ScopeInfo>	m_scopeStack;
-	int				m_zandronumVersion;
-	bool			m_defaultZandronumVersion;
 
 	DataBuffer*		currentBuffer();
 	void			parseStateBlock();
@@ -245,8 +244,8 @@ private:
 	void			parseBlockEnd();
 	void			parseLabel();
 	void			parseEventdef();
-	void			parseFuncdef();
-	void			parseUsing();
+	void parseFuncdef(bool isBuiltin);
+	void			parseBuiltinDef();
 	void			writeMemberBuffers();
 	void			writeStringTable();
 	DataBuffer*		parseExpression (DataType reqtype, bool fromhere = false);

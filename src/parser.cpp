@@ -27,6 +27,8 @@
 */
 
 #include <cstring>
+#include <cerrno>
+#include <cassert>
 #include "parser.h"
 #include "events.h"
 #include "commands.h"
@@ -47,6 +49,7 @@ BotscriptParser::BotscriptParser() :
 	m_mainBuffer (new DataBuffer),
 	m_onenterBuffer (new DataBuffer),
 	m_mainLoopBuffer (new DataBuffer),
+	m_switchBuffer (nullptr),
 	m_lexer (new Lexer),
 	m_numStates (0),
 	m_numEvents (0),
@@ -56,9 +59,7 @@ BotscriptParser::BotscriptParser() :
 	m_scopeCursor (-1),
 	m_isElseAllowed (false),
 	m_highestGlobalVarIndex (0),
-	m_highestStateVarIndex (0),
-	m_zandronumVersion (10200), // 1.2
-	m_defaultZandronumVersion (true) {}
+	m_highestStateVarIndex (0) {}
 
 // _________________________________________________________________________________________________
 //
@@ -176,14 +177,14 @@ void BotscriptParser::parseBotscript (String fileName)
 				break;
 
 			case Token::Funcdef:
-				parseFuncdef();
+                parseFuncdef(false);
 				break;
+
+		    case Token::BuiltinDef:
+		        parseBuiltinDef();
+		        break;
 
 			case Token::Semicolon:
-				break;
-
-			case Token::Using:
-				parseUsing();
 				break;
 
 			default:
@@ -225,15 +226,6 @@ void BotscriptParser::parseBotscript (String fileName)
 		if (m_isStateSpawnDefined == false)
 			error ("script must have a state named `stateSpawn`!");
 
-		if (m_defaultZandronumVersion)
-		{
-			print ("\n");
-			print ("note: use the 'using' directive to define a target Zandronum version\n");
-			print ("usage: using zandronum <version>, possible versions: %1\n", 
-g_validZandronumVersions);
-			print ("\n");
-		}
-
 		// Dump the last state's onenter and mainloop
 		writeMemberBuffers();
 
@@ -247,6 +239,12 @@ g_validZandronumVersions);
 void BotscriptParser::parseStateBlock()
 {
 	checkToplevel();
+
+	if (SCOPE_State == SCOPE (0).type) {
+		// Descend down the stack
+		m_scopeCursor--;
+	}
+
 	m_lexer->mustGetNext (Token::String);
 	String statename = getTokenString();
 
@@ -275,6 +273,9 @@ void BotscriptParser::parseStateBlock()
 	m_numStates++;
 	m_currentState = statename;
 	m_gotMainLoop = false;
+
+	pushScope();
+	SCOPE (0).type = SCOPE_State;
 }
 
 // _________________________________________________________________________________________________
@@ -304,6 +305,7 @@ void BotscriptParser::parseMainloop()
 	m_lexer->mustGetNext (Token::BraceStart);
 
 	m_currentMode = ParserMode::MainLoop;
+	m_gotMainLoop = true;
 	m_mainLoopBuffer->writeHeader (DataHeader::MainLoop);
 }
 
@@ -404,10 +406,14 @@ void BotscriptParser::parseVar()
 		}
 	}
 
-	if (isInGlobalState())
+	if (isInGlobalState()) {
+		assert(var->isGlobal());
 		SCOPE(0).globalVariables << var;
-	else
+	} else {
+		var->statename = m_currentState;
+		assert(!var->isGlobal());
 		SCOPE(0).localVariables << var;
+	}
 
 	suggestHighestVarIndex (isInGlobalState(), var->index);
 	m_lexer->mustGetNext (Token::Semicolon);
@@ -604,8 +610,12 @@ void BotscriptParser::parseSwitchCase()
 
 	// Get a literal value for the case block. Zandronum does not support
 	// expressions here.
+	bool isNegative = m_lexer->next(Token::Minus);
 	m_lexer->mustGetNext (Token::Number);
 	int num = m_lexer->token()->text.toLong();
+	if (isNegative) {
+		num = -num;
+	}
 	m_lexer->mustGetNext (Token::Colon);
 
 	for (const CaseInfo& info : SCOPE(0).cases)
@@ -624,7 +634,7 @@ void BotscriptParser::parseSwitchCase()
 	//
 	// We null the switch buffer for the case-go-to statement as
 	// we want it all under the switch, not into the case-buffers.
-	m_switchBuffer = null;
+	m_switchBuffer = nullptr;
 	currentBuffer()->writeHeader (DataHeader::CaseGoto);
 	currentBuffer()->writeDWord (num);
 	addSwitchCase (null);
@@ -726,7 +736,7 @@ void BotscriptParser::parseBlockEnd()
 {
 	// Closing brace
 	// If we're in the block stack, we're descending down from it now
-	if (m_scopeCursor > 0)
+	if (m_scopeCursor > 0 && SCOPE(0).type != SCOPE_State) // states are not closed with closing braces
 	{
 		switch (SCOPE (0).type)
 		{
@@ -781,10 +791,10 @@ void BotscriptParser::parseBlockEnd()
 			{
 				// Switch closes. Move down to the record buffer of
 				// the lower block.
-				if (SCOPE (1).casecursor != SCOPE (1).cases.begin() - 1)
+				if (SCOPE (1).casecursor != null)
 					m_switchBuffer = SCOPE (1).casecursor->data;
 				else
-					m_switchBuffer = null;
+					m_switchBuffer = nullptr;
 
 				// If there was a default in the switch, write its header down now.
 				// If not, write instruction to jump to the end of switch after
@@ -812,6 +822,7 @@ void BotscriptParser::parseBlockEnd()
 			}
 
 			case SCOPE_Unknown:
+			default:
 				break;
 		}
 
@@ -857,7 +868,7 @@ void BotscriptParser::parseEventdef()
 
 // _________________________________________________________________________________________________
 //
-void BotscriptParser::parseFuncdef()
+void BotscriptParser::parseFuncdef(bool isBuiltin)
 {
 	CommandInfo* comm = new CommandInfo;
 	comm->origin = m_lexer->describeCurrentPosition();
@@ -870,6 +881,7 @@ void BotscriptParser::parseFuncdef()
 	// Number
 	m_lexer->mustGetNext (Token::Number);
 	comm->number = m_lexer->token()->text.toLong();
+	comm->isbuiltin = isBuiltin;
 	m_lexer->mustGetNext (Token::Colon);
 
 	// Name
@@ -925,37 +937,15 @@ void BotscriptParser::parseFuncdef()
 
 	m_lexer->mustGetNext (Token::ParenEnd);
 	m_lexer->mustGetNext (Token::Semicolon);
-	addCommandDefinition (comm);
+
+	addCommandDefinition(comm);
 }
 
 // _________________________________________________________________________________________________
 //
-// Parses a using statement
-//
-void BotscriptParser::parseUsing()
+void BotscriptParser::parseBuiltinDef()
 {
-	checkToplevel();
-	m_lexer->mustGetSymbol ("zandronum");
-	String versionText;
-
-	while (m_lexer->next()
-		and (m_lexer->tokenType() == Token::Number or m_lexer->tokenType() == Token::Dot))
-	{
-		versionText += getTokenString();
-	}
-
-	// Note: at this point the lexer's pointing at the token after the version.
-	if (versionText.isEmpty())
-		error ("expected version string, got `%1`", getTokenString());
-
-	if (g_validZandronumVersions.contains (versionText) == false)
-		error ("unknown version string `%2`: valid versions: `%1`\n", g_validZandronumVersions, 
-versionText);
-
-	StringList versionTokens = versionText.split (".");
-	m_zandronumVersion = versionTokens[0].toLong() * 10000 + versionTokens[1].toLong() * 100;
-	m_defaultZandronumVersion = false;
-	m_lexer->tokenMustBe (Token::Semicolon);
+    parseFuncdef(true);
 }
 
 // _________________________________________________________________________________________________
@@ -1027,9 +1017,13 @@ DataBuffer* BotscriptParser::parseCommand (CommandInfo* comm)
 		curarg++;
 	}
 
-	r->writeHeader (DataHeader::Command);
-	r->writeDWord (comm->number);
-	r->writeDWord (comm->args.size());
+	if (comm->isbuiltin) {
+		r->writeDWord(comm->number);
+	} else {
+		r->writeHeader(DataHeader::Command);
+		r->writeDWord(comm->number);
+		r->writeDWord(comm->args.size());
+	}
 
 	return r;
 }
@@ -1250,7 +1244,7 @@ void BotscriptParser::pushScope (bool noreset)
 		info->mark2 = null;
 		info->buffer1 = null;
 		info->cases.clear();
-		info->casecursor = info->cases.begin() - 1;
+		info->casecursor = null;
 	}
 
 	// Reset variable stuff in any case
@@ -1320,8 +1314,9 @@ void BotscriptParser::addSwitchCase (DataBuffer* casebuffer)
 	// Init a buffer for the case block and tell the object
 	// writer to record all written data to it.
 	casedata.data = m_switchBuffer = new DataBuffer;
-	SCOPE(0).cases << casedata;
-	info->casecursor++;
+	List<CaseInfo> &cases = SCOPE(0).cases;
+	cases << casedata;
+	info->casecursor = &*(cases.end() - 1);
 }
 
 // _________________________________________________________________________________________________
@@ -1352,7 +1347,7 @@ String BotscriptParser::describePosition() const
 //
 DataBuffer* BotscriptParser::currentBuffer()
 {
-	if (m_switchBuffer != null)
+	if (m_switchBuffer != nullptr)
 		return m_switchBuffer;
 
 	if (m_currentMode == ParserMode::MainLoop)

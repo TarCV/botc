@@ -43,7 +43,7 @@ void addCommandDefinition (CommandInfo* comm)
 	// Ensure that there is no conflicts
 	for (CommandInfo* it : Commands)
 	{
-		if (it->number == comm->number)
+		if (it->number == comm->number && it->isbuiltin == comm->isbuiltin)
 		{
 			error ("Attempted to redefine command #%1 (%2) as %3",
 				   Commands[comm->number]->name, comm->name);

@@ -102,6 +102,7 @@ public:
 
 	static String						fromNumber (int a);
 	static String						fromNumber (long a);
+	static String						fromNumber (long long a);
 	static String						fromNumber (double a);
 
 	String								operator+ (const String& data) const;

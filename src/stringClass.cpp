@@ -27,6 +27,7 @@
 */
 
 #include <cstring>
+#include <cerrno>
 #include "main.h"
 #include "stringClass.h"
 
@@ -441,6 +442,15 @@ String String::fromNumber (int a)
 // =============================================================================
 //
 String String::fromNumber (long a)
+{
+	char buf[32];
+	::sprintf (buf, "%ld", a);
+	return String (buf);
+}
+
+// =============================================================================
+//
+String String::fromNumber (long long a)
 {
 	char buf[32];
 	::sprintf (buf, "%ld", a);
