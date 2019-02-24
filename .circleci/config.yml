@@ -1,0 +1,109 @@
+version: 2
+
+jobs:
+  ubuntu-clang:
+    docker:
+      - image: ubuntu:18.10
+    environment:
+      CC: /root/project/clang_7.0.1/bin/clang
+      CXX: /root/project/clang_7.0.1/bin/clang++
+      LD: /root/project/clang_7.0.1/bin/ld.lld
+      LD_LIBRARY_PATH: /root/project/clang_7.0.1/lib
+    steps:
+      - checkout
+      - run: apt update || true; apt update
+      - run:
+          name: Install packages required for CircleCI
+          command: apt install -y ssh tar gzip ca-certificates
+      - restore_cache:
+          keys:
+            - apt-v1-
+            - clang-v1-7.0.1
+      - run: apt install -y ca-certificates make cmake libtinfo5 xz-utils curl # update cache ver when changing list here
+      - run:
+          name: Cleanup cache
+          command: |
+            cd /var/cache/apt/archives/
+            for pkg in `ls *.deb | cut -d _ -f 1 | sort -u`; do
+              if [ $(ls $pkg\_* | wc -l) -gt 1 ]; then
+                files=$(ls -vr $pkg\_*)
+                rmfiles=`echo $files | cut -d " " -f 2-`
+                rm -v $rmfiles
+              fi
+            done
+      - save_cache:
+          key: apt-v1-{{ .Revision }}
+          paths:
+            - "/var/cache/apt"
+      - run:
+          name: Install LLVM
+          command: |
+            mkdir -p /root/project/vendor/llvm || true; \
+              cd /root/project/vendor/llvm; \
+              [[ -f llvm.tar.xz ]] || curl -SL http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz -o llvm.tar.xz; \
+              tar -xJC . <llvm.tar.xz && \
+              mv clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04 ../../clang_7.0.1
+      - save_cache:
+          key: clang-v1-7.0.1
+          paths:
+            - "/root/project/vendor/llvm"
+      - run:
+          name: Build
+          command: cmake -DCMAKE_CXX_FLAGS="-stdlib=libc++ -fuse-ld=$LD" . && make
+      - run:
+          name: Verify binary is built
+          command: ./botc --help
+      - run:
+          name: Sanity check
+          command: |
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/crashbot.lump -LO && \
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/dfultbot.lump -LO && \
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/fatbot.lump -LO && \
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/humanbot.lump -LO && \
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/sausgbot.lump -LO && \
+            curl https://github.com/TarCV/debotc/raw/0.3.0/debotc_defs.bts -LO && \
+            curl https://github.com/TarCV/debotc/releases/download/0.3.0/debotc.kexe -LO && \
+            chmod +x debotc.kexe && \
+            for LUMP in *.lump; do \
+            ./debotc.kexe $LUMP > $LUMP.0.botc && \
+            ./botc $LUMP.0.botc $LUMP.1.lump && \
+            ./debotc.kexe $LUMP.1.lump > $LUMP.1.botc && \
+            ./botc $LUMP.1.botc $LUMP.2.lump && \
+            ./debotc.kexe $LUMP.2.lump > $LUMP.2.botc && \
+            diff $LUMP.1.botc $LUMP.2.botc; \
+            done
+      - run:
+          name: Prepare for possible publishing
+          command: |
+            mkdir -p output.bin || true
+            mv botc output.bin
+      - persist_to_workspace:
+          root: .
+          paths:
+            - output.bin
+
+  publish:
+    docker:
+      - image: cibuilds/github:0.12
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./artifacts/bin
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            VERSION=$(./artifacts/bin/botc --help | cut -c5- | rev | cut -c2- | rev)
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/bin/*
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - ubuntu-clang
+      - publish:
+          requires:
+            - ubuntu-clang
+          filters:
+            branches:
+              only:
+                - master

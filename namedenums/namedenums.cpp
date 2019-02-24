@@ -198,7 +198,7 @@ void SkipWhitespace (char*& cp, const char const *end)
 	}
 }
 
-string basename(const char *str) {
+string getbasename(const char *str) {
     return path(str).filename().string();
 }
 
@@ -407,12 +407,12 @@ int main (int argc, char* argv[])
 
 		for (string const& a : filesToInclude) {
             source.append("#include \"");
-            source.appendString(basename(a.c_str()));
+            source.appendString(getbasename(a.c_str()));
             source.append("\"\n");
         }
 
 		source.append ("#include \"");
-		source.appendString(basename (argv[argc - 2]));
+		source.appendString(getbasename(argv[argc - 2]));
 		source.append ("\"\n");
 
 		for (NamedEnumInfo& e : namedEnumerations)
