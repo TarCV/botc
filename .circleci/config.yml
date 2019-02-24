@@ -53,6 +53,26 @@ jobs:
       - run:
           name: Verify binary is built
           command: ./botc --help
+      - run:
+          name: Sanity check
+          command: |
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/crashbot.lump -LO && \
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/dfultbot.lump -LO && \
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/fatbot.lump -LO && \
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/humanbot.lump -LO && \
+            curl https://bitbucket.org/Torr_Samaho/zandronum/raw/ZA_3.0/wadsrc/static/sausgbot.lump -LO && \
+            curl https://github.com/TarCV/debotc/raw/0.3.0/debotc_defs.bts -LO && \
+            curl https://github.com/TarCV/debotc/releases/download/0.3.0/debotc.kexe -LO && \
+            chmod +x debotc.kexe && \
+            for LUMP in *.lump; do \
+            ./debotc.kexe $LUMP > $LUMP.0.botc && \
+            ./botc $LUMP.0.botc $LUMP.1.lump && \
+            ./debotc.kexe $LUMP.1.lump > $LUMP.1.botc && \
+            ./botc $LUMP.1.botc $LUMP.2.lump && \
+            ./debotc.kexe $LUMP.2.lump > $LUMP.2.botc && \
+            diff $LUMP.1.botc $LUMP.2.botc; \
+            done
+
 
 workflows:
   version: 2
