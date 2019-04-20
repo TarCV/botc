@@ -72,7 +72,7 @@ void Lexer::processFile(String fileName)
 void Lexer::processFileInternal(String fileName)
 {
 	FileNameStack << fileName;
-	FILE* fp = fopen (fileName, "r");
+	FILE* fp = fopen (fileName, "rb");
 
 	if (fp == null)
 		error ("couldn't open %1 for reading: %2", fileName, strerror (errno));
