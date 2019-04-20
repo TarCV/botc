@@ -51,6 +51,12 @@ public:
 	Lexer();
 	~Lexer();
 
+    // Disable copying and moving to keep m_tokenPosition iteration valid
+    Lexer(const Lexer&) = delete;
+    Lexer& operator= (const Lexer&) = delete;
+    Lexer(const Lexer&&) = delete;
+    Lexer& operator=(const Lexer&& other) = delete;
+
 	void	processFile (String fileName);
 	bool	next (Token req = Token::Any);
 	void	mustGetNext (Token tok);
