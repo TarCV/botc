@@ -39,6 +39,20 @@ static Lexer*		MainLexer = null;
 Lexer::Lexer()
 {
 	ASSERT_EQ (MainLexer, null);
+
+	// Dummy token in the beginning to set m_tokenPosition to a pos before the first actual token
+	{
+		assert(m_tokens.isEmpty());
+		TokenInfo nulltok;
+		nulltok.type = Token::Any;
+		nulltok.file = "";
+		nulltok.line = -1;
+		nulltok.column = -1;
+		nulltok.text = "";
+		m_tokens << nulltok;
+	}
+	m_tokenPosition = m_tokens.begin();
+
 	MainLexer = this;
 }
 
@@ -53,18 +67,6 @@ Lexer::~Lexer()
 //
 void Lexer::processFile(String fileName)
 {
-	assert(m_tokens.isEmpty());
-
-	// Dummy token in the beginning to set m_tokenPosition to a pos before the first actual token
-	TokenInfo nulltok;
-	nulltok.type = Token::Any;
-	nulltok.file = fileName;
-	nulltok.line = -1;
-	nulltok.column = -1;
-	nulltok.text = "";
-
-	m_tokens << nulltok;
-
 	processFileInternal(fileName);
 }
 // _________________________________________________________________________________________________
