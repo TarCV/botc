@@ -270,8 +270,13 @@ bool LexerScanner::getNextToken()
 //
 void LexerScanner::skip()
 {
-    if (*m_position == '\n' || (*m_position == '\r' && *(m_position+1) == '\n'))
+    if ((*m_position == '\r' && *(m_position+1) == '\n') || (*m_position == '\n' && *(m_position + 1) == '\r'))
 	{
+		m_line++;
+		m_lineBreakPosition = m_position;
+		m_position++; // for two char line ending have to skip one more character
+	}
+	else if (*m_position == '\n' || *m_position == '\r') {
 		m_line++;
 		m_lineBreakPosition = m_position;
 	}
