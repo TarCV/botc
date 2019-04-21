@@ -8,32 +8,33 @@ struct OperatorInfo
 	Token		token;
 	int			priority;
 	int			numoperands;
+	DataType    returnType;
 	DataHeader	header;
 };
 
 static const OperatorInfo g_Operators[] =
 {
-	{Token::ExclamationMark,	0,		1,	DataHeader::NegateLogical,	},
-	{Token::Minus,				0,		1,	DataHeader::UnaryMinus,		},
-	{Token::Multiply,			10,		2,	DataHeader::Multiply,		},
-	{Token::Divide,				10,		2,	DataHeader::Divide,			},
-	{Token::Modulus,			10,		2,	DataHeader::Modulus,		},
-	{Token::Plus,				20,		2,	DataHeader::Add,			},
-	{Token::Minus,				20,		2,	DataHeader::Subtract,		},
-	{Token::LeftShift,			30,		2,	DataHeader::LeftShift,		},
-	{Token::RightShift,			30,		2,	DataHeader::RightShift,		},
-	{Token::Lesser,				40,		2,	DataHeader::LessThan,		},
-	{Token::Greater,			40,		2,	DataHeader::GreaterThan,	},
-	{Token::AtLeast,			40,		2,	DataHeader::AtLeast,		},
-	{Token::AtMost,				40,		2,	DataHeader::AtMost,			},
-	{Token::Equals,				50,		2,	DataHeader::Equals			},
-	{Token::NotEquals,			50,		2,	DataHeader::NotEquals		},
-	{Token::Amperstand,			60,		2,	DataHeader::AndBitwise		},
-	{Token::Caret,				70,		2,	DataHeader::EorBitwise		},
-	{Token::Bar,				80,		2,	DataHeader::OrBitwise		},
-	{Token::DoubleAmperstand,	90,		2,	DataHeader::AndLogical		},
-	{Token::DoubleBar,			100,	2,	DataHeader::OrLogical		},
-	{Token::QuestionMark,		110,	3,	DataHeader::NumValues	},
+	{Token::ExclamationMark,	0,		1,	TYPE_Bool,          DataHeader::NegateLogical,	},
+	{Token::Minus,				0,		1,	TYPE_Int,           DataHeader::UnaryMinus,		},
+	{Token::Multiply,			10,		2,	TYPE_Int,           DataHeader::Multiply,		},
+	{Token::Divide,				10,		2,	TYPE_Int,           DataHeader::Divide,			},
+	{Token::Modulus,			10,		2,	TYPE_Int,           DataHeader::Modulus,		},
+	{Token::Plus,				20,		2,	TYPE_Int,           DataHeader::Add,			},
+	{Token::Minus,				20,		2,	TYPE_Int,           DataHeader::Subtract,		},
+	{Token::LeftShift,			30,		2,	TYPE_Int,           DataHeader::LeftShift,		},
+	{Token::RightShift,			30,		2,	TYPE_Int,           DataHeader::RightShift,		},
+	{Token::Lesser,				40,		2,	TYPE_Bool,          DataHeader::LessThan,		},
+	{Token::Greater,			40,		2,	TYPE_Bool,          DataHeader::GreaterThan,	},
+	{Token::AtLeast,			40,		2,	TYPE_Bool,          DataHeader::AtLeast,		},
+	{Token::AtMost,				40,		2,	TYPE_Bool,          DataHeader::AtMost,			},
+	{Token::Equals,				50,		2,	TYPE_Bool,          DataHeader::Equals			},
+	{Token::NotEquals,			50,		2,	TYPE_Bool,          DataHeader::NotEquals		},
+	{Token::Amperstand,			60,		2,	TYPE_Int,           DataHeader::AndBitwise		},
+	{Token::Caret,				70,		2,	TYPE_Int,           DataHeader::EorBitwise		},
+	{Token::Bar,				80,		2,	TYPE_Int,           DataHeader::OrBitwise		},
+	{Token::DoubleAmperstand,	90,		2,	TYPE_Bool,          DataHeader::AndLogical		},
+	{Token::DoubleBar,			100,	2,	TYPE_Bool,          DataHeader::OrLogical		},
+	{Token::QuestionMark,		110,	3,	TYPE_ToBeDecided,   DataHeader::NumValues	    },
 };
 
 // _________________________________________________________________________________________________
@@ -75,7 +76,6 @@ Expression::~Expression()
 ExpressionSymbol* Expression::parseSymbol()
 {
 	int pos = m_lexer->position();
-	ExpressionValue* op = null;
 
 	if (m_lexer->next (Token::Colon))
 		return new ExpressionColon;
@@ -84,28 +84,29 @@ ExpressionSymbol* Expression::parseSymbol()
 	for (const OperatorInfo& op : g_Operators)
 	{
 		if (m_lexer->next (op.token))
-			return new ExpressionOperator ((ExpressionOperatorType) (&op - &g_Operators[0]));
+			return new ExpressionOperator ((ExpressionOperatorType) (&op - &g_Operators[0]), op.returnType);
 	}
 
 	// Check sub-expression
 	if (m_lexer->next (Token::ParenStart))
 	{
-		Expression expr (m_parser, m_lexer, m_type);
+		Expression expr (m_parser, m_lexer, TYPE_ToBeDecided);
 		m_lexer->mustGetNext (Token::ParenEnd);
 		return expr.getResult()->clone();
 	}
-
-	op = new ExpressionValue (m_type);
 
 	// Check function
 	if (CommandInfo* comm = findCommandByName (m_lexer->peekNextString()))
 	{
 		m_lexer->skip();
 
-		if (m_type != TYPE_Unknown and comm->returnvalue != m_type)
-			error ("%1 returns an incompatible data type", comm->name);
+		if (m_type != TYPE_Unknown and m_type != TYPE_ToBeDecided and comm->returnvalue != m_type) {
+				error("%1 returns an incompatible data type", comm->name);
+		}
 
+		ExpressionValue* op = new ExpressionValue(comm->returnvalue);
 		op->setBuffer (m_parser->parseCommand (comm));
+		op->setValueType(comm->returnvalue);
 		return op;
 	}
 
@@ -118,11 +119,13 @@ ExpressionSymbol* Expression::parseSymbol()
 		if (var == null)
 			error ("unknown variable %1", getTokenString());
 
-		if (var->type != m_type)
+		if (m_type != TYPE_ToBeDecided && var->type != m_type)
 		{
 			error ("expression requires %1, variable $%2 is of type %3",
 				dataTypeName (m_type), var->name, dataTypeName (var->type));
 		}
+
+		ExpressionValue* op = new ExpressionValue(var->type);
 
 		if (var->isarray)
 		{
@@ -155,50 +158,69 @@ ExpressionSymbol* Expression::parseSymbol()
 		return op;
 	}
 
-	// Check for literal
-	switch (m_type)
 	{
+		if (m_type == TYPE_ToBeDecided) {
+			if (m_lexer->peekNextType(Token::True) || m_lexer->peekNextType(Token::False)) {
+				m_type = TYPE_Bool;
+			}
+			else if (m_lexer->peekNextType(Token::Number)) {
+				m_type = TYPE_Int;
+			}
+			else if (m_lexer->peekNextType(Token::String)) {
+				m_type = TYPE_String;
+			}
+			else {
+				m_type = TYPE_ToBeDecided; // skip the following switch
+			}
+		}
+
+		ExpressionValue* op = new ExpressionValue(m_type);
+
+		// Check for literal
+		switch (m_type)
+		{
 		case TYPE_Void:
 		case TYPE_Unknown:
 		{
-			error ("unknown identifier `%1` (expected keyword, function or variable)",
+			error("unknown identifier `%1` (expected keyword, function or variable)",
 				getTokenString());
 			break;
 		}
 
 		case TYPE_Bool:
 		{
-			if (m_lexer->next (Token::True) or m_lexer->next (Token::False))
+			if (m_lexer->next(Token::True) or m_lexer->next(Token::False))
 			{
 				Token tt = m_lexer->tokenType();
-				op->setValue (tt == Token::True ? 1 : 0);
+				op->setValue(tt == Token::True ? 1 : 0);
 				return op;
 			}
 		}
 
 		case TYPE_Int:
 		{
-			if (m_lexer->next (Token::Number))
+			if (m_lexer->next(Token::Number))
 			{
-				op->setValue (getTokenString().toLong());
+				op->setValue(getTokenString().toLong());
 				return op;
 			}
 		}
 
 		case TYPE_String:
 		{
-			if (m_lexer->next (Token::String))
+			if (m_lexer->next(Token::String))
 			{
-				op->setValue (getStringTableIndex (getTokenString()));
+				op->setValue(getStringTableIndex(getTokenString()));
 				return op;
 			}
 		}
-	}
+		}
 
-	m_badTokenText = m_lexer->token()->text;
-	m_lexer->setPosition (pos);
-	delete op;
-	return null;
+		m_badTokenText = m_lexer->token()->text;
+		m_lexer->setPosition(pos);
+		delete op;
+		return null;
+	}
 }
 
 // _________________________________________________________________________________________________
@@ -422,6 +444,14 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 
 	ExpressionValue* newval = new ExpressionValue (m_type);
 
+	DataType returnType = TYPE_ToBeDecided;
+	if (op->id() == OPER_Ternary) {
+		returnType = values[1]->valueType();
+	} else {
+		returnType = op->returnType();
+	}
+	newval->setValueType(returnType);
+
 	if (isconstexpr == false)
 	{
 		// This is not a constant expression so we'll have to use databuffers
@@ -612,9 +642,9 @@ String Expression::getTokenString()
 
 // _________________________________________________________________________________________________
 //
-ExpressionOperator::ExpressionOperator (ExpressionOperatorType id) :
+ExpressionOperator::ExpressionOperator (ExpressionOperatorType id, DataType returnType) :
 	ExpressionSymbol (EXPRSYM_Operator),
-	m_id (id) {}
+	m_id (id), m_returnType(returnType) {}
 
 // _________________________________________________________________________________________________
 //

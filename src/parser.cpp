@@ -328,7 +328,7 @@ void BotscriptParser::parseVar()
 	var->origin = m_lexer->describeCurrentPosition();
 	var->isarray = false;
 	bool isconst = m_lexer->next (Token::Const);
-	m_lexer->mustGetAnyOf ({Token::Int,Token::Str,Token::Void});
+	m_lexer->mustGetAnyOf ({Token::Int,Token::Str,Token::Bool});
 
 	DataType vartype = (tokenIs (Token::Int)) ? TYPE_Int
 					 : (tokenIs (Token::Str)) ? TYPE_String
@@ -432,7 +432,7 @@ void BotscriptParser::parseIf()
 	m_lexer->mustGetNext (Token::ParenStart);
 
 	// Read the expression and write it.
-	DataBuffer* c = parseExpression (TYPE_Int);
+	DataBuffer* c = parseExpression (TYPE_Bool);
 	currentBuffer()->mergeAndDestroy (c);
 
 	m_lexer->mustGetNext (Token::ParenEnd);
@@ -1266,7 +1266,11 @@ DataBuffer* BotscriptParser::parseExpression (DataType reqtype, bool fromhere)
 	if (fromhere)
 		m_lexer->skip (-1);
 
-	Expression expr (this, m_lexer, reqtype);
+	Expression expr (this, m_lexer, TYPE_ToBeDecided);
+	ASSERT_NE(expr.getResult()->valueType(), TYPE_ToBeDecided)
+	if (expr.getResult()->valueType() != reqtype) {
+		error("Incompatible data type");
+	}
 	expr.getResult()->convertToBuffer();
 
 	// The buffer will be destroyed once the function ends so we need to
