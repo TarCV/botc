@@ -124,7 +124,10 @@ void BotscriptParser::parseBotscript (String fileName)
 				parseOnEnterExit();
 				break;
 
-			case Token::Var:
+			case Token::Int:
+			case Token::Const:
+			case Token::Str:
+			case Token::Bool:
 				parseVar();
 				break;
 
@@ -327,6 +330,7 @@ void BotscriptParser::parseVar()
 	Variable* var = new Variable;
 	var->origin = m_lexer->describeCurrentPosition();
 	var->isarray = false;
+	m_lexer->skip(-1);
 	bool isconst = m_lexer->next (Token::Const);
 	m_lexer->mustGetAnyOf ({Token::Int,Token::Str,Token::Bool});
 
@@ -342,7 +346,6 @@ void BotscriptParser::parseVar()
 		isconst = true;
 	}
 
-	m_lexer->mustGetNext (Token::DollarSign);
 	m_lexer->mustGetNext (Token::Symbol);
 	String name = getTokenString();
 
@@ -1283,9 +1286,8 @@ DataBuffer* BotscriptParser::parseExpression (DataType reqtype, bool fromhere)
 DataBuffer* BotscriptParser::parseStatement()
 {
 	// If it's a variable, expect assignment.
-	if (m_lexer->next (Token::DollarSign))
+	if (m_lexer->next (Token::Symbol))
 	{
-		m_lexer->mustGetNext (Token::Symbol);
 		Variable* var = findVariable (getTokenString());
 
 		if (var == null)

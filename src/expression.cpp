@@ -111,7 +111,7 @@ ExpressionSymbol* Expression::parseSymbol()
 	}
 
 	// Check for variables
-	if (m_lexer->next (Token::DollarSign))
+	if (m_lexer->peekNextType(Token::Symbol))
 	{
 		m_lexer->mustGetNext (Token::Symbol);
 		Variable* var = m_parser->findVariable (getTokenString());
