@@ -156,6 +156,10 @@ static bool isValidHeader (String header)
 		error ("The script file requires " APPNAME " v%1, this is v%2",
 			makeVersionString (major, minor, patch), versionString());
 
+	if (major != VERSION_MAJOR)
+		error("The script file requires " APPNAME " v%1, this is v%2 (major version change means there are breaking changes)",
+			major, VERSION_MAJOR);
+
 	return true;
 }
 
