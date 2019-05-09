@@ -129,4 +129,6 @@ public:
 		ExpressionSymbol (EXPRSYM_Colon) {}
 };
 
+bool typeIsAssignableTo(DataType valueType, DataType assignementTargetType);
+
 #endif // BOTC_EXPRESSION_H

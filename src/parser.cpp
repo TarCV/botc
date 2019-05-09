@@ -944,7 +944,7 @@ void BotscriptParser::parseFuncdef(bool isBuiltin)
 			m_lexer->mustGetNext (Token::Comma);
 
 		CommandArgument arg;
-		m_lexer->mustGetAnyOf ({Token::Int,Token::Bool,Token::Str});
+		m_lexer->mustGetAnyOf ({Token::Int,Token::Bool,Token::Str,Token::State});
 		DataType type = getTypeByName (m_lexer->token()->text); // TODO
 		ASSERT_NE (type, TYPE_Unknown)
 		ASSERT_NE (type, TYPE_Void)
@@ -1320,7 +1320,7 @@ DataBuffer* BotscriptParser::parseExpression (DataType reqtype, bool fromhere)
 
 	Expression expr (this, m_lexer, TYPE_ToBeDecided);
 	ASSERT_NE(expr.getResult()->valueType(), TYPE_ToBeDecided)
-	if (expr.getResult()->valueType() != reqtype) {
+	if (!typeIsAssignableTo(expr.getResult()->valueType(), reqtype)) {
 		error("Incompatible data type");
 	}
 	expr.getResult()->convertToBuffer();

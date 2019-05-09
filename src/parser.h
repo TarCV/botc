@@ -190,6 +190,7 @@ public:
 	bool					isInGlobalState() const;
 	void					suggestHighestVarIndex (bool global, int index);
 	int						getHighestVarIndex (bool global);
+	State*			getStateByName(const String& name);
 
 	inline ScopeInfo& scope (int offset)
 	{
@@ -263,7 +264,6 @@ private:
 	void			writeStringTable();
 	DataBuffer*		parseExpression (DataType reqtype, bool fromhere = false);
 	DataHeader		getAssigmentDataHeader (AssignmentOperator op, Variable* var);
-	State*			getStateByName(const String& name);
 };
 
 #endif // BOTC_PARSER_H

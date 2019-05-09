@@ -10,31 +10,32 @@ struct OperatorInfo
 	int			numoperands;
 	DataType    returnType;
 	DataHeader	header;
+	DataType	argType[2];
 };
 
 static const OperatorInfo g_Operators[] =
 {
-	{Token::ExclamationMark,	0,		1,	TYPE_Bool,          DataHeader::NegateLogical,	},
-	{Token::Minus,				0,		1,	TYPE_Int,           DataHeader::UnaryMinus,		},
-	{Token::Multiply,			10,		2,	TYPE_Int,           DataHeader::Multiply,		},
-	{Token::Divide,				10,		2,	TYPE_Int,           DataHeader::Divide,			},
-	{Token::Modulus,			10,		2,	TYPE_Int,           DataHeader::Modulus,		},
-	{Token::Plus,				20,		2,	TYPE_Int,           DataHeader::Add,			},
-	{Token::Minus,				20,		2,	TYPE_Int,           DataHeader::Subtract,		},
-	{Token::LeftShift,			30,		2,	TYPE_Int,           DataHeader::LeftShift,		},
-	{Token::RightShift,			30,		2,	TYPE_Int,           DataHeader::RightShift,		},
-	{Token::Lesser,				40,		2,	TYPE_Bool,          DataHeader::LessThan,		},
-	{Token::Greater,			40,		2,	TYPE_Bool,          DataHeader::GreaterThan,	},
-	{Token::AtLeast,			40,		2,	TYPE_Bool,          DataHeader::AtLeast,		},
-	{Token::AtMost,				40,		2,	TYPE_Bool,          DataHeader::AtMost,			},
-	{Token::Equals,				50,		2,	TYPE_Bool,          DataHeader::Equals			},
-	{Token::NotEquals,			50,		2,	TYPE_Bool,          DataHeader::NotEquals		},
-	{Token::Amperstand,			60,		2,	TYPE_Int,           DataHeader::AndBitwise		},
-	{Token::Caret,				70,		2,	TYPE_Int,           DataHeader::EorBitwise		},
-	{Token::Bar,				80,		2,	TYPE_Int,           DataHeader::OrBitwise		},
-	{Token::DoubleAmperstand,	90,		2,	TYPE_Bool,          DataHeader::AndLogical		},
-	{Token::DoubleBar,			100,	2,	TYPE_Bool,          DataHeader::OrLogical		},
-	{Token::QuestionMark,		110,	3,	TYPE_ToBeDecided,   DataHeader::NumValues	    },
+	{Token::ExclamationMark,	0,		1,	TYPE_Bool,          DataHeader::NegateLogical,	{TYPE_Bool,			TYPE_ToBeDecided}},
+	{Token::Minus,				0,		1,	TYPE_Int,           DataHeader::UnaryMinus,		{TYPE_Int,			TYPE_ToBeDecided}},
+	{Token::Multiply,			10,		2,	TYPE_Int,           DataHeader::Multiply,		{TYPE_Int,			TYPE_Int}},
+	{Token::Divide,				10,		2,	TYPE_Int,           DataHeader::Divide,			{TYPE_Int,			TYPE_Int}},
+	{Token::Modulus,			10,		2,	TYPE_Int,           DataHeader::Modulus,		{TYPE_Int,			TYPE_Int}},
+	{Token::Plus,				20,		2,	TYPE_Int,           DataHeader::Add,			{TYPE_Int,			TYPE_Int}},
+	{Token::Minus,				20,		2,	TYPE_Int,           DataHeader::Subtract,		{TYPE_Int,			TYPE_Int}},
+	{Token::LeftShift,			30,		2,	TYPE_Int,           DataHeader::LeftShift,		{TYPE_Int,			TYPE_Int}},
+	{Token::RightShift,			30,		2,	TYPE_Int,           DataHeader::RightShift,		{TYPE_Int,			TYPE_Int}},
+	{Token::Lesser,				40,		2,	TYPE_Bool,          DataHeader::LessThan,		{TYPE_Int,			TYPE_Int}},
+	{Token::Greater,			40,		2,	TYPE_Bool,          DataHeader::GreaterThan,	{TYPE_Int,			TYPE_Int}},
+	{Token::AtLeast,			40,		2,	TYPE_Bool,          DataHeader::AtLeast,		{TYPE_Int,			TYPE_Int}},
+	{Token::AtMost,				40,		2,	TYPE_Bool,          DataHeader::AtMost,			{TYPE_Int,			TYPE_Int}},
+	{Token::Equals,				50,		2,	TYPE_Bool,          DataHeader::Equals,			{TYPE_Int,			TYPE_Int}},
+	{Token::NotEquals,			50,		2,	TYPE_Bool,          DataHeader::NotEquals,		{TYPE_Int,			TYPE_Int}},
+	{Token::Amperstand,			60,		2,	TYPE_Int,           DataHeader::AndBitwise,		{TYPE_Int,			TYPE_Int}},
+	{Token::Caret,				70,		2,	TYPE_Int,           DataHeader::EorBitwise,		{TYPE_Int,			TYPE_Int}},
+	{Token::Bar,				80,		2,	TYPE_Int,           DataHeader::OrBitwise,		{TYPE_Int,			TYPE_Int}},
+	{Token::DoubleAmperstand,	90,		2,	TYPE_Bool,          DataHeader::AndLogical,		{TYPE_Bool,			TYPE_ToBeDecided}},
+	{Token::DoubleBar,			100,	2,	TYPE_Bool,          DataHeader::OrLogical,		{TYPE_Bool,			TYPE_ToBeDecided}},
+	{Token::QuestionMark,		110,	3,	TYPE_ToBeDecided,   DataHeader::NumValues,	    {TYPE_ToBeDecided,	TYPE_ToBeDecided}},
 };
 
 // _________________________________________________________________________________________________
@@ -110,11 +111,21 @@ ExpressionSymbol* Expression::parseSymbol()
 		return op;
 	}
 
-	// Check for variables
+	// Check for variables and special symbols
 	if (m_lexer->peekNextType(Token::Symbol))
 	{
 		m_lexer->mustGetNext (Token::Symbol);
-		Variable* var = m_parser->findVariable (getTokenString());
+
+		String name = getTokenString();
+
+		State* state = m_parser->getStateByName(name);
+		if (state != null) {
+			ExpressionValue* op = new ExpressionValue(TYPE_State);
+			op->setValue(state->index);
+			return op;
+		}
+
+		Variable* var = m_parser->findVariable (name);
 
 		if (var == null)
 			error ("unknown variable %1", getTokenString());
@@ -423,15 +434,25 @@ ExpressionValue* Expression::evaluateOperator (const ExpressionOperator* op,
 {
 	const OperatorInfo* info = &g_Operators[op->id()];
 	bool isconstexpr = true;
-	ASSERT_EQ (values.size(), info->numoperands)
+	ASSERT_EQ(values.size(), info->numoperands)
 
 	// See whether the values are constexpr
-	for (ExpressionValue* val : values)
+	// also check operands types
 	{
-		if (not val->isConstexpr())
+		int opIndex = 0;
+		for (ExpressionValue* val : values)
 		{
-			isconstexpr = false;
-			break;
+			if (not val->isConstexpr())
+			{
+				isconstexpr = false;
+				break;
+			}
+
+			if (val->valueType() != info->argType[opIndex]) {
+				error("Operand type '%1' is incompatible with the operator", dataTypeName(val->valueType()));
+			}
+
+			++opIndex;
 		}
 	}
 
@@ -688,5 +709,15 @@ void ExpressionValue::convertToBuffer()
 		case TYPE_Void:
 		case TYPE_Unknown:
 			error ("WTF: tried to convert bad expression value type %1 to buffer", m_valueType);
+	}
+}
+
+bool typeIsAssignableTo(DataType valueType, DataType assignementTargetType)
+{
+	if (assignementTargetType == TYPE_State) {
+		return valueType == TYPE_State || valueType == TYPE_Int;
+	}
+	else {
+		return valueType == assignementTargetType;
 	}
 }

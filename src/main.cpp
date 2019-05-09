@@ -150,6 +150,7 @@ DataType getTypeByName (String token)
 		  : (token == "str") ? TYPE_String
 		  : (token == "void") ? TYPE_Void
 		  : (token == "bool") ? TYPE_Bool
+		  : (token == "state") ? TYPE_State
 		  : TYPE_Unknown;
 }
 
@@ -166,6 +167,7 @@ String dataTypeName (DataType type)
 		case TYPE_String: return "str"; break;
 		case TYPE_Void: return "void"; break;
 		case TYPE_Bool: return "bool"; break;
+		case TYPE_State: return "state"; break;
 		case TYPE_Unknown: return "???"; break;
 	}
 
