@@ -257,6 +257,8 @@ void BotscriptParser::parseStateBlock()
 	if (statename.firstIndexOf (" ") != -1)
 		error ("state name must be a single word, got `%1`", statename);
 
+	verifyVariableIsNotDefined(statename);
+
 	State *state = null;
 
 	if (m_lexer->peekNextType(Token::BraceStart)) {
@@ -385,13 +387,10 @@ void BotscriptParser::parseVar()
 			error ("arrays cannot be const");
 	}
 
-	for (Variable* var : SCOPE(0).globalVariables + SCOPE(0).localVariables)
-	{
-		if (var->name == name)
-		{
-			error ("Variable $%1 is already declared on this scope; declared at %2",
-				var->name, var->origin);
-		}
+	verifyVariableIsNotDefined(name);
+
+	if (getStateByName(name) != null) {
+		error("State %1 is already declared, a variable cannot have the same name", name);
 	}
 
 	var->name = name;
@@ -449,6 +448,19 @@ void BotscriptParser::parseVar()
 	m_lexer->mustGetNext (Token::Semicolon);
 	print ("Declared %3 variable #%1 $%2\n", var->index, var->name, isInGlobalState() ? "global" : 
 "state-local");
+}
+
+// _________________________________________________________________________________________________
+//
+void BotscriptParser::verifyVariableIsNotDefined(const String &name) {
+	for (Variable* var : SCOPE(0).globalVariables + SCOPE(0).localVariables)
+	{
+		if (var->name == name)
+		{
+			error("Variable %1 is already declared on this scope; declared at %2",
+				var->name, var->origin);
+		}
+	}
 }
 
 // _________________________________________________________________________________________________

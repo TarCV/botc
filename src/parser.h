@@ -262,6 +262,7 @@ private:
 	void			parseBuiltinDef();
 	void			writeMemberBuffers();
 	void			writeStringTable();
+	void			verifyVariableIsNotDefined(const String &name);
 	DataBuffer*		parseExpression (DataType reqtype, bool fromhere = false);
 	DataHeader		getAssigmentDataHeader (AssignmentOperator op, Variable* var);
 };
