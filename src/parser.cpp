@@ -1352,7 +1352,7 @@ DataBuffer* BotscriptParser::parseStatement()
 		Variable* var = findVariable (getTokenString());
 
 		if (var == null)
-			error ("unknown variable $%1", var->name);
+			error ("unknown variable %1", var->name);
 
 		return parseAssignment (var);
 	}

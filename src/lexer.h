@@ -128,6 +128,7 @@ private:
 	// read a mandatory token from scanner
 	void mustGetFromScanner (LexerScanner& sc, Token tt =Token::Any);
 	void checkFileHeader (LexerScanner& sc);
+	void preprocessTokens();
 
 	static String DescribeTokenPrivate (Token tok_type, TokenInfo* tok);
 };

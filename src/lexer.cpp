@@ -68,7 +68,78 @@ Lexer::~Lexer()
 void Lexer::processFile(String fileName)
 {
 	processFileInternal(fileName);
+	preprocessTokens();
 }
+
+// _________________________________________________________________________________________________
+//
+void Lexer::preprocessTokens()
+{
+	struct Insertion
+	{
+		int position;
+		TokenInfo newToken;
+	};
+
+	int position(0), braceLevel(0);
+	TokenInfo prevToken;
+	List<int> insertClosingBraceAtReturnToLevel;
+	bool checkInsertAtNextToken(false);
+	List<Insertion> insertions;
+	for (TokenInfo &token : m_tokens) {
+		if (checkInsertAtNextToken) {
+			if (token.type != Token::Else) {
+				TokenInfo braceToken(token);
+				braceToken.type = Token::BraceEnd;
+				braceToken.text = "}";
+
+				insertions.append({ position, braceToken });
+				insertClosingBraceAtReturnToLevel.pop();
+			}
+
+			checkInsertAtNextToken = false;
+		}
+
+		switch (token.type) {
+		case Token::BraceStart:
+		{
+			++braceLevel;
+		}
+			break;
+		case Token::BraceEnd:
+		{
+			--braceLevel;
+
+			if (!insertClosingBraceAtReturnToLevel.isEmpty() && insertClosingBraceAtReturnToLevel.last() == braceLevel) {
+				checkInsertAtNextToken = true; // we should not insert if the next token is 'else', so wait for it
+			}
+		}
+			break;
+		case Token::If:
+			if (prevToken.type == Token::Else) {
+				TokenInfo braceToken(token);
+				braceToken.type = Token::BraceStart;
+				braceToken.text = "{";
+				insertions.append({ position, braceToken });
+
+				insertClosingBraceAtReturnToLevel.append(braceLevel);
+			}
+			break;
+		}
+
+		prevToken = token;
+		++position;
+	}
+
+	// Apply insertion in the reverse order, otherwise positions should be corrected after each insertion
+	for (auto it = insertions.crbegin(); it != insertions.crend(); ++it) {
+		m_tokens.insert(it->position, it->newToken);
+	}
+
+	// Tokens list was changed, thus reinitialise the iterator
+	m_tokenPosition = m_tokens.begin();
+}
+
 // _________________________________________________________________________________________________
 //
 void Lexer::processFileInternal(String fileName)
