@@ -313,7 +313,7 @@ void BotscriptParser::parseStateBlock()
 void BotscriptParser::parseEventBlock()
 {
 	checkTopOrStatelevel();
-	m_lexer->mustGetNext (Token::String);
+	m_lexer->mustGetNext (Token::Symbol);
 
 	EventDefinition* e = findEventByName (getTokenString());
 
