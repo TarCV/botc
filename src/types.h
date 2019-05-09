@@ -46,6 +46,7 @@ named_enum DataType : char
 	TYPE_String,
 	TYPE_Bool,
 	TYPE_State,
+	TYPE_Array,
 	TYPE_ToBeDecided // unknown by the time parsing started, but should be known by the end of parsing expression
 };
 

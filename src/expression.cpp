@@ -140,14 +140,21 @@ ExpressionSymbol* Expression::parseSymbol()
 
 		if (var->isarray)
 		{
-			m_lexer->mustGetNext (Token::BracketStart);
-			Expression expr (m_parser, m_lexer, TYPE_Int);
-			expr.getResult()->convertToBuffer();
-			DataBuffer* buf = expr.getResult()->buffer()->clone();
-			buf->writeHeader (DataHeader::PushGlobalArray);
-			buf->writeDWord (var->index);
-			op->setBuffer (buf);
-			m_lexer->mustGetNext (Token::BracketEnd);
+			if (m_lexer->peekNextType(Token::BracketStart)) {
+				m_lexer->mustGetNext(Token::BracketStart);
+				Expression expr(m_parser, m_lexer, TYPE_Int);
+				expr.getResult()->convertToBuffer();
+				DataBuffer* buf = expr.getResult()->buffer()->clone();
+				buf->writeHeader(DataHeader::PushGlobalArray);
+				buf->writeDWord(var->index);
+				op->setBuffer(buf);
+				m_lexer->mustGetNext(Token::BracketEnd);
+			}
+			else {
+				delete op;
+				op = new ExpressionValue(TYPE_Array);
+				op->setValue(var->index);
+			}
 		}
 		elif (var->writelevel == WRITE_Constexpr)
 		{
@@ -717,6 +724,9 @@ bool typeIsAssignableTo(DataType valueType, DataType assignementTargetType)
 	if (assignementTargetType == TYPE_State) {
 		return valueType == TYPE_State || valueType == TYPE_Int;
 	}
+	else if (assignementTargetType == TYPE_Array) {
+		return valueType == TYPE_Array || valueType == TYPE_Int;
+	} 
 	else {
 		return valueType == assignementTargetType;
 	}

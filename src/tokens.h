@@ -114,6 +114,7 @@ named_enum class Token
 	Return,
 
 	BuiltinDef,
+	Array,
 
 	// --------------
 	// Generic tokens
@@ -126,6 +127,6 @@ named_enum class Token
 };
 
 static Token const FirstNamedToken = Token::Bool;
-static Token const LastNamedToken = Token::BuiltinDef;
+static Token const LastNamedToken = Token::Array;
 
 #endif

@@ -151,6 +151,7 @@ DataType getTypeByName (String token)
 		  : (token == "void") ? TYPE_Void
 		  : (token == "bool") ? TYPE_Bool
 		  : (token == "state") ? TYPE_State
+		  : (token == "array") ? TYPE_Array
 		  : TYPE_Unknown;
 }
 

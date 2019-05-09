@@ -944,7 +944,7 @@ void BotscriptParser::parseFuncdef(bool isBuiltin)
 			m_lexer->mustGetNext (Token::Comma);
 
 		CommandArgument arg;
-		m_lexer->mustGetAnyOf ({Token::Int,Token::Bool,Token::Str,Token::State});
+		m_lexer->mustGetAnyOf ({Token::Int,Token::Bool,Token::Str,Token::State,Token::Array});
 		DataType type = getTypeByName (m_lexer->token()->text); // TODO
 		ASSERT_NE (type, TYPE_Unknown)
 		ASSERT_NE (type, TYPE_Void)
