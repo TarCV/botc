@@ -51,9 +51,8 @@ BotscriptParser::BotscriptParser() :
 	m_mainLoopBuffer (new DataBuffer),
 	m_switchBuffer (nullptr),
 	m_lexer (new Lexer),
-	m_numStates (0),
 	m_numEvents (0),
-	m_currentMode (ParserMode::TopLevel),
+	m_currentMode{ ParserMode::TopLevel },
 	m_isStateSpawnDefined (false),
 	m_gotMainLoop (false),
 	m_scopeCursor (-1),
@@ -72,16 +71,24 @@ BotscriptParser::~BotscriptParser()
 //
 void BotscriptParser::checkToplevel()
 {
-	if (m_currentMode != ParserMode::TopLevel)
+	if (m_currentMode.last() != ParserMode::TopLevel)
 		error ("%1-statements may only be defined at top level!", getTokenString());
+}
+
+// _________________________________________________________________________________________________
+//
+void BotscriptParser::checkTopOrStatelevel()
+{
+	if (m_currentMode.last() != ParserMode::TopLevel && m_currentMode.last() != ParserMode::State)
+		error("%1-statements may only be defined at top or state levels!", getTokenString());
 }
 
 // _________________________________________________________________________________________________
 //
 void BotscriptParser::checkNotToplevel()
 {
-	if (m_currentMode == ParserMode::TopLevel)
-		error ("%1-statements must not be defined at top level!", getTokenString());
+	if (m_currentMode.last() == ParserMode::TopLevel && m_currentMode.last() != ParserMode::State)
+		error ("%1-statements must not be defined at top or state levels!", getTokenString());
 }
 
 // _________________________________________________________________________________________________
@@ -220,7 +227,7 @@ void BotscriptParser::parseBotscript (String fileName)
 	}
 
 	// Script file ended. Do some last checks and write the last things to main buffer
-	if (m_currentMode != ParserMode::TopLevel)
+	if (m_currentMode.last() != ParserMode::TopLevel)
 		error ("script did not end at top level; a `}` is missing somewhere");
 
 	if (isReadOnly() == false)
@@ -243,49 +250,69 @@ void BotscriptParser::parseStateBlock()
 {
 	checkToplevel();
 
-	if (SCOPE_State == SCOPE (0).type) {
-		// Descend down the stack
-		m_scopeCursor--;
-	}
-
-	m_lexer->mustGetNext (Token::String);
+	m_lexer->mustGetNext (Token::Symbol);
 	String statename = getTokenString();
 
 	// State name must be a word.
 	if (statename.firstIndexOf (" ") != -1)
 		error ("state name must be a single word, got `%1`", statename);
 
-	// stateSpawn is special - it *must* be defined. If we
-	// encountered it, then mark down that we have it.
-	if (statename.toLowercase() == "statespawn")
-		m_isStateSpawnDefined = true;
+	State *state = null;
 
-	// Must end in a colon
-	m_lexer->mustGetNext (Token::Colon);
+	if (m_lexer->peekNextType(Token::BraceStart)) {
+		// This is an actual definition, not just a declaration
+		m_lexer->mustGetNext(Token::BraceStart);
+		m_currentMode.append(ParserMode::State);
 
-	// write the previous state's onenter and
-	// mainloop buffers to file now
-	if (m_currentState.isEmpty() == false)
-		writeMemberBuffers();
+		// stateSpawn is special - it *must* be defined. If we
+		// encountered it, then mark down that we have it.
+		if (statename.toLowercase() == "statespawn")
+			m_isStateSpawnDefined = true;
 
-	currentBuffer()->writeHeader (DataHeader::StateName);
-	currentBuffer()->writeString (statename);
-	currentBuffer()->writeHeader (DataHeader::StateIndex);
-	currentBuffer()->writeDWord (m_numStates);
+		state = getStateByName(statename);
+		if (state->isdeclared) {
+			error("State %1 is already defined, cann't redefine", statename);
+		}
+		if (state == nullptr) {
+			state = new State(m_knownStates.size());
+			state->name = statename;
+			m_knownStates.append(*state);
+		}
 
-	m_numStates++;
-	m_currentState = statename;
-	m_gotMainLoop = false;
+		state->isdeclared = true;
 
-	pushScope();
-	SCOPE (0).type = SCOPE_State;
+		currentBuffer()->writeHeader(DataHeader::StateName);
+		currentBuffer()->writeString(statename);
+		currentBuffer()->writeHeader(DataHeader::StateIndex);
+		currentBuffer()->writeDWord(state->index);
+
+		m_currentState = statename;
+		m_gotMainLoop = false;
+
+		pushScope();
+		SCOPE(0).type = SCOPE_State;
+	}
+	else {
+		m_lexer->mustGetNext(Token::Semicolon);
+
+		state = getStateByName(statename);
+		if (state == nullptr) {
+			state = new State(m_knownStates.size());
+			state->name = statename;
+			state->isdeclared = false;
+			m_knownStates.append(*state);
+		}
+		else {
+			warning("State %1 is already defined or declared", statename);
+		}
+	}
 }
 
 // _________________________________________________________________________________________________
 //
 void BotscriptParser::parseEventBlock()
 {
-	checkToplevel();
+	checkTopOrStatelevel();
 	m_lexer->mustGetNext (Token::String);
 
 	EventDefinition* e = findEventByName (getTokenString());
@@ -294,7 +321,7 @@ void BotscriptParser::parseEventBlock()
 		error ("bad event, got `%1`\n", getTokenString());
 
 	m_lexer->mustGetNext (Token::BraceStart);
-	m_currentMode = ParserMode::Event;
+	m_currentMode.append(ParserMode::Event);
 	currentBuffer()->writeHeader (DataHeader::Event);
 	currentBuffer()->writeDWord (e->number);
 	m_numEvents++;
@@ -304,10 +331,10 @@ void BotscriptParser::parseEventBlock()
 //
 void BotscriptParser::parseMainloop()
 {
-	checkToplevel();
+	checkTopOrStatelevel();
 	m_lexer->mustGetNext (Token::BraceStart);
 
-	m_currentMode = ParserMode::MainLoop;
+	m_currentMode.append(ParserMode::MainLoop);
 	m_gotMainLoop = true;
 	m_mainLoopBuffer->writeHeader (DataHeader::MainLoop);
 }
@@ -316,10 +343,10 @@ void BotscriptParser::parseMainloop()
 //
 void BotscriptParser::parseOnEnterExit()
 {
-	checkToplevel();
+	checkTopOrStatelevel();
 	bool onenter = (tokenIs (Token::Onenter));
 	m_lexer->mustGetNext (Token::BraceStart);
-	m_currentMode = onenter ? ParserMode::Onenter : ParserMode::Onexit;
+	m_currentMode.append(onenter ? ParserMode::Onenter : ParserMode::Onexit);
 	currentBuffer()->writeHeader (onenter ? DataHeader::OnEnter : DataHeader::OnExit);
 }
 
@@ -739,7 +766,7 @@ void BotscriptParser::parseBlockEnd()
 {
 	// Closing brace
 	// If we're in the block stack, we're descending down from it now
-	if (m_scopeCursor > 0 && SCOPE(0).type != SCOPE_State) // states are not closed with closing braces
+	if (m_scopeCursor > 0 && SCOPE(0).type != SCOPE_State) // states are special case
 	{
 		switch (SCOPE (0).type)
 		{
@@ -834,21 +861,37 @@ void BotscriptParser::parseBlockEnd()
 		return;
 	}
 
-	DataHeader dataheader =
-		  (m_currentMode == ParserMode::Event) ? DataHeader::EndEvent
-		: (m_currentMode == ParserMode::MainLoop) ? DataHeader::EndMainLoop
-		: (m_currentMode == ParserMode::Onenter) ? DataHeader::EndOnEnter
-		: (m_currentMode == ParserMode::Onexit) ? DataHeader::EndOnExit
-		: DataHeader::NumValues;
+	if (m_currentMode.last() == ParserMode::State) {
+		// write the current state's onenter and
+		// mainloop buffers to file now
+		if (m_currentState.isEmpty() == false)
+			writeMemberBuffers();
 
-	if (dataheader == DataHeader::NumValues)
-		error ("unexpected `}`");
+		if (SCOPE(0).type == SCOPE_State) {
+			// Descend down the stack
+			m_scopeCursor--;
+		}
+	} else {
+		DataHeader dataheader =
+			(m_currentMode.last() == ParserMode::Event) ? DataHeader::EndEvent
+			: (m_currentMode.last() == ParserMode::MainLoop) ? DataHeader::EndMainLoop
+			: (m_currentMode.last() == ParserMode::Onenter) ? DataHeader::EndOnEnter
+			: (m_currentMode.last() == ParserMode::Onexit) ? DataHeader::EndOnExit
+			: DataHeader::NumValues;
 
-	// Data header must be written before mode is changed because
-	// onenter and mainloop go into special buffers, and we want
-	// the closing data headers into said buffers too.
-	currentBuffer()->writeHeader (dataheader);
-	m_currentMode = ParserMode::TopLevel;
+		if (dataheader == DataHeader::NumValues)
+			error("unexpected `}`");
+
+		// Data header must be written before mode is changed because
+		// onenter and mainloop go into special buffers, and we want
+		// the closing data headers into said buffers too.
+		currentBuffer()->writeHeader(dataheader);
+	}
+
+	assert(m_currentMode.size() > 1);
+	m_currentMode.pop();
+	assert(m_currentMode.last() == ParserMode::TopLevel || m_currentMode.last() == ParserMode::State);
+
 	m_lexer->next (Token::Semicolon);
 }
 
@@ -959,8 +1002,8 @@ DataBuffer* BotscriptParser::parseCommand (CommandInfo* comm)
 {
 	DataBuffer* r = new DataBuffer (64);
 
-	if (m_currentMode == ParserMode::TopLevel and comm->returnvalue == TYPE_Void)
-		error ("command call at top level");
+	if ((m_currentMode.last() == ParserMode::TopLevel || m_currentMode.last() == ParserMode::State) and comm->returnvalue == TYPE_Void)
+		error ("command call at top or state level");
 
 	m_lexer->mustGetNext (Token::ParenStart);
 	m_lexer->mustGetNext (Token::Any);
@@ -1169,6 +1212,12 @@ DataHeader BotscriptParser::getAssigmentDataHeader (AssignmentOperator op, Varia
 	return (DataHeader) 0;
 }
 
+State * BotscriptParser::getStateByName(const String& name)
+{
+	std::function<bool(State const&)> lambda = [&name](const State& state) -> bool { return state.name == name; };
+	return m_knownStates.find(lambda);
+}
+
 // _________________________________________________________________________________________________
 //
 // Parses an assignment. An assignment starts with a variable name, followed
@@ -1195,8 +1244,8 @@ DataBuffer* BotscriptParser::parseAssignment (Variable* var)
 	// Get an operator
 	AssignmentOperator oper = parseAssignmentOperator();
 
-	if (m_currentMode == ParserMode::TopLevel)
-		error ("can't alter variables at top level");
+	if (m_currentMode.last() == ParserMode::TopLevel || m_currentMode.last() == ParserMode::State)
+		error ("can't alter variables at top or state level");
 
 	if (var->isarray)
 		retbuf->mergeAndDestroy (arrayindex);
@@ -1356,10 +1405,10 @@ DataBuffer* BotscriptParser::currentBuffer()
 	if (m_switchBuffer != nullptr)
 		return m_switchBuffer;
 
-	if (m_currentMode == ParserMode::MainLoop)
+	if (m_currentMode.last() == ParserMode::MainLoop)
 		return m_mainLoopBuffer;
 
-	if (m_currentMode == ParserMode::Onenter)
+	if (m_currentMode.last() == ParserMode::Onenter)
 		return m_onenterBuffer;
 
 	return m_mainBuffer;

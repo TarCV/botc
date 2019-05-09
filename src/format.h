@@ -260,6 +260,12 @@ void error (const char* fmtstr, const argtypes&... args)
 	error (format (String (fmtstr), args...));
 }
 
+template<typename... argtypes>
+void warning(const String& fmtstr, const argtypes&... args)
+{
+	print("WARNING: " + fmtstr, args...);
+}
+
 //
 // An overload of error() with no string formatting in between.
 //

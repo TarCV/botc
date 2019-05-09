@@ -96,6 +96,7 @@ named_enum class ParserMode
 	MainLoop,	// inside mainloop
 	Onenter,	// inside onenter
 	Onexit,		// inside onexit
+	State,		// inside state definition
 
 	NumValues
 };
@@ -117,6 +118,17 @@ struct Variable
 	{
 		return statename.isEmpty();
 	}
+};
+
+// _________________________________________________________________________________________________
+//
+struct State
+{
+	String			name;
+	bool			isdeclared;
+	int				index;
+
+	State(int newIndex) : index(newIndex) {}
 };
 
 // _________________________________________________________________________________________________
@@ -168,6 +180,7 @@ public:
 	DataBuffer*				parseStatement();
 	void					addSwitchCase (DataBuffer* b);
 	void					checkToplevel();
+	void checkTopOrStatelevel();
 	void					checkNotToplevel();
 	bool					tokenIs (Token a);
 	String					getTokenString();
@@ -190,7 +203,7 @@ public:
 
 	inline int numStates() const
 	{
-		return m_numStates;
+		return m_knownStates.size();
 	}
 
 private:
@@ -211,9 +224,8 @@ private:
 	DataBuffer*		m_switchBuffer;
 
 	Lexer*			m_lexer;
-	int				m_numStates;
 	int				m_numEvents;
-	ParserMode		m_currentMode;
+	List<ParserMode>	m_currentMode;
 	String			m_currentState;
 	bool			m_isStateSpawnDefined;
 	bool			m_gotMainLoop;
@@ -223,6 +235,7 @@ private:
 	int				m_highestStateVarIndex;
 	int				m_numWrittenBytes;
 	List<ScopeInfo>	m_scopeStack;
+	List<State>		m_knownStates;
 
 	DataBuffer*		currentBuffer();
 	void			parseStateBlock();
@@ -250,6 +263,7 @@ private:
 	void			writeStringTable();
 	DataBuffer*		parseExpression (DataType reqtype, bool fromhere = false);
 	DataHeader		getAssigmentDataHeader (AssignmentOperator op, Variable* var);
+	State*			getStateByName(const String& name);
 };
 
 #endif // BOTC_PARSER_H

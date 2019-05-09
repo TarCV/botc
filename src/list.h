@@ -67,6 +67,7 @@ public:
 	inline bool						isEmpty() const;
 	inline const T&					last() const;
 	void							merge (const List<T>& other);
+	bool							pop ();
 	bool							pop (T& val);
 	inline T&						prepend (const T& value);
 	inline ReverseIterator			rbegin();
@@ -187,6 +188,16 @@ void List<T>::merge (const List<T>& other)
 	int oldsize = size();
 	resize (size() + other.size());
 	std::copy (other.begin(), other.end(), begin() + oldsize);
+}
+
+template<typename T>
+bool List<T>::pop()
+{
+	if (isEmpty())
+		return false;
+
+	_deque.erase(_deque.end() - 1);
+	return true;
 }
 
 template<typename T>
