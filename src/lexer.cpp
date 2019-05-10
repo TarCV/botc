@@ -86,15 +86,20 @@ void Lexer::preprocessTokens()
 	List<int> insertClosingBraceAtReturnToLevel;
 	bool checkInsertAtNextToken(false);
 	List<Insertion> insertions;
+	int numInsertedOpens(0), numInsertedCloses(0);
+
 	for (TokenInfo &token : m_tokens) {
 		if (checkInsertAtNextToken) {
 			if (token.type != Token::Else) {
-				TokenInfo braceToken(token);
-				braceToken.type = Token::BraceEnd;
-				braceToken.text = "}";
+				while (!insertClosingBraceAtReturnToLevel.isEmpty() && insertClosingBraceAtReturnToLevel.last() == braceLevel) {
+					TokenInfo braceToken(token);
+					braceToken.type = Token::BraceEnd;
+					braceToken.text = "}";
 
-				insertions.append({ position, braceToken });
-				insertClosingBraceAtReturnToLevel.pop();
+					++numInsertedCloses;
+					insertions.append({ position, braceToken });
+					insertClosingBraceAtReturnToLevel.pop();
+				}
 			}
 
 			checkInsertAtNextToken = false;
@@ -120,6 +125,7 @@ void Lexer::preprocessTokens()
 				TokenInfo braceToken(token);
 				braceToken.type = Token::BraceStart;
 				braceToken.text = "{";
+				++numInsertedOpens;
 				insertions.append({ position, braceToken });
 
 				insertClosingBraceAtReturnToLevel.append(braceLevel);
@@ -131,12 +137,22 @@ void Lexer::preprocessTokens()
 		++position;
 	}
 
-	// Apply insertion in the reverse order, otherwise positions should be corrected after each insertion
-	for (auto it = insertions.crbegin(); it != insertions.crend(); ++it) {
-		m_tokens.insert(it->position, it->newToken);
+	ASSERT_EQ(numInsertedOpens, numInsertedCloses);
+
+	List<TokenInfo> newTokens {};
+	int index(0);
+	auto sourceIt = m_tokens.begin();
+	for (auto it = insertions.begin(); it != insertions.end(); ++it) {
+		for (; index < it->position; ++sourceIt, ++index) {
+			newTokens.append(*sourceIt);
+		}
+		newTokens.append(it->newToken);
+	}
+	for (; sourceIt != m_tokens.end(); ++sourceIt) {
+		newTokens.append(*sourceIt);
 	}
 
-	// Tokens list was changed, thus reinitialise the iterator
+	m_tokens = newTokens;
 	m_tokenPosition = m_tokens.begin();
 }
 
