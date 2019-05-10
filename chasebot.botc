@@ -1,0 +1,159 @@
+#!botc 2.0.0
+
+//*************************************************************************************************************
+// This is the bot AI script for a generic bot. A quick explanation on how a script works.
+//
+// The bot's logic is organized into a series of states. Initially, the bot starts in the stateSpawn state
+// (every script must include this!), and from there the bot can be scripted to do whatever the scripter wants.
+// Each state has three subsections: onenter, mainloop, and onexit. Every time a new state is entered into, the
+// code in its onenter section is executed. After that, the code in its mainloop will be executed until a
+// changestate command is called. At that point, the code in its onexit section is executed. After that, the
+// state changes to the desired state, and the whole thing starts over again.
+//
+// The bot can also respond to events that take place in the world. It is up to the script to decide which
+// events to respond to in any given state. <more here>
+
+#include "botc_defs.bts"
+
+//*************************************************************************************************************
+// In this section we list all the states that will be used in the script.
+state	stateSpawn;
+state	stateLookForEnemy;
+state	stateAim;
+state	stateChaseEnemy;
+state	stateKilled;
+state	stateRespawn;
+
+//*************************************************************************************************************
+// This is where the global events that are responded to are listed. If this event happens at any time, this is
+// the response that will occur, regardless of the state.
+event KilledByEnemy {
+    changestate( stateKilled );
+}
+event KilledByPlayer {
+    changestate( stateKilled );
+}
+event KilledBySelf {
+    changestate( stateKilled );
+}
+event KilledByEnvironment {
+    changestate( stateKilled );
+}
+
+//*************************************************************************************************************
+// This is the state a bot is placed in when he spawns. This state MUST be in the script!
+state	stateSpawn
+{
+	onenter
+	{
+		changestate( stateLookForEnemy );
+	}
+}
+
+//*************************************************************************************************************
+state	stateLookForEnemy
+{
+	int	iEnemy;
+
+	mainloop
+	{
+		iEnemy = GetClosestPlayerEnemy( );
+		if ( iEnemy != -1 )
+		{
+			SetEnemy( iEnemy );
+			changestate( stateAim );
+		}
+	}
+}
+
+//*************************************************************************************************************
+state	stateAim
+{
+	onenter
+	{
+		BeginAimingAtEnemy( );
+	}
+
+	mainloop
+	{
+		if ( !IsEnemyVisible() ) {
+            changestate(stateChaseEnemy);
+        }
+
+		if ( !IsEnemyAlive() ) {
+            changestate(stateLookForEnemy);
+        }
+	}
+
+	onexit
+	{
+		StopAimingAtEnemy( );
+	}
+}
+
+//*************************************************************************************************************
+state	stateChaseEnemy
+{
+	int	iResult;
+	int	iEnemy;
+
+	onenter
+	{
+	}
+
+	mainloop
+	{
+		iEnemy = GetClosestPlayerEnemy( );
+		if ( iEnemy != -1 )
+		{
+			SetEnemy( iEnemy );
+			changestate( stateAim );
+		}
+
+		iResult = PathToLastKnownEnemyPosition( 100 );
+		switch ( iResult )
+		{
+		case PATH_UNREACHABLE:
+
+			ClearEnemy( );
+			changestate( stateLookForEnemy );
+			break;
+		case PATH_REACHEDGOAL:
+
+			ClearEnemy( );
+			changestate( stateLookForEnemy );
+			break;
+		}
+	}
+
+	onexit
+	{
+	}
+}
+
+//*************************************************************************************************************
+state	stateKilled
+{
+	event Respawned	{
+	    changestate( stateRespawn );
+	}
+
+	mainloop
+	{
+		// Hold space so that the bot can respawn.
+		Respawn( );
+	}
+}
+
+//*************************************************************************************************************
+state	stateRespawn
+{
+	onenter
+	{
+		changestate( stateLookForEnemy );
+	}
+
+	mainloop
+	{
+	}
+}
