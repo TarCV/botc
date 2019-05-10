@@ -660,12 +660,36 @@ void BotscriptParser::parseSwitchCase()
 
 	// Get a literal value for the case block. Zandronum does not support
 	// expressions here.
-	bool isNegative = m_lexer->next(Token::Minus);
-	m_lexer->mustGetNext (Token::Number);
-	int num = m_lexer->token()->text.toLong();
-	if (isNegative) {
-		num = -num;
+	int num;
+	m_lexer->mustGetAnyOf({ Token::Minus, Token::Number, Token::Symbol });
+
+	bool isNegative = false;
+	switch (m_lexer->token()->type) {
+	case Token::Minus:
+		isNegative = true;
+		m_lexer->mustGetNext(Token::Number);
+		// fall-through
+	case Token::Number:
+		num = m_lexer->token()->text.toLong();
+		if (isNegative) {
+			num = -num;
+		}
+		break;
+
+	case Token::Symbol:
+	{
+		Variable *var = findVariable(m_lexer->token()->text);
+		if (var == null) {
+			error("Constant %1 is not defined", m_lexer->token()->text);
+		}
+		if (var->writelevel != Writability::WRITE_Constexpr) {
+			error("Only constants known at compile-time can be used as case values");
+		}
+		num = var->value;
+		break;
 	}
+	}
+
 	m_lexer->mustGetNext (Token::Colon);
 
 	for (const CaseInfo& info : SCOPE(0).cases)
