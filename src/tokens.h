@@ -111,8 +111,8 @@ named_enum class Token
 	// reserved. Also serves as a to-do list of sorts for me. >:F
 	Enum,
 	Func,
-	Return,
 
+	Return,
 	BuiltinDef,
 	Array,
 

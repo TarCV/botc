@@ -237,6 +237,7 @@ private:
 	int				m_numWrittenBytes;
 	List<ScopeInfo>	m_scopeStack;
 	List<State>		m_knownStates;
+	List<ByteMark *>	m_returnMarks;
 
 	DataBuffer*		currentBuffer();
 	void			parseStateBlock();

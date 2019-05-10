@@ -197,6 +197,14 @@ void BotscriptParser::parseBotscript (String fileName)
 			case Token::Semicolon:
 				break;
 
+			case Token::Return:
+			{
+				currentBuffer()->writeHeader(DataHeader::Goto);
+				ByteMark *returnMark = currentBuffer()->addMark("");
+				m_returnMarks.append(returnMark);
+				break;
+			}
+
 			default:
 			{
 				// Check if it's a command
@@ -893,6 +901,10 @@ void BotscriptParser::parseBlockEnd()
 
 		if (dataheader == DataHeader::NumValues)
 			error("unexpected `}`");
+
+		for (ByteMark *mark : m_returnMarks) {
+			currentBuffer()->adjustMark(mark);
+		}
 
 		// Data header must be written before mode is changed because
 		// onenter and mainloop go into special buffers, and we want
