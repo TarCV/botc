@@ -453,9 +453,17 @@ void BotscriptParser::parseVar()
 	}
 
 	suggestHighestVarIndex (isInGlobalState(), var->index);
-	m_lexer->mustGetNext (Token::Semicolon);
-	print ("Declared %3 variable #%1 $%2\n", var->index, var->name, isInGlobalState() ? "global" : 
-"state-local");
+	print("Declared %3 variable #%1 $%2\n", var->index, var->name, isInGlobalState() ? "global" :
+		"state-local");
+
+	m_lexer->mustGetAnyOf({ Token::Assign, Token::Semicolon });
+	if (tokenIs(Token::Assign)) {
+		if (var->isarray) {
+			error("Cannot set array variable values in a definition");
+		}
+		m_lexer->skip(-1);
+		parseAssignment(var);
+	}
 }
 
 // _________________________________________________________________________________________________
