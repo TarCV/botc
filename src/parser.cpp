@@ -201,6 +201,7 @@ void BotscriptParser::parseBotscript (String fileName)
 			{
 				currentBuffer()->writeHeader(DataHeader::Goto);
 				ByteMark *returnMark = currentBuffer()->addMark("");
+                currentBuffer()->addReference(returnMark);
 				m_returnMarks.append(returnMark);
 				break;
 			}
@@ -937,6 +938,7 @@ void BotscriptParser::parseBlockEnd()
 		for (ByteMark *mark : m_returnMarks) {
 			currentBuffer()->adjustMark(mark);
 		}
+		m_returnMarks.clear();
 
 		// Data header must be written before mode is changed because
 		// onenter and mainloop go into special buffers, and we want
