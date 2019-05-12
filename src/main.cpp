@@ -169,6 +169,7 @@ String dataTypeName (DataType type)
 		case TYPE_Void: return "void"; break;
 		case TYPE_Bool: return "bool"; break;
 		case TYPE_State: return "state"; break;
+		case TYPE_Array: return "array"; break;
 		case TYPE_Unknown: return "???"; break;
 	}
 

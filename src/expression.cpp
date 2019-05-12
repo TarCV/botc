@@ -701,6 +701,8 @@ void ExpressionValue::convertToBuffer()
 	{
 		case TYPE_Bool:
 		case TYPE_Int:
+		case TYPE_State: // state index
+		case TYPE_Array: // index of an array
 			buffer()->writeHeader (DataHeader::PushNumber);
 			buffer()->writeDWord (abs (value()));
 
@@ -715,6 +717,7 @@ void ExpressionValue::convertToBuffer()
 
 		case TYPE_Void:
 		case TYPE_Unknown:
+		default:
 			error ("WTF: tried to convert bad expression value type %1 to buffer", m_valueType);
 	}
 }
