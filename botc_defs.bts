@@ -1,14 +1,94 @@
-#!botc 1.0
+#!botc 2.0
 
 // This file defines the functions and events for botc
 // Do not edit unless you know what you are doing!
+
+const int NORTH = 0;
+const int NORTHEAST = 1;
+const int EAST = 2;
+const int SOUTHEAST = 3;
+const int SOUTH = 4;
+const int SOUTHWEST = 5;
+const int WEST = 6;
+const int NORTHWEST = 7;
+const int NUM_DIRECTIONS = 8;
+
+const int WEAPON_FIST = 0;
+const int WEAPON_PISTOL = 1;
+const int WEAPON_SHOTGUN = 2;
+const int WEAPON_CHAINGUN = 3;
+const int WEAPON_ROCKETLAUNCHER = 4;
+const int WEAPON_PLASMA = 5;
+const int WEAPON_BFG = 6;
+const int WEAPON_CHAINSAW = 7;
+const int WEAPON_SUPERSHOTGUN = 8;
+const int WEAPON_GRENADELAUNCHER = 9;
+const int WEAPON_RAILGUN = 10;
+const int WEAPON_BFG10K = 11;
+const int WEAPON_MINIGUN = 12;
+
+const int GAMETYPE_NORMAL = 0;
+const int GAMETYPE_DEATHMATCH = 1;
+const int GAMETYPE_TEAMPLAY = 2;
+const int GAMETYPE_DUEL = 3;
+const int GAMETYPE_SURVIVAL = 4;
+const int GAMETYPE_INSTAGIB = 5;
+const int GAMETYPE_TEAMINSTAGIB = 6;
+const int GAMETYPE_TERMINATOR = 7;
+const int GAMETYPE_LASTMANSTANDING = 8;
+const int GAMETYPE_TEAMLMS = 9;
+const int GAMETYPE_OLDSCHOOL = 10;
+const int GAMETYPE_TEAMGAME = 11;
+const int GAMETYPE_CTF = 12;
+const int GAMETYPE_INSTAGIBCTF = 13;
+const int GAMETYPE_ONEFLAGCTF = 14;
+const int GAMETYPE_SKULLTAG = 15;
+
+const int MEDAL_EXCELLENT = 0;
+const int MEDAL_INCREDIBLE = 1;
+const int MEDAL_IMPRESSIVE = 2;
+const int MEDAL_MOSTIMPRESSIVE = 3;
+const int MEDAL_DOMINATION = 4;
+const int MEDAL_TOTALDOMINATION = 5;
+const int MEDAL_ACCURACY = 6;
+const int MEDAL_PRECISION = 7;
+const int MEDAL_VICTORY = 8;
+const int MEDAL_PERFECT = 9;
+const int MEDAL_LLAMA = 10;
+const int MEDAL_YOUFAILIT = 11;
+const int MEDAL_YOURSKILLISNOTENOUGH = 12;
+const int MEDAL_FISTING = 13;
+
+const int PATH_UNREACHABLE = -1;
+const int PATH_INCOMPLETE = 0;
+const int PATH_COMPLETE = 1;
+const int PATH_REACHEDGOAL = 2;
+
+const int TERRAIN_OBSTRUCTED = 1;
+const int TERRAIN_STAIRS = 2;
+const int TERRAIN_JUMPABLELEDGE = 4;
+const int TERRAIN_DAMAGINGSECTOR = 8;
+const int TERRAIN_DROPOFF = 16;
+const int TERRAIN_TELEPORT = 32;
+const int TERRAIN_DOOR = 64;
+
+// Bot skill ratings.
+const int TSKILL_VERYPOOR = 0;
+const int TSKILL_POOR = 1;
+const int TSKILL_LOW = 2;
+const int TSKILL_MEDIUM = 3;
+const int TSKILL_HIGH = 4;
+const int TSKILL_EXCELLENT = 5;
+const int TSKILL_SUPREME = 6;
+const int TSKILL_GODLIKE = 7;
+const int TSKILL_PERFECT = 8;
 
 // =============================================================================
 //
 // Function definitions
 // Syntax: funcdef <return> <num>:<name> (<args>)
 //
-funcdef void	0:changestate (int newstate);
+funcdef void	0:changestate (state newstate);
 funcdef void	1:delay (int tics);
 funcdef int		2:random (int a, int b);
 funcdef bool	3:StringsAreEqual (str string1, str string2);
@@ -101,6 +181,13 @@ funcdef void	89:SayFromLump (str lump, str section);
 funcdef void	90:SayFromChatLump (str section);
 funcdef bool	91:ChatSectionExistsInLump (str lump, str section);
 funcdef bool	92:ChatSectionExistsInChatLump (str section);
+
+// =============================================================================
+//
+// Builtin function definitions
+// Syntax: funcdef <return> <num>:<name> (<args>)
+//
+builtindef void 70:MemSet (array arr, int value, int numBytes);
 
 // =============================================================================
 //
