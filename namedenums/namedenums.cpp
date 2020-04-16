@@ -178,7 +178,7 @@ public:
 
 // =============================================================================
 //
-void SkipWhitespace (char*& cp, const char const *end)
+void SkipWhitespace (char*& cp, const char *end)
 {
 	while (cp < end && isspace (*cp))
 	{
