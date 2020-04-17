@@ -1282,10 +1282,12 @@ DataBuffer* BotscriptParser::parseStatement()
 	if (m_lexer->next (Token::DollarSign))
 	{
 		m_lexer->mustGetNext (Token::Symbol);
-		Variable* var = findVariable (getTokenString());
+		String var_name = getTokenString();
+		Variable* var = findVariable (var_name);
 
-		if (var == null)
-			error ("unknown variable $%1", var->name);
+		if (var == null) {
+			error("unknown variable $%1", var_name);
+		}
 
 		return parseAssignment (var);
 	}
