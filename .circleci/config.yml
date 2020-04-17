@@ -42,7 +42,7 @@ jobs:
               cd /root/project/vendor/llvm; \
               [[ -f llvm.tar.xz ]] || curl -SL https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-pc-linux-gnu.tar.xz -o llvm.tar.xz; \
               tar -xJC . <llvm.tar.xz && \
-              mv clang+llvm-9.0.0-x86_64-pc-linux-gnu.tar.xz ../../clang_9.0.0
+              mv clang+llvm-9.0.0-x86_64-pc-linux-gnu ../../clang_9.0.0
       - save_cache:
           key: clang-v1-9.0.0
           paths:
