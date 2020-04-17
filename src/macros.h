@@ -70,10 +70,6 @@
 # define __attribute__(X)
 #endif
 
-#if !defined (_MSC_VER)
-#define deprecated __attribute__ ((deprecated))
-#endif
-
 template<typename... argtypes>
 void error (const char* fmtstr, const argtypes&... args);
 
