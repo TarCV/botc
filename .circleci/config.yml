@@ -4,22 +4,21 @@ jobs:
   ubuntu-clang:
     docker:
       - image: ubuntu:19.10
-    environment:
-      CC: /root/project/clang_9.0.0/bin/clang
-      CXX: /root/project/clang_9.0.0/bin/clang++
-      LD: /root/project/clang_9.0.0/bin/ld.lld
-      LD_LIBRARY_PATH: /root/project/clang_9.0.0/lib
+    #environment:
+      #CC: /root/project/clang_9.0.0/bin/clang
+      #CXX: /root/project/clang_9.0.0/bin/clang++
+      #LD: /root/project/clang_9.0.0/bin/ld.lld
+      #LD_LIBRARY_PATH: /root/project/clang_9.0.0/lib
     steps:
       - checkout
       - run: apt update || true; apt update
       - run:
           name: Install packages required for CircleCI
-          command: apt install -y ssh tar gzip ca-certificates
+          command: apt install -y ssh tar gzip ca-certificates 
       - restore_cache:
           keys:
             - apt-v1-
-            - clang-v1-9.0.0
-      - run: apt install -y ca-certificates make cmake libtinfo5 xz-utils curl # update cache ver when changing list here
+      - run: apt install -y make cmake clang-9 lldb-9 lld-9 clang-9 # update cache ver when changing list here
       - run:
           name: Cleanup cache
           command: |
@@ -35,18 +34,6 @@ jobs:
           key: apt-v1-{{ .Revision }}
           paths:
             - "/var/cache/apt"
-      - run:
-          name: Install LLVM
-          command: |
-            mkdir -p /root/project/vendor/llvm || true; \
-              cd /root/project/vendor/llvm; \
-              [[ -f llvm.tar.xz ]] || curl -SL https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-pc-linux-gnu.tar.xz -o llvm.tar.xz; \
-              tar -xJC . <llvm.tar.xz && \
-              mv clang+llvm-9.0.0-x86_64-pc-linux-gnu ../../clang_9.0.0
-      - save_cache:
-          key: clang-v1-9.0.0
-          paths:
-            - "/root/project/vendor/llvm"
       - run:
           name: Build
           command: cmake -DCMAKE_CXX_FLAGS="-stdlib=libc++ -fuse-ld=$LD" . && make
