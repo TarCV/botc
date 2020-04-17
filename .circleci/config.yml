@@ -3,7 +3,7 @@ version: 2
 jobs:
   ubuntu-clang:
     docker:
-      - image: ubuntu:19.04
+      - image: ubuntu:19.10
     environment:
       CC: /root/project/clang_9.0.0/bin/clang
       CXX: /root/project/clang_9.0.0/bin/clang++
