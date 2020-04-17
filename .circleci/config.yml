@@ -22,9 +22,9 @@ jobs:
             wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
             add-apt-repository "deb http://apt.llvm.org/eoan/ llvm-toolchain-eoan-9 main"
       - run:
-          name: Install CLang
+          name: Install CLang and test deps
           # update cache ver when changing list here:
-          command: apt install -y make cmake clang-9 lldb-9 lld-9 clang-9 libc++-9-dev libc++abi-9-dev
+          command: apt install -y make cmake clang-9 lldb-9 lld-9 clang-9 libc++-9-dev libc++abi-9-dev curl
       - run:
           name: Cleanup cache
           command: |
