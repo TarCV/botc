@@ -35,6 +35,12 @@ jobs:
           paths:
             - "/var/cache/apt"
       - run:
+          name: Configure build environment
+          command: |
+            update-alternatives --install /usr/bin/cc cc /usr/bin/clang-9 60
+            update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-9 60
+            update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-9 60
+      - run:
           name: Build
           command: cmake -DCMAKE_CXX_FLAGS="-stdlib=libc++ -fuse-ld=$LD" . && make
       - run:
