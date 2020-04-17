@@ -40,11 +40,7 @@
 using std::string;
 using std::vector;
 
-#if defined (_MSC_VER)
-using std::experimental::filesystem::path;
-#else
 using std::filesystem::path;
-#endif
 
 static int LineNumber;
 static std::string CurrentFile;
