@@ -3,12 +3,12 @@ version: 2
 jobs:
   ubuntu-clang:
     docker:
-      - image: ubuntu:18.10
+      - image: ubuntu:19.04
     environment:
-      CC: /root/project/clang_7.0.1/bin/clang
-      CXX: /root/project/clang_7.0.1/bin/clang++
-      LD: /root/project/clang_7.0.1/bin/ld.lld
-      LD_LIBRARY_PATH: /root/project/clang_7.0.1/lib
+      CC: /root/project/clang_9.0.0/bin/clang
+      CXX: /root/project/clang_9.0.0/bin/clang++
+      LD: /root/project/clang_9.0.0/bin/ld.lld
+      LD_LIBRARY_PATH: /root/project/clang_9.0.0/lib
     steps:
       - checkout
       - run: apt update || true; apt update
@@ -18,7 +18,7 @@ jobs:
       - restore_cache:
           keys:
             - apt-v1-
-            - clang-v1-7.0.1
+            - clang-v1-9.0.0
       - run: apt install -y ca-certificates make cmake libtinfo5 xz-utils curl # update cache ver when changing list here
       - run:
           name: Cleanup cache
@@ -40,11 +40,11 @@ jobs:
           command: |
             mkdir -p /root/project/vendor/llvm || true; \
               cd /root/project/vendor/llvm; \
-              [[ -f llvm.tar.xz ]] || curl -SL http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz -o llvm.tar.xz; \
+              [[ -f llvm.tar.xz ]] || curl -SL https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-pc-linux-gnu.tar.xz -o llvm.tar.xz; \
               tar -xJC . <llvm.tar.xz && \
-              mv clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04 ../../clang_7.0.1
+              mv clang+llvm-9.0.0-x86_64-pc-linux-gnu.tar.xz ../../clang_9.0.0
       - save_cache:
-          key: clang-v1-7.0.1
+          key: clang-v1-9.0.0
           paths:
             - "/root/project/vendor/llvm"
       - run:
