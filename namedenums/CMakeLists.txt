@@ -1,8 +1,10 @@
 cmake_minimum_required (VERSION 2.4)
 add_executable (namedenums namedenums.cpp)
-if (MSVS)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /permissive-")
+
+set_target_properties(namedenums PROPERTIES CXX_STANDARD 17)
+if (MSVC)
+    target_compile_options(namedenums PRIVATE /Zc:__cplusplus /permissive-)
 endif()
 if (NOT MSVC)
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -W -Wall")
+    target_compile_options(namedenums PRIVATE -W -Wall)
 endif()
