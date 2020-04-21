@@ -195,7 +195,11 @@ void BotscriptParser::parseBotscript (String fileName)
 				if (comm)
 				{
 					currentBuffer()->mergeAndDestroy (parseCommand (comm));
-					m_lexer->mustGetNext (Token::Semicolon);
+					m_lexer->mustGetNext(Token::Semicolon);
+
+					if (comm->returnvalue != TYPE_Void) {
+						currentBuffer()->writeHeader(DataHeader::Drop);
+					}
 					continue;
 				}
 
