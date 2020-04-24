@@ -3,23 +3,28 @@ version: 2
 jobs:
   ubuntu-clang:
     docker:
-      - image: ubuntu:18.10
+      - image: ubuntu:19.10
     environment:
-      CC: /root/project/clang_7.0.1/bin/clang
-      CXX: /root/project/clang_7.0.1/bin/clang++
-      LD: /root/project/clang_7.0.1/bin/ld.lld
-      LD_LIBRARY_PATH: /root/project/clang_7.0.1/lib
+      LD: /usr/bin/ld
     steps:
       - checkout
       - run: apt update || true; apt update
       - run:
           name: Install packages required for CircleCI
-          command: apt install -y ssh tar gzip ca-certificates
+          command: apt install -y ssh tar gzip ca-certificates 
       - restore_cache:
           keys:
             - apt-v1-
-            - clang-v1-7.0.1
-      - run: apt install -y ca-certificates make cmake libtinfo5 xz-utils curl # update cache ver when changing list here
+      - run:
+          name: Configure CLang repository
+          command: |
+            apt install -y gnupg software-properties-common
+            wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+            add-apt-repository "deb http://apt.llvm.org/eoan/ llvm-toolchain-eoan-9 main"
+      - run:
+          name: Install CLang and test deps
+          # update cache ver when changing list here:
+          command: apt install -y make cmake clang-9 lldb-9 lld-9 clang-9 libc++-9-dev libc++abi-9-dev curl
       - run:
           name: Cleanup cache
           command: |
@@ -36,17 +41,11 @@ jobs:
           paths:
             - "/var/cache/apt"
       - run:
-          name: Install LLVM
+          name: Configure build environment
           command: |
-            mkdir -p /root/project/vendor/llvm || true; \
-              cd /root/project/vendor/llvm; \
-              [[ -f llvm.tar.xz ]] || curl -SL http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz -o llvm.tar.xz; \
-              tar -xJC . <llvm.tar.xz && \
-              mv clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04 ../../clang_7.0.1
-      - save_cache:
-          key: clang-v1-7.0.1
-          paths:
-            - "/root/project/vendor/llvm"
+            update-alternatives --install /usr/bin/cc cc /usr/bin/clang-9 60
+            update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-9 60
+            update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-9 60
       - run:
           name: Build
           command: cmake -DCMAKE_CXX_FLAGS="-stdlib=libc++ -fuse-ld=$LD" . && make
@@ -106,4 +105,4 @@ workflows:
           filters:
             branches:
               only:
-                - tarcv-master
+                - release
