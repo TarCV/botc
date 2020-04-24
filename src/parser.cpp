@@ -214,7 +214,11 @@ void BotscriptParser::parseBotscript (String fileName)
 				if (comm)
 				{
 					currentBuffer()->mergeAndDestroy (parseCommand (comm));
-					m_lexer->mustGetNext (Token::Semicolon);
+					m_lexer->mustGetNext(Token::Semicolon);
+
+					if (comm->returnvalue != TYPE_Void) {
+						currentBuffer()->writeHeader(DataHeader::Drop);
+					}
 					continue;
 				}
 
@@ -1395,10 +1399,12 @@ DataBuffer* BotscriptParser::parseStatement()
 	// If it's a variable, expect assignment.
 	if (m_lexer->next (Token::Symbol))
 	{
-		Variable* var = findVariable (getTokenString());
+        String var_name = getTokenString();
+		Variable* var = findVariable (var_name);
 
-		if (var == null)
-			error ("unknown variable %1", var->name);
+		if (var == null) {
+			error("unknown variable $%1", var_name);
+		}
 
 		return parseAssignment (var);
 	}

@@ -40,11 +40,7 @@
 using std::string;
 using std::vector;
 
-#if defined (_MSC_VER)
-using std::experimental::filesystem::path;
-#else
 using std::filesystem::path;
-#endif
 
 static int LineNumber;
 static std::string CurrentFile;
@@ -178,7 +174,7 @@ public:
 
 // =============================================================================
 //
-void SkipWhitespace (char*& cp, const char const *end)
+void SkipWhitespace (char*& cp, const char *end)
 {
 	while (cp < end && isspace (*cp))
 	{

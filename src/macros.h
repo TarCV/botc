@@ -39,7 +39,7 @@
 #define APPNAME "botc"
 #define VERSION_MAJOR	2
 #define VERSION_MINOR	0
-#define VERSION_PATCH 	0
+#define VERSION_PATCH 	1
 
 #define MACRO_TO_STRING_HELPER(A) #A
 #define MACRO_TO_STRING(A) MACRO_TO_STRING_HELPER(A)
@@ -68,10 +68,6 @@
 
 #ifndef __GNUC__
 # define __attribute__(X)
-#endif
-
-#if !defined (_MSC_VER)
-#define deprecated __attribute__ ((deprecated))
 #endif
 
 template<typename... argtypes>
