@@ -42,7 +42,7 @@ get_target_property (UPDATEREVISION_EXE updaterevision LOCATION)
 get_target_property (NAMEDENUMS_EXE namedenums LOCATION)
 
 add_custom_target (revision_check ALL
-    COMMAND ${UPDATEREVISION_EXE} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/hginfo.h
+    COMMAND ${UPDATEREVISION_EXE} ${CMAKE_BINARY_DIR}/gitinfo.h
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     DEPENDS updaterevision)
 
