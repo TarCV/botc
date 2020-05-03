@@ -104,6 +104,13 @@ funcdef bool	92:ChatSectionExistsInChatLump (str section);
 
 // =============================================================================
 //
+// Builtin function definitions
+// Syntax: funcdef <return> <num>:<name> (<args>)
+//
+builtindef void 70:ArraySet (int array, int value, int numBytes);
+
+// =============================================================================
+//
 // Events:
 // eventdef <number>:<name>();
 //
