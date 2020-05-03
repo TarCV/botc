@@ -42,8 +42,8 @@
 // Application name and version
 #define APPNAME "botc"
 #define VERSION_MAJOR	1
-#define VERSION_MINOR	0
-#define VERSION_PATCH 	1
+#define VERSION_MINOR	1
+#define VERSION_PATCH 	0
 
 #define MACRO_TO_STRING_HELPER(A) #A
 #define MACRO_TO_STRING(A) MACRO_TO_STRING_HELPER(A)
