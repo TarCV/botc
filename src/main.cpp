@@ -37,12 +37,12 @@
 #include "dataBuffer.h"
 #include "parser.h"
 #include "lexer.h"
-#include "hginfo.h"
+#include "gitinfo.h"
 #include "commandline.h"
 #include "enumstrings.h"
 
-#ifdef SVN_REVISION_STRING
-#define FULL_VERSION_STRING VERSION_STRING "-" SVN_REVISION_STRING;
+#ifdef GIT_HASH
+#define FULL_VERSION_STRING VERSION_STRING "-" GIT_HASH;
 #else
 #define FULL_VERSION_STRING VERSION_STRING;
 #endif
