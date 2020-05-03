@@ -81,28 +81,8 @@ jobs:
           paths:
             - output.bin
 
-  publish:
-    docker:
-      - image: cibuilds/github:0.12
-    steps:
-      - checkout
-      - attach_workspace:
-          at: ./artifacts/bin
-      - run:
-          name: "Publish Release on GitHub"
-          command: |
-            VERSION=$(./artifacts/bin/botc --help | cut -c5- | rev | cut -c2- | rev)
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/bin/*
-
 workflows:
   version: 2
   build:
     jobs:
       - ubuntu-clang
-      - publish:
-          requires:
-            - ubuntu-clang
-          filters:
-            branches:
-              only:
-                - release
