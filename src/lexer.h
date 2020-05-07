@@ -78,7 +78,7 @@ public:
 
 	inline bool hasValidToken() const
 	{
-		return (m_tokenPosition < m_tokens.end() and m_tokenPosition >= m_tokens.begin());
+		return (m_tokenPosition < m_tokens.end() and m_tokenPosition > m_tokens.begin());
 	}
 
 	inline TokenInfo* token() const

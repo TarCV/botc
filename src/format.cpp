@@ -128,7 +128,7 @@ void error (const String& msg)
 	if (lx != null and lx->hasValidToken())
 	{
 		Lexer::TokenInfo* tk = lx->token();
-		fileinfo = format ("%1:%2:%3: ", tk->file, tk->line, tk->column);
+		fileinfo = format ("%1:%2:near %3: ", tk->file, tk->line, tk->column);
 	}
 
     throw std::runtime_error ((fileinfo + msg).c_str());

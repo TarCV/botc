@@ -108,7 +108,6 @@ private:
 class ExpressionSymbol
 {
 	PROPERTY (private, ExpressionSymbolType, type, setType, STOCK_WRITE)
-
 public:
 	ExpressionSymbol (ExpressionSymbolType type) :
 		m_type (type) {}
@@ -119,9 +118,9 @@ public:
 class ExpressionOperator final : public ExpressionSymbol
 {
 	PROPERTY (public, ExpressionOperatorType, id, setID, STOCK_WRITE)
-
+	PROPERTY(public, DataType, returnType, setReturnType, STOCK_WRITE)
 public:
-	ExpressionOperator (ExpressionOperatorType id);
+	ExpressionOperator (ExpressionOperatorType id, DataType returnType);
 };
 
 // =============================================================================
